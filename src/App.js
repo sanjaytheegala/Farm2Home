@@ -1,25 +1,25 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import SignupPage from './pages/SignupPage'
+import LoginPage from './pages/LoginPage'
+import HomePage from './pages/HomePage'
+import FarmerDashboard from './pages/FarmerDashboard'
+import ConsumerDashboard from './pages/ConsumerDashboard'
 
 function App() {
+  const [language, setLanguage] = useState('EN')
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage language={language} setLanguage={setLanguage} />} />
+        <Route path="/signup" element={<SignupPage language={language} setLanguage={setLanguage} />} />
+        <Route path="/login" element={<LoginPage language={language} setLanguage={setLanguage} />} />
+        <Route path="/farmer" element={<FarmerDashboard language={language} setLanguage={setLanguage} />} />
+        <Route path="/consumer" element={<ConsumerDashboard language={language} setLanguage={setLanguage} />} />
+      </Routes>
+    </Router>
+  )
 }
 
-export default App;
+export default App
