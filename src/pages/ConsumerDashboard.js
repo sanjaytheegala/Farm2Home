@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Navbar from '../components/Navbar'
+import { useTranslation } from 'react-i18next';
 
 const ConsumerDashboard = () => {
   const [items, setItems] = useState([
@@ -12,8 +13,9 @@ const ConsumerDashboard = () => {
   const [cart, setCart] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [sortType, setSortType] = useState('none')
+  const { t } = useTranslation();
 
-  const addToCart = (item) => {
+  const handleAddToCart = (item) => {
     setCart([...cart, item])
   }
 
@@ -28,21 +30,20 @@ const ConsumerDashboard = () => {
   return (
     <div style={container}>
       <Navbar showCart={true} showOrders={true} />
-
-      <h2 style={heading}>Consumer Dashboard</h2>
+      <h2 style={heading}>{t('consumer_dashboard')}</h2>
 
       <div style={filterBar}>
         <input
           type="text"
-          placeholder="Search Crop..."
+          placeholder={t('search_crop')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={input}
         />
         <select onChange={(e) => setSortType(e.target.value)} style={select}>
-          <option value="none">Sort by Price</option>
-          <option value="low">Low to High</option>
-          <option value="high">High to Low</option>
+          <option value="none">{t('sort_by_price')}</option>
+          <option value="low">{t('low_to_high')}</option>
+          <option value="high">{t('high_to_low')}</option>
         </select>
       </div>
 
@@ -50,21 +51,21 @@ const ConsumerDashboard = () => {
         {filteredItems.map((item, idx) => (
           <div key={idx} style={card}>
             <h3>{item.crop}</h3>
-            <p>Quantity: {item.quantity}</p>
-            <p>Price: ₹{item.price}</p>
-            <button onClick={() => addToCart(item)} style={btn}>Add to Cart</button>
+            <p>{t('quantity')}: {item.quantity}</p>
+            <p>{t('price')}: ₹{item.price}</p>
+            <button onClick={() => handleAddToCart(item)} style={btn}>{t('add_to_cart')}</button>
           </div>
         ))}
       </div>
 
-      <button style={buyBtn}>Buy Now</button>
+      <button style={buyBtn}>{t('buy_now')}</button>
     </div>
   )
 }
 
 // ✅ Styles
 const container = {
-  paddingTop: '120px',  // shifted down from 100px to 120px
+  paddingTop: '100px',
   backgroundColor: '#fafafa',
   minHeight: '100vh',
   padding: '20px'
@@ -74,7 +75,7 @@ const heading = {
   textAlign: 'center',
   fontSize: '32px',
   fontWeight: 'bold',
-  marginBottom: '25px'
+  marginBottom: '30px'
 }
 
 const filterBar = {
@@ -140,4 +141,3 @@ const buyBtn = {
 }
 
 export default ConsumerDashboard
- 

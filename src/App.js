@@ -1,20 +1,61 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import HomePage from './pages/HomePage'
-import FarmerDashboard from './pages/FarmerDashboard'
-import ConsumerDashboard from './pages/ConsumerDashboard'
-import AboutPage from './pages/AboutPage'
+// App.js
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import FarmerDashboard from './pages/FarmerDashboard';
+import ConsumerDashboard from './pages/ConsumerDashboard';
+import GovernmentDashboard from './pages/GovernmentDashboard';
+import SignupPage from './pages/SignupPage';
+import LoginPage from './pages/LoginPage';
+import AboutPage from './pages/AboutPage';
+import CartPage from './pages/CartPage';
+import OrdersPage from './pages/OrdersPage';
+import EcommercePage from './pages/EcommercePage';
+import ProtectedRoute from './components/ProtectedRoute';
+import Navbar from './components/Navbar';
 
-function App() {
+const App = () => {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/farmer" element={<FarmerDashboard />} />
-        <Route path="/consumer" element={<ConsumerDashboard />} />
-        <Route path="/about" element={<AboutPage />} />
-      </Routes>
-    </Router>
-  )
-}
+      <Navbar />
+      <div style={{ paddingTop: '80px' }}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/ecommerce" element={<EcommercePage />} />
 
-export default App
+          <Route
+            path="/farmer"
+            element={
+              <ProtectedRoute>
+                <FarmerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/consumer"
+            element={
+              <ProtectedRoute>
+                <ConsumerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/government"
+            element={
+              <ProtectedRoute>
+                <GovernmentDashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
+  );
+};
+
+export default App;

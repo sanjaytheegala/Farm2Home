@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { ref, push, set } from 'firebase/database'
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
+import { useTranslation } from 'react-i18next';
 
 const FarmerDashboard = () => {
   const navigate = useNavigate()
   const [rows, setRows] = useState([{ crop: '', quantity: '', price: '' }])
+  const { t } = useTranslation();
 
   const handleAddRow = () => {
     setRows([...rows, { crop: '', quantity: '', price: '' }])
@@ -24,7 +26,7 @@ const FarmerDashboard = () => {
   }
 
   const handleEdit = (index) => {
-    alert(`Edit clicked on row ${index + 1}`)
+    alert(t('edit_clicked', { row: index + 1 }))
   }
 
   const handleSave = async (index) => {
@@ -32,9 +34,9 @@ const FarmerDashboard = () => {
     try {
       const newRef = push(ref(db, 'crops'))
       await set(newRef, row)
-      alert(`Saved: ${row.crop}, ${row.quantity}, ${row.price}`)
+      alert(t('saved_crop', { crop: row.crop, quantity: row.quantity, price: row.price }))
     } catch (error) {
-      alert('Failed to save crop data')
+      alert(t('failed_to_save'))
       console.error(error)
     }
   }
@@ -48,7 +50,7 @@ const FarmerDashboard = () => {
       <Navbar showEcommerce={true} />
       <h2 style={heading}>
         <span onClick={goBack} style={arrowButton}>&lt;&lt;</span>
-        <span style={rainbowText}>Farmer Dashboard</span>
+        <span style={rainbowText}>{t('farmer_dashboard')}</span>
         <span style={arrowButton}>&gt;&gt;</span>
       </h2>
 
@@ -56,28 +58,28 @@ const FarmerDashboard = () => {
         <div key={index} style={rowStyle}>
           <input
             type="text"
-            placeholder="Crop"
+            placeholder={t('crop')}
             value={row.crop}
             onChange={(e) => handleChange(index, 'crop', e.target.value)}
             style={input}
           />
           <input
             type="text"
-            placeholder="Quantity"
+            placeholder={t('quantity')}
             value={row.quantity}
             onChange={(e) => handleChange(index, 'quantity', e.target.value)}
             style={input}
           />
           <input
             type="text"
-            placeholder="Price"
+            placeholder={t('price')}
             value={row.price}
             onChange={(e) => handleChange(index, 'price', e.target.value)}
             style={input}
           />
-          <button onClick={() => handleSave(index)} style={saveBtn}>Save</button>
-          <button onClick={() => handleEdit(index)} style={editBtn}>Edit</button>
-          <button onClick={() => handleDelete(index)} style={deleteBtn}>Delete</button>
+          <button onClick={() => handleSave(index)} style={saveBtn}>{t('save')}</button>
+          <button onClick={() => handleEdit(index)} style={editBtn}>{t('edit')}</button>
+          <button onClick={() => handleDelete(index)} style={deleteBtn}>{t('delete')}</button>
         </div>
       ))}
 
