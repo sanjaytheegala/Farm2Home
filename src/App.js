@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import FarmerDashboard from './pages/FarmerDashboard';
 import ConsumerDashboard from './pages/ConsumerDashboard';
-import GovernmentDashboard from './pages/GovernmentDashboard';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import AboutPage from './pages/AboutPage';
@@ -41,14 +40,6 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <ConsumerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/government"
-            element={
-              <ProtectedRoute>
-                <GovernmentDashboard />
               </ProtectedRoute>
             }
           />

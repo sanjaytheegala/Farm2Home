@@ -16,7 +16,6 @@ const HomePage = () => {
     // ✅ Direct navigation (temporarily skipping OTP auth)
     if (r === 'farmer') navigate('/farmer')
     else if (r === 'consumer') navigate('/consumer')
-    else if (r === 'government') navigate('/government')
   }
 
   // const sendOTP = async () => {
@@ -64,7 +63,6 @@ const HomePage = () => {
       <div style={buttonGroup}>
         <button onClick={() => handleRoleSelect('farmer')} style={role === 'farmer' ? activeBtn : btn}>Farmer</button>
         <button onClick={() => handleRoleSelect('consumer')} style={role === 'consumer' ? activeBtn : btn}>Consumer</button>
-        <button onClick={() => handleRoleSelect('government')} style={role === 'government' ? activeBtn : btn}>Government</button>
       </div>
 
       <div style={authBox}>
@@ -93,7 +91,7 @@ const HomePage = () => {
       <div id="recaptcha-container"></div>
 
       <p style={desc}>
-        Farm 2 Home empowers local farmers to connect directly with consumers and government support. Fresh produce, fair prices.
+        Farm 2 Home empowers local farmers to connect directly with consumers. Fresh produce, fair prices.
       </p>
     </div>
   )

@@ -3,11 +3,55 @@ import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
 
 const ConsumerDashboard = () => {
+  const dryFruits = [
+    { crop: 'Badam', quantity: '20kg', price: 8000, image: '/images/badam.jpg' },
+    { crop: 'Cashews', quantity: '20kg', price: 9000, image: '/images/cashews.jpg' },
+    { crop: 'Pista', quantity: '20kg', price: 8500, image: '/images/pista.jpg' },
+    { crop: 'Walnut', quantity: '20kg', price: 9500, image: '/images/waltnuts.jpg' },
+    { crop: 'Peanut', quantity: '50kg', price: 1200, image: '/images/peanut.jpg' }
+  ];
+
+  const [showDryFruits, setShowDryFruits] = useState(false);
+
+  const fruits = [
+    { crop: 'Apple', quantity: '40kg', price: 2500, image: '/images/apple.jpg' },
+    { crop: 'Banana', quantity: '100kg', price: 900, image: '/images/banana.jpg' },
+    { crop: 'Mango', quantity: '30kg', price: 2000, image: '/images/Mango.jpg' },
+    { crop: 'Grapes', quantity: '50kg', price: 1800, image: '/images/grapes.jpg' },
+    { crop: 'Papaya', quantity: '40kg', price: 1200, image: '/images/papaya.jpg' },
+    { crop: 'Avocado', quantity: '20kg', price: 3000, image: '/images/avacado.jpg' },
+    { crop: 'Sapota', quantity: '35kg', price: 1100, image: '/images/sapota.jpg' },
+    { crop: 'Guava', quantity: '50kg', price: 900, image: '/images/guva.jpg' },
+    { crop: 'Cherries', quantity: '25kg', price: 3500, image: '/images/cherries.jpg' },
+    { crop: 'Custard Apple', quantity: '30kg', price: 2000, image: '/images/custard apple.jpg' },
+    { crop: 'Pomegranate', quantity: '40kg', price: 2200, image: '/images/Pomegranate.jpg' },
+    { crop: 'Dragon Fruit', quantity: '20kg', price: 4000, image: '/images/dragon fruit.jpg' },
+    { crop: 'Strawberry', quantity: '30kg', price: 3200, image: '/images/strawberry.jpg' },
+    { crop: 'Pineapple', quantity: '25kg', price: 1800, image: '/images/pine apple.jpg' },
+    { crop: 'Orange', quantity: '60kg', price: 1500, image: '/images/orange.jpg' },
+    { crop: 'Kiwi', quantity: '15kg', price: 5000, image: '/images/kiwi.jpg' }
+  ];
+
+  const [showFruits, setShowFruits] = useState(false);
+
+  const vegetables = [
+    { crop: 'Wheat', quantity: '100kg', price: 1200, image: '/images/wheat.jpg' },
+    { crop: 'Rice', quantity: '80kg', price: 1000, image: '/images/rice.jpg' },
+    { crop: 'Tomato', quantity: '50kg', price: 500, image: '/images/tomato.jpg' },
+    { crop: 'Onion', quantity: '60kg', price: 700, image: '/images/onion.jpg' },
+    { crop: 'Potato', quantity: '90kg', price: 800, image: '/images/potato.jpg' },
+    { crop: 'Maize', quantity: '120kg', price: 1100, image: '/images/maize.jpg' },
+    { crop: 'Cabbage', quantity: '70kg', price: 600, image: '/images/cabbage.jpg' },
+    { crop: 'Carrot', quantity: '80kg', price: 750, image: '/images/carrot.jpg' },
+    { crop: 'Brinjal', quantity: '60kg', price: 700, image: '/images/brinjal.jpg' }
+  ];
+
+  const [showVegetables, setShowVegetables] = useState(false);
+
   const [items, setItems] = useState([
-    { crop: 'Wheat', quantity: '100kg', price: 1200 },
-    { crop: 'Rice', quantity: '80kg', price: 1000 },
-    { crop: 'Tomato', quantity: '50kg', price: 500 },
-    { crop: 'Onion', quantity: '60kg', price: 700 }
+    { crop: 'Fruits', quantity: '', price: '', image: '/images/fruits.jpg', isFruits: true },
+    { crop: 'Dry Fruits', quantity: '', price: '', image: '/images/dry fruits.jpg', isDryFruits: true },
+    { crop: 'Vegetables', quantity: '', price: '', image: '/images/vegetables.jpg', isVegetables: true }
   ])
 
   const [cart, setCart] = useState([])
@@ -49,13 +93,68 @@ const ConsumerDashboard = () => {
 
       <div style={list}>
         {filteredItems.map((item, idx) => (
-          <div key={idx} style={card}>
-            <h3>{item.crop}</h3>
-            <p>{t('quantity')}: {item.quantity}</p>
-            <p>{t('price')}: ₹{item.price}</p>
-            <button onClick={() => handleAddToCart(item)} style={btn}>{t('add_to_cart')}</button>
-          </div>
+          item.isFruits ? (
+            <div key={idx} style={card} onClick={() => setShowFruits(!showFruits)}>
+              <img src={item.image} alt={item.crop} style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
+              <h3>{item.crop}</h3>
+              <p style={{ color: '#888', fontSize: 14 }}>(Click to view all)</p>
+            </div>
+          ) : item.isDryFruits ? (
+            <div key={idx} style={card} onClick={() => setShowDryFruits(!showDryFruits)}>
+              <img src={item.image} alt={item.crop} style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
+              <h3>{item.crop}</h3>
+              <p style={{ color: '#888', fontSize: 14 }}>(Click to view all)</p>
+            </div>
+          ) : item.isVegetables ? (
+            <div key={idx} style={card} onClick={() => setShowVegetables(!showVegetables)}>
+              <img src={item.image} alt={item.crop} style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
+              <h3>{item.crop}</h3>
+              <p style={{ color: '#888', fontSize: 14 }}>(Click to view all)</p>
+            </div>
+          ) : null
         ))}
+        {showFruits && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center', marginTop: 20 }}>
+            {fruits.map((item, idx) => (
+              <div key={idx} style={card}>
+                <img src={item.image} alt={item.crop} style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
+                <h3>{item.crop}</h3>
+                <p>{t('quantity')}: {item.quantity}</p>
+                <p>{t('price')}: ₹{item.price}</p>
+                <button onClick={() => handleAddToCart(item)} style={btn}>{t('add_to_cart')}</button>
+              </div>
+            ))}
+            <button onClick={() => setShowFruits(false)} style={{ position: 'absolute', top: 10, right: 10, background: '#fff', border: '1px solid #ccc', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>Close</button>
+          </div>
+        )}
+        {showDryFruits && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center', marginTop: 20 }}>
+            {dryFruits.map((item, idx) => (
+              <div key={idx} style={card}>
+                <img src={item.image} alt={item.crop} style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
+                <h3>{item.crop}</h3>
+                <p>{t('quantity')}: {item.quantity}</p>
+                <p>{t('price')}: ₹{item.price}</p>
+                <button onClick={() => handleAddToCart(item)} style={btn}>{t('add_to_cart')}</button>
+              </div>
+            ))}
+            <button onClick={() => setShowDryFruits(false)} style={{ position: 'absolute', top: 10, right: 10, background: '#fff', border: '1px solid #ccc', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>Close</button>
+          </div>
+        )}
+        {showVegetables && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center', marginTop: 20 }}>
+            {vegetables.map((item, idx) => (
+              <div key={idx} style={card}>
+                <img src={item.image} alt={item.crop} style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
+                <h3>{item.crop}</h3>
+                <p>{t('quantity')}: {item.quantity}</p>
+                <p>{t('price')}: ₹{item.price}</p>
+                <button onClick={() => handleAddToCart(item)} style={btn}>{t('add_to_cart')}</button>
+              </div>
+            ))}
+            <button onClick={() => setShowVegetables(false)} style={{ position: 'absolute', top: 10, right: 10, background: '#fff', border: '1px solid #ccc', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>Close</button>
+          </div>
+        )}
       </div>
 
       <button style={buyBtn}>{t('buy_now')}</button>
@@ -114,7 +213,8 @@ const card = {
   width: '220px',
   borderRadius: '10px',
   boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-  textAlign: 'center'
+  textAlign: 'center',
+  cursor: 'pointer' // Added cursor pointer for dry fruits card
 }
 
 const btn = {

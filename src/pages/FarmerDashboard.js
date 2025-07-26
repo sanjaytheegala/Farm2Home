@@ -4,11 +4,44 @@ import { ref, push, set } from 'firebase/database'
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
+// State/districts for dropdowns
+const stateDistricts = {
+  telangana: [
+    'adilabad', 'bhadradri_kothagudem', 'hyderabad', 'jagtial', 'jangaon', 'jayashankar_bhupalpally', 'jogulamba_gadwal', 'kamareddy', 'karimnagar', 'khammam', 'komaram_bheem_asifabad', 'mahabubabad', 'mahabubnagar', 'mancherial', 'medak', 'medchal_malkajgiri', 'mulugu', 'nagarkurnool', 'nalgonda', 'narayanpet', 'nirmal', 'nizamabad', 'peddapalli', 'rajanna_sircilla', 'rangareddy', 'sangareddy', 'siddipet', 'suryapet', 'vikarabad', 'wanaparthy', 'warangal_rural', 'warangal_urban', 'yadadri_bhuvanagiri'
+  ],
+  andhra_pradesh: [
+    'anantapur', 'chittoor', 'east_godavari', 'guntur', 'kadapa', 'krishna', 'kurnool', 'nellore', 'prakasam', 'srikakulam', 'visakhapatnam', 'vizianagaram', 'west_godavari'
+  ],
+  tamil_nadu: [
+    'ariyalur', 'chengalpattu', 'chennai', 'coimbatore', 'cuddalore', 'dharmapuri', 'dindigul', 'erode', 'kallakurichi', 'kanchipuram', 'kanniyakumari', 'karur', 'krishnagiri', 'madurai', 'mayiladuthurai', 'nagapattinam', 'namakkal', 'nilgiris', 'perambalur', 'pudukkottai', 'ramanathapuram', 'ranipet', 'salem', 'sivaganga', 'tenkasi', 'thanjavur', 'theni', 'thoothukudi', 'tiruchirappalli', 'tirunelveli', 'tirupathur', 'tiruppur', 'tiruvallur', 'tiruvannamalai', 'tiruvarur', 'vellore', 'viluppuram', 'virudhunagar'
+  ],
+  kerala: [
+    'thiruvananthapuram', 'kollam', 'pathanamthitta', 'alappuzha', 'kottayam', 'idukki', 'ernakulam', 'thrissur', 'palakkad', 'malappuram', 'kozhikode', 'wayanad', 'kannur', 'kasaragod'
+  ],
+  goa: [
+    'north_goa', 'south_goa'
+  ],
+  karnataka: [
+    'bagalkot', 'ballari', 'belagavi', 'bengaluru_rural', 'bengaluru_urban', 'bidar', 'chamarajanagar', 'chikkaballapur', 'chikkamagaluru', 'chitradurga', 'dakshina_kannada', 'davanagere', 'dharwad', 'gadag', 'hassan', 'haveri', 'kalaburagi', 'kodagu', 'kolar', 'koppal', 'mandya', 'mysuru', 'raichur', 'ramanagara', 'shivamogga', 'tumakuru', 'udupi', 'uttara_kannada', 'vijayapura', 'yadgir', 'vijayanagara'
+  ],
+  maharashtra: [
+    'mumbai', 'pune', 'nagpur', 'nashik', 'thane', 'aurangabad', 'solapur', 'kolhapur', 'sangli', 'jalgaon', 'satara', 'amravati', 'nanded', 'akola', 'latur', 'dhule', 'ahmednagar', 'chandrapur', 'parbhani', 'yavatmal', 'beed', 'osmanabad', 'bhandara', 'buldhana', 'gondia', 'hingoli', 'palghar', 'raigad', 'ratnagiri', 'sindhudurg', 'wardha', 'washim'
+  ]
+};
 
 const FarmerDashboard = () => {
   const navigate = useNavigate()
   const [rows, setRows] = useState([{ crop: '', quantity: '', price: '' }])
   const { t } = useTranslation();
+  const [selectedState, setSelectedState] = useState('telangana');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const handleStateChange = (e) => {
+    setSelectedState(e.target.value);
+    setSelectedDistrict('');
+  };
+  const handleDistrictChange = (e) => {
+    setSelectedDistrict(e.target.value);
+  };
 
   const handleAddRow = () => {
     setRows([...rows, { crop: '', quantity: '', price: '' }])
@@ -48,10 +81,23 @@ const FarmerDashboard = () => {
   return (
     <div style={container}>
       <Navbar showEcommerce={true} />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', margin: '24px 32px 0 0' }}>
+        <form style={{ display: 'flex', gap: 12 }}>
+          <select value={selectedState} onChange={handleStateChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 180 }}>
+            {Object.keys(stateDistricts).map((stateKey) => (
+              <option key={stateKey} value={stateKey}>{t(`states.${stateKey}`)}</option>
+            ))}
+          </select>
+          <select value={selectedDistrict} onChange={handleDistrictChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 180 }}>
+            <option value="">{t('select_district') || "Select District"}</option>
+            {stateDistricts[selectedState]?.map((districtKey) => (
+              <option key={districtKey} value={districtKey}>{t(`districts.${selectedState}.${districtKey}`)}</option>
+            ))}
+          </select>
+        </form>
+      </div>
       <h2 style={heading}>
-        <span onClick={goBack} style={arrowButton}>&lt;&lt;</span>
-        <span style={rainbowText}>{t('farmer_dashboard')}</span>
-        <span style={arrowButton}>&gt;&gt;</span>
+        <span style={greenText}>{t('farmer_dashboard')}</span>
       </h2>
 
       {rows.map((row, index) => (
@@ -121,11 +167,9 @@ const arrowButton = {
   border: 'none',
 }
 
-const rainbowText = {
-  animation: 'rainbow 5s linear infinite',
-  background: 'linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent'
+const greenText = {
+  color: '#28a745',
+  fontWeight: 'bold',
 }
 
 const rowStyle = {
