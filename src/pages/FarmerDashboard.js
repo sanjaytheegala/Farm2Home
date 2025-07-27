@@ -4,6 +4,8 @@ import { ref, push, set } from 'firebase/database'
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
+import CropRecommendation from '../components/CropRecommendation';
+import WeatherDashboard from '../components/WeatherDashboard';
 // State/districts for dropdowns
 const stateDistricts = {
   telangana: [
@@ -35,6 +37,7 @@ const FarmerDashboard = () => {
   const { t } = useTranslation();
   const [selectedState, setSelectedState] = useState('telangana');
   const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [activeTab, setActiveTab] = useState('crops'); // 'crops', 'recommendations', or 'weather'
   const handleStateChange = (e) => {
     setSelectedState(e.target.value);
     setSelectedDistrict('');
@@ -81,55 +84,86 @@ const FarmerDashboard = () => {
   return (
     <div style={container}>
       <Navbar showEcommerce={true} />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', margin: '24px 32px 0 0' }}>
-        <form style={{ display: 'flex', gap: 12 }}>
-          <select value={selectedState} onChange={handleStateChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 180 }}>
-            {Object.keys(stateDistricts).map((stateKey) => (
-              <option key={stateKey} value={stateKey}>{t(`states.${stateKey}`)}</option>
-            ))}
-          </select>
-          <select value={selectedDistrict} onChange={handleDistrictChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 180 }}>
-            <option value="">{t('select_district') || "Select District"}</option>
-            {stateDistricts[selectedState]?.map((districtKey) => (
-              <option key={districtKey} value={districtKey}>{t(`districts.${selectedState}.${districtKey}`)}</option>
-            ))}
-          </select>
-        </form>
+      
+      {/* Tab Navigation */}
+      <div style={tabContainer}>
+        <button 
+          style={activeTab === 'crops' ? activeTabStyle : tabStyle}
+          onClick={() => setActiveTab('crops')}
+        >
+          {t('manage_crops') || 'Manage Crops'}
+        </button>
+        <button 
+          style={activeTab === 'recommendations' ? activeTabStyle : tabStyle}
+          onClick={() => setActiveTab('recommendations')}
+        >
+          {t('ai_recommendations') || 'AI Recommendations'}
+        </button>
+        <button 
+          style={activeTab === 'weather' ? activeTabStyle : tabStyle}
+          onClick={() => setActiveTab('weather')}
+        >
+          🌤️ {t('weather_forecast') || 'Weather'}
+        </button>
       </div>
-      <h2 style={heading}>
-        <span style={greenText}>{t('farmer_dashboard')}</span>
-      </h2>
 
-      {rows.map((row, index) => (
-        <div key={index} style={rowStyle}>
-          <input
-            type="text"
-            placeholder={t('crop')}
-            value={row.crop}
-            onChange={(e) => handleChange(index, 'crop', e.target.value)}
-            style={input}
-          />
-          <input
-            type="text"
-            placeholder={t('quantity')}
-            value={row.quantity}
-            onChange={(e) => handleChange(index, 'quantity', e.target.value)}
-            style={input}
-          />
-          <input
-            type="text"
-            placeholder={t('price')}
-            value={row.price}
-            onChange={(e) => handleChange(index, 'price', e.target.value)}
-            style={input}
-          />
-          <button onClick={() => handleSave(index)} style={saveBtn}>{t('save')}</button>
-          <button onClick={() => handleEdit(index)} style={editBtn}>{t('edit')}</button>
-          <button onClick={() => handleDelete(index)} style={deleteBtn}>{t('delete')}</button>
-        </div>
-      ))}
+      {activeTab === 'crops' ? (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', margin: '24px 32px 0 0' }}>
+            <form style={{ display: 'flex', gap: 12 }}>
+              <select value={selectedState} onChange={handleStateChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 180 }}>
+                {Object.keys(stateDistricts).map((stateKey) => (
+                  <option key={stateKey} value={stateKey}>{t(`states.${stateKey}`)}</option>
+                ))}
+              </select>
+              <select value={selectedDistrict} onChange={handleDistrictChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 180 }}>
+                <option value="">{t('select_district') || "Select District"}</option>
+                {stateDistricts[selectedState]?.map((districtKey) => (
+                  <option key={districtKey} value={districtKey}>{t(`districts.${selectedState}.${districtKey}`)}</option>
+                ))}
+              </select>
+            </form>
+          </div>
+          <h2 style={heading}>
+            <span style={greenText}>{t('farmer_dashboard')}</span>
+          </h2>
 
-      <button onClick={handleAddRow} style={addBtn}>+</button>
+          {rows.map((row, index) => (
+            <div key={index} style={rowStyle}>
+              <input
+                type="text"
+                placeholder={t('crop')}
+                value={row.crop}
+                onChange={(e) => handleChange(index, 'crop', e.target.value)}
+                style={input}
+              />
+              <input
+                type="text"
+                placeholder={t('quantity')}
+                value={row.quantity}
+                onChange={(e) => handleChange(index, 'quantity', e.target.value)}
+                style={input}
+              />
+              <input
+                type="text"
+                placeholder={t('price')}
+                value={row.price}
+                onChange={(e) => handleChange(index, 'price', e.target.value)}
+                style={input}
+              />
+              <button onClick={() => handleSave(index)} style={saveBtn}>{t('save')}</button>
+              <button onClick={() => handleEdit(index)} style={editBtn}>{t('edit')}</button>
+              <button onClick={() => handleDelete(index)} style={deleteBtn}>{t('delete')}</button>
+            </div>
+          ))}
+
+          <button onClick={handleAddRow} style={addBtn}>+</button>
+        </>
+      ) : activeTab === 'weather' ? (
+        <WeatherDashboard location={selectedDistrict || selectedState} />
+      ) : (
+        <CropRecommendation />
+      )}
     </div>
   )
 }
@@ -139,6 +173,32 @@ const container = {
   paddingTop: '100px',
   backgroundColor: '#f4f4f4',
   minHeight: '100vh'
+}
+
+const tabContainer = {
+  display: 'flex',
+  justifyContent: 'center',
+  gap: '10px',
+  marginBottom: '20px',
+  padding: '20px'
+}
+
+const tabStyle = {
+  padding: '12px 24px',
+  border: '2px solid #28a745',
+  backgroundColor: 'transparent',
+  color: '#28a745',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '16px',
+  fontWeight: '600',
+  transition: 'all 0.3s'
+}
+
+const activeTabStyle = {
+  ...tabStyle,
+  backgroundColor: '#28a745',
+  color: '#fff'
 }
 
 const heading = {

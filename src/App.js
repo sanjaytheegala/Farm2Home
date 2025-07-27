@@ -10,6 +10,7 @@ import AboutPage from './pages/AboutPage';
 import CartPage from './pages/CartPage';
 import OrdersPage from './pages/OrdersPage';
 import EcommercePage from './pages/EcommercePage';
+import CropRecommendationPage from './pages/CropRecommendationPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 
@@ -26,6 +27,7 @@ const App = () => {
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/ecommerce" element={<EcommercePage />} />
+          <Route path="/crop-recommendations" element={<CropRecommendationPage />} />
 
           <Route
             path="/farmer"
