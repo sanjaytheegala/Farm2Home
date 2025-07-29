@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaLeaf, FaThermometerHalf, FaCalendarAlt, FaChartLine, FaSeedling, FaWater } from 'react-icons/fa';
+import { FaLeaf, FaThermometerHalf, FaCalendarAlt, FaChartLine, FaSeedling, FaWater, FaMapMarkerAlt, FaMoneyBillWave, FaClock, FaStar, FaDownload, FaShare, FaBookmark } from 'react-icons/fa';
 
 const CropRecommendation = () => {
   const { t } = useTranslation();
@@ -12,62 +12,66 @@ const CropRecommendation = () => {
     landSize: '',
     budget: '',
     experience: '',
-    marketPreference: ''
+    marketPreference: '',
+    location: ''
   });
 
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(true);
+  const [selectedCrop, setSelectedCrop] = useState(null);
+  const [savedRecommendations, setSavedRecommendations] = useState([]);
+  const [showSaved, setShowSaved] = useState(false);
 
-  // Soil types with characteristics
+  // Enhanced soil types with more details
   const soilTypes = [
-    { value: 'clay', label: 'Clay Soil', description: 'Heavy, retains water well, good for rice and wheat' },
-    { value: 'sandy', label: 'Sandy Soil', description: 'Light, well-draining, good for root vegetables' },
-    { value: 'loamy', label: 'Loamy Soil', description: 'Balanced, ideal for most crops' },
-    { value: 'silt', label: 'Silt Soil', description: 'Fine particles, good for vegetables and fruits' },
-    { value: 'red', label: 'Red Soil', description: 'Rich in iron, good for pulses and oilseeds' },
-    { value: 'black', label: 'Black Soil', description: 'High fertility, excellent for cotton and sugarcane' }
+    { value: 'clay', label: 'Clay Soil', description: 'Heavy, retains water well, good for rice and wheat', characteristics: ['High water retention', 'Rich in minerals', 'Good for paddy crops'] },
+    { value: 'sandy', label: 'Sandy Soil', description: 'Light, well-draining, good for root vegetables', characteristics: ['Fast drainage', 'Warms quickly', 'Good for root crops'] },
+    { value: 'loamy', label: 'Loamy Soil', description: 'Balanced, ideal for most crops', characteristics: ['Perfect balance', 'High fertility', 'Best for most crops'] },
+    { value: 'silt', label: 'Silt Soil', description: 'Fine particles, good for vegetables and fruits', characteristics: ['Smooth texture', 'Good moisture retention', 'Ideal for vegetables'] },
+    { value: 'red', label: 'Red Soil', description: 'Rich in iron, good for pulses and oilseeds', characteristics: ['Iron rich', 'Slightly acidic', 'Good for pulses'] },
+    { value: 'black', label: 'Black Soil', description: 'High fertility, excellent for cotton and sugarcane', characteristics: ['High fertility', 'Rich in minerals', 'Excellent for cash crops'] }
   ];
 
-  // Climate zones
+  // Enhanced climate zones
   const climates = [
-    { value: 'tropical', label: 'Tropical', description: 'Hot and humid, year-round growing' },
-    { value: 'subtropical', label: 'Subtropical', description: 'Warm with distinct seasons' },
-    { value: 'temperate', label: 'Temperate', description: 'Moderate temperatures, seasonal changes' },
-    { value: 'arid', label: 'Arid', description: 'Hot and dry, limited rainfall' },
-    { value: 'semi_arid', label: 'Semi-Arid', description: 'Moderate rainfall, drought-resistant crops' }
+    { value: 'tropical', label: 'Tropical', description: 'Hot and humid, year-round growing', characteristics: ['High temperature', 'High humidity', 'Year-round growing'] },
+    { value: 'subtropical', label: 'Subtropical', description: 'Warm with distinct seasons', characteristics: ['Moderate temperature', 'Distinct seasons', 'Good for diverse crops'] },
+    { value: 'temperate', label: 'Temperate', description: 'Moderate temperatures, seasonal changes', characteristics: ['Moderate climate', 'Seasonal changes', 'Good for grains'] },
+    { value: 'arid', label: 'Arid', description: 'Hot and dry, limited rainfall', characteristics: ['Low rainfall', 'High temperature', 'Drought-resistant crops'] },
+    { value: 'semi_arid', label: 'Semi-Arid', description: 'Moderate rainfall, drought-resistant crops', characteristics: ['Moderate rainfall', 'Drought-resistant', 'Mixed farming'] }
   ];
 
-  // Seasons
+  // Enhanced seasons
   const seasons = [
-    { value: 'kharif', label: 'Kharif (Monsoon)', description: 'June-October, rice, maize, cotton' },
-    { value: 'rabi', label: 'Rabi (Winter)', description: 'October-March, wheat, barley, mustard' },
-    { value: 'zaid', label: 'Zaid (Summer)', description: 'March-June, vegetables, fruits' }
+    { value: 'kharif', label: 'Kharif (Monsoon)', description: 'June-October, rice, maize, cotton', characteristics: ['Monsoon season', 'High rainfall', 'Rice, maize, cotton'] },
+    { value: 'rabi', label: 'Rabi (Winter)', description: 'October-March, wheat, barley, mustard', characteristics: ['Winter season', 'Moderate rainfall', 'Wheat, barley, mustard'] },
+    { value: 'zaid', label: 'Zaid (Summer)', description: 'March-June, vegetables, fruits', characteristics: ['Summer season', 'Irrigation needed', 'Vegetables, fruits'] }
   ];
 
-  // Water availability
+  // Enhanced water availability
   const waterOptions = [
-    { value: 'high', label: 'High (Irrigation available)', description: 'Can grow water-intensive crops' },
-    { value: 'moderate', label: 'Moderate', description: 'Balanced water usage crops' },
-    { value: 'low', label: 'Low (Rainfed)', description: 'Drought-resistant crops recommended' }
+    { value: 'high', label: 'High (Irrigation available)', description: 'Can grow water-intensive crops', characteristics: ['Full irrigation', 'Water-intensive crops', 'High yield potential'] },
+    { value: 'moderate', label: 'Moderate', description: 'Balanced water usage crops', characteristics: ['Partial irrigation', 'Balanced crops', 'Moderate yield'] },
+    { value: 'low', label: 'Low (Rainfed)', description: 'Drought-resistant crops recommended', characteristics: ['Rainfed farming', 'Drought-resistant', 'Low water usage'] }
   ];
 
-  // Experience levels
+  // Enhanced experience levels
   const experienceLevels = [
-    { value: 'beginner', label: 'Beginner (0-2 years)', description: 'Easy to grow crops' },
-    { value: 'intermediate', label: 'Intermediate (3-5 years)', description: 'Moderate complexity crops' },
-    { value: 'expert', label: 'Expert (5+ years)', description: 'Advanced farming techniques' }
+    { value: 'beginner', label: 'Beginner (0-2 years)', description: 'Easy to grow crops', characteristics: ['Simple techniques', 'Low risk', 'Easy maintenance'] },
+    { value: 'intermediate', label: 'Intermediate (3-5 years)', description: 'Moderate complexity crops', characteristics: ['Moderate techniques', 'Medium risk', 'Some expertise needed'] },
+    { value: 'expert', label: 'Expert (5+ years)', description: 'Advanced farming techniques', characteristics: ['Advanced techniques', 'High risk', 'Expert knowledge'] }
   ];
 
-  // Market preferences
+  // Enhanced market preferences
   const marketPreferences = [
-    { value: 'local', label: 'Local Market', description: 'Fresh produce for nearby markets' },
-    { value: 'export', label: 'Export Market', description: 'High-value crops for international markets' },
-    { value: 'processing', label: 'Processing Industry', description: 'Crops for food processing' },
-    { value: 'organic', label: 'Organic Market', description: 'Certified organic produce' }
+    { value: 'local', label: 'Local Market', description: 'Fresh produce for nearby markets', characteristics: ['Nearby markets', 'Fresh produce', 'Quick sales'] },
+    { value: 'export', label: 'Export Market', description: 'High-value crops for international markets', characteristics: ['International markets', 'High value', 'Quality standards'] },
+    { value: 'processing', label: 'Processing Industry', description: 'Crops for food processing', characteristics: ['Bulk supply', 'Processing units', 'Contract farming'] },
+    { value: 'organic', label: 'Organic Market', description: 'Certified organic produce', characteristics: ['Certified organic', 'Premium pricing', 'Natural methods'] }
   ];
 
-  // AI-based crop recommendation algorithm
+  // Enhanced AI-based crop recommendation algorithm
   const generateRecommendations = (data) => {
     setLoading(true);
     
@@ -75,11 +79,12 @@ const CropRecommendation = () => {
     setTimeout(() => {
       const recommendations = [];
       
-      // Crop database with characteristics
+      // Enhanced crop database with more details
       const cropDatabase = {
         // Cereals
         rice: {
           name: 'Rice',
+          scientificName: 'Oryza sativa',
           soil: ['clay', 'loamy'],
           climate: ['tropical', 'subtropical'],
           season: ['kharif'],
@@ -90,10 +95,15 @@ const CropRecommendation = () => {
           risk: 'Low',
           duration: '120-150 days',
           investment: '₹15,000-25,000 per acre',
-          yield: '2-3 tons per acre'
+          yield: '2-3 tons per acre',
+          bestPractices: ['Proper water management', 'Timely transplantation', 'Balanced fertilization'],
+          challenges: ['Water requirement', 'Pest management', 'Labor intensive'],
+          marketTrends: 'Stable demand, good export potential',
+          sustainability: 'High - supports food security'
         },
         wheat: {
           name: 'Wheat',
+          scientificName: 'Triticum aestivum',
           soil: ['loamy', 'clay'],
           climate: ['temperate', 'subtropical'],
           season: ['rabi'],
@@ -104,10 +114,15 @@ const CropRecommendation = () => {
           risk: 'Low',
           duration: '110-130 days',
           investment: '₹12,000-20,000 per acre',
-          yield: '2-2.5 tons per acre'
+          yield: '2-2.5 tons per acre',
+          bestPractices: ['Timely sowing', 'Proper irrigation', 'Disease management'],
+          challenges: ['Weather dependency', 'Disease control', 'Storage issues'],
+          marketTrends: 'Stable domestic demand',
+          sustainability: 'High - staple food crop'
         },
         maize: {
           name: 'Maize',
+          scientificName: 'Zea mays',
           soil: ['loamy', 'sandy'],
           climate: ['tropical', 'subtropical'],
           season: ['kharif', 'zaid'],
@@ -118,12 +133,17 @@ const CropRecommendation = () => {
           risk: 'Medium',
           duration: '90-110 days',
           investment: '₹10,000-18,000 per acre',
-          yield: '2.5-3.5 tons per acre'
+          yield: '2.5-3.5 tons per acre',
+          bestPractices: ['Hybrid seeds', 'Proper spacing', 'Timely harvesting'],
+          challenges: ['Pest management', 'Market price fluctuations', 'Storage'],
+          marketTrends: 'Growing demand for processed products',
+          sustainability: 'Medium - versatile crop'
         },
         
         // Pulses
         chickpea: {
           name: 'Chickpea',
+          scientificName: 'Cicer arietinum',
           soil: ['loamy', 'sandy'],
           climate: ['temperate', 'subtropical'],
           season: ['rabi'],
@@ -134,26 +154,17 @@ const CropRecommendation = () => {
           risk: 'Low',
           duration: '120-140 days',
           investment: '₹8,000-15,000 per acre',
-          yield: '1-1.5 tons per acre'
-        },
-        pigeonPea: {
-          name: 'Pigeon Pea',
-          soil: ['loamy', 'sandy'],
-          climate: ['tropical', 'subtropical'],
-          season: ['kharif'],
-          water: ['low'],
-          experience: ['intermediate'],
-          market: ['local', 'processing'],
-          profit: 'Medium',
-          risk: 'Low',
-          duration: '150-180 days',
-          investment: '₹6,000-12,000 per acre',
-          yield: '1-1.2 tons per acre'
+          yield: '1-1.5 tons per acre',
+          bestPractices: ['Proper seed treatment', 'Disease management', 'Timely harvesting'],
+          challenges: ['Disease susceptibility', 'Weather dependency', 'Market access'],
+          marketTrends: 'High demand for protein-rich food',
+          sustainability: 'High - nitrogen fixing crop'
         },
         
         // Oilseeds
         groundnut: {
           name: 'Groundnut',
+          scientificName: 'Arachis hypogaea',
           soil: ['sandy', 'loamy'],
           climate: ['tropical', 'subtropical'],
           season: ['kharif', 'rabi'],
@@ -164,26 +175,17 @@ const CropRecommendation = () => {
           risk: 'Medium',
           duration: '120-140 days',
           investment: '₹12,000-20,000 per acre',
-          yield: '1.5-2 tons per acre'
-        },
-        soybean: {
-          name: 'Soybean',
-          soil: ['loamy', 'clay'],
-          climate: ['tropical', 'subtropical'],
-          season: ['kharif'],
-          water: ['moderate'],
-          experience: ['intermediate'],
-          market: ['processing', 'export'],
-          profit: 'High',
-          risk: 'Medium',
-          duration: '90-120 days',
-          investment: '₹10,000-18,000 per acre',
-          yield: '1.5-2.5 tons per acre'
+          yield: '1.5-2 tons per acre',
+          bestPractices: ['Proper spacing', 'Disease control', 'Timely harvesting'],
+          challenges: ['Aflatoxin management', 'Weather dependency', 'Storage issues'],
+          marketTrends: 'Growing demand for oil and protein',
+          sustainability: 'Medium - oil crop'
         },
         
         // Vegetables
         tomato: {
           name: 'Tomato',
+          scientificName: 'Solanum lycopersicum',
           soil: ['loamy', 'sandy'],
           climate: ['tropical', 'subtropical'],
           season: ['zaid', 'rabi'],
@@ -194,26 +196,17 @@ const CropRecommendation = () => {
           risk: 'High',
           duration: '90-120 days',
           investment: '₹25,000-40,000 per acre',
-          yield: '15-25 tons per acre'
-        },
-        onion: {
-          name: 'Onion',
-          soil: ['loamy', 'sandy'],
-          climate: ['tropical', 'subtropical'],
-          season: ['rabi'],
-          water: ['moderate'],
-          experience: ['beginner', 'intermediate'],
-          market: ['local', 'processing'],
-          profit: 'High',
-          risk: 'Medium',
-          duration: '90-110 days',
-          investment: '₹20,000-35,000 per acre',
-          yield: '8-12 tons per acre'
+          yield: '15-25 tons per acre',
+          bestPractices: ['Staking', 'Disease management', 'Regular harvesting'],
+          challenges: ['Price fluctuations', 'Disease management', 'Labor intensive'],
+          marketTrends: 'Year-round demand',
+          sustainability: 'Medium - high input crop'
         },
         
         // Fruits
         mango: {
           name: 'Mango',
+          scientificName: 'Mangifera indica',
           soil: ['loamy', 'sandy'],
           climate: ['tropical', 'subtropical'],
           season: ['zaid'],
@@ -224,12 +217,17 @@ const CropRecommendation = () => {
           risk: 'Medium',
           duration: '3-5 years (first harvest)',
           investment: '₹50,000-80,000 per acre',
-          yield: '8-12 tons per acre (mature trees)'
+          yield: '8-12 tons per acre (mature trees)',
+          bestPractices: ['Proper pruning', 'Disease management', 'Quality maintenance'],
+          challenges: ['Long gestation period', 'Disease management', 'Market competition'],
+          marketTrends: 'High export potential',
+          sustainability: 'High - perennial crop'
         },
         
         // Cash Crops
         cotton: {
           name: 'Cotton',
+          scientificName: 'Gossypium hirsutum',
           soil: ['black', 'loamy'],
           climate: ['tropical', 'subtropical'],
           season: ['kharif'],
@@ -240,36 +238,26 @@ const CropRecommendation = () => {
           risk: 'Medium',
           duration: '150-180 days',
           investment: '₹15,000-25,000 per acre',
-          yield: '2-3 quintals per acre'
-        },
-        sugarcane: {
-          name: 'Sugarcane',
-          soil: ['black', 'loamy'],
-          climate: ['tropical', 'subtropical'],
-          season: ['kharif'],
-          water: ['high'],
-          experience: ['intermediate', 'expert'],
-          market: ['processing'],
-          profit: 'Medium',
-          risk: 'Low',
-          duration: '12-18 months',
-          investment: '₹30,000-50,000 per acre',
-          yield: '60-80 tons per acre'
+          yield: '2-3 quintals per acre',
+          bestPractices: ['Pest management', 'Proper spacing', 'Quality picking'],
+          challenges: ['Pest management', 'Price fluctuations', 'Labor intensive'],
+          marketTrends: 'Stable textile industry demand',
+          sustainability: 'Medium - cash crop'
         }
       };
 
-      // AI scoring algorithm
+      // Enhanced AI scoring algorithm
       const calculateScore = (crop, data) => {
         let score = 0;
         
-        // Soil compatibility (30 points)
-        if (crop.soil.includes(data.soilType)) score += 30;
+        // Soil compatibility (25 points)
+        if (crop.soil.includes(data.soilType)) score += 25;
         
-        // Climate compatibility (25 points)
-        if (crop.climate.includes(data.climate)) score += 25;
+        // Climate compatibility (20 points)
+        if (crop.climate.includes(data.climate)) score += 20;
         
-        // Season compatibility (20 points)
-        if (crop.season.includes(data.season)) score += 20;
+        // Season compatibility (15 points)
+        if (crop.season.includes(data.season)) score += 15;
         
         // Water availability (15 points)
         if (crop.water.includes(data.waterAvailability)) score += 15;
@@ -277,8 +265,13 @@ const CropRecommendation = () => {
         // Experience level (10 points)
         if (crop.experience.includes(data.experience)) score += 10;
         
-        // Market preference bonus
+        // Market preference bonus (5 points)
         if (crop.market.includes(data.marketPreference)) score += 5;
+        
+        // Budget consideration (10 points)
+        const cropInvestment = parseInt(crop.investment.split('-')[1].replace(/[^\d]/g, ''));
+        const userBudget = parseInt(data.budget) || 50000;
+        if (cropInvestment <= userBudget) score += 10;
         
         return score;
       };
@@ -291,7 +284,8 @@ const CropRecommendation = () => {
             ...crop,
             score,
             key,
-            suitability: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Fair'
+            suitability: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Fair',
+            matchPercentage: score
           });
         }
       });
@@ -322,10 +316,60 @@ const CropRecommendation = () => {
       landSize: '',
       budget: '',
       experience: '',
-      marketPreference: ''
+      marketPreference: '',
+      location: ''
     });
     setRecommendations([]);
     setShowForm(true);
+    setSelectedCrop(null);
+  };
+
+  const saveRecommendation = (crop) => {
+    const savedCrop = {
+      ...crop,
+      savedAt: new Date().toISOString(),
+      formData: formData
+    };
+    setSavedRecommendations([...savedRecommendations, savedCrop]);
+    alert('Recommendation saved!');
+  };
+
+  const downloadReport = (crop) => {
+    const report = `
+Crop Recommendation Report
+=========================
+
+Crop: ${crop.name}
+Scientific Name: ${crop.scientificName}
+Suitability Score: ${crop.score}/100
+Match Percentage: ${crop.matchPercentage}%
+
+Details:
+- Profit Potential: ${crop.profit}
+- Risk Level: ${crop.risk}
+- Duration: ${crop.duration}
+- Investment: ${crop.investment}
+- Expected Yield: ${crop.yield}
+
+Best Practices:
+${crop.bestPractices.map(practice => `• ${practice}`).join('\n')}
+
+Challenges:
+${crop.challenges.map(challenge => `• ${challenge}`).join('\n')}
+
+Market Trends: ${crop.marketTrends}
+Sustainability: ${crop.sustainability}
+
+Generated on: ${new Date().toLocaleDateString()}
+    `;
+    
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${crop.name}_recommendation.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -340,7 +384,43 @@ const CropRecommendation = () => {
          'Get personalized crop recommendations based on your soil type, climate, season, and farming experience. Our AI analyzes multiple factors to suggest the most profitable and suitable crops for your farm.'}
       </p>
 
-      {showForm ? (
+      {/* Navigation Tabs */}
+      <div style={tabContainer}>
+        <button 
+          style={!showSaved ? activeTabStyle : tabStyle}
+          onClick={() => { setShowSaved(false); setShowForm(true); }}
+        >
+          New Analysis
+        </button>
+        <button 
+          style={showSaved ? activeTabStyle : tabStyle}
+          onClick={() => { setShowSaved(true); setShowForm(false); }}
+        >
+          Saved Recommendations ({savedRecommendations.length})
+        </button>
+      </div>
+
+      {showSaved ? (
+        <div style={savedContainer}>
+          <h2 style={sectionTitle}>Saved Recommendations</h2>
+          {savedRecommendations.length === 0 ? (
+            <p style={emptyMessage}>No saved recommendations yet.</p>
+          ) : (
+            <div style={savedGrid}>
+              {savedRecommendations.map((crop, index) => (
+                <div key={index} style={savedCard}>
+                  <h3>{crop.name}</h3>
+                  <p>Score: {crop.score}/100</p>
+                  <p>Saved: {new Date(crop.savedAt).toLocaleDateString()}</p>
+                  <button onClick={() => setSelectedCrop(crop)} style={viewButton}>
+                    View Details
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : showForm ? (
         <form onSubmit={handleSubmit} style={formStyle}>
           <div style={formGrid}>
             {/* Soil Type */}
@@ -362,6 +442,16 @@ const CropRecommendation = () => {
                   </option>
                 ))}
               </select>
+              {formData.soilType && (
+                <div style={characteristicsBox}>
+                  <h4>Characteristics:</h4>
+                  <ul>
+                    {soilTypes.find(s => s.value === formData.soilType)?.characteristics.map((char, i) => (
+                      <li key={i}>{char}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Climate */}
@@ -446,6 +536,7 @@ const CropRecommendation = () => {
             {/* Budget */}
             <div style={inputGroup}>
               <label style={label}>
+                <FaMoneyBillWave style={{ marginRight: 8 }} />
                 {t('budget') || 'Budget per Acre (₹)'}
               </label>
               <input 
@@ -499,6 +590,21 @@ const CropRecommendation = () => {
                 ))}
               </select>
             </div>
+
+            {/* Location */}
+            <div style={inputGroup}>
+              <label style={label}>
+                <FaMapMarkerAlt style={{ marginRight: 8 }} />
+                Location (Optional)
+              </label>
+              <input 
+                type="text" 
+                value={formData.location} 
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                style={input}
+                placeholder="Enter your location for better recommendations"
+              />
+            </div>
           </div>
 
           <button type="submit" style={submitButton}>
@@ -519,9 +625,11 @@ const CropRecommendation = () => {
             <>
               <div style={resultsHeader}>
                 <h2>{t('your_recommendations') || 'Your Personalized Crop Recommendations'}</h2>
-                <button onClick={resetForm} style={resetButton}>
-                  {t('new_analysis') || 'New Analysis'}
-                </button>
+                <div style={headerActions}>
+                  <button onClick={resetForm} style={resetButton}>
+                    {t('new_analysis') || 'New Analysis'}
+                  </button>
+                </div>
               </div>
 
               <div style={recommendationsGrid}>
@@ -539,6 +647,10 @@ const CropRecommendation = () => {
                     </div>
 
                     <div style={cropDetails}>
+                      <div style={detailRow}>
+                        <span style={detailLabel}>Scientific Name:</span>
+                        <span>{crop.scientificName}</span>
+                      </div>
                       <div style={detailRow}>
                         <span style={detailLabel}>{t('profit_potential') || 'Profit Potential'}:</span>
                         <span style={profitBadge(crop.profit)}>{crop.profit}</span>
@@ -566,11 +678,17 @@ const CropRecommendation = () => {
                     </div>
 
                     <div style={cardActions}>
-                      <button style={primaryButton}>
+                      <button onClick={() => setSelectedCrop(crop)} style={primaryButton}>
+                        <FaStar style={{ marginRight: '4px' }} />
                         {t('view_details') || 'View Details'}
                       </button>
-                      <button style={secondaryButton}>
-                        {t('add_to_plan') || 'Add to Plan'}
+                      <button onClick={() => saveRecommendation(crop)} style={secondaryButton}>
+                        <FaBookmark style={{ marginRight: '4px' }} />
+                        Save
+                      </button>
+                      <button onClick={() => downloadReport(crop)} style={downloadButton}>
+                        <FaDownload style={{ marginRight: '4px' }} />
+                        Download
                       </button>
                     </div>
                   </div>
@@ -598,11 +716,74 @@ const CropRecommendation = () => {
           )}
         </div>
       )}
+
+      {/* Crop Detail Modal */}
+      {selectedCrop && (
+        <div style={modalOverlay} onClick={() => setSelectedCrop(null)}>
+          <div style={modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={modalHeader}>
+              <h2>{selectedCrop.name}</h2>
+              <button onClick={() => setSelectedCrop(null)} style={closeModalButton}>×</button>
+            </div>
+            <div style={modalBody}>
+              <div style={modalSection}>
+                <h3>Basic Information</h3>
+                <p><strong>Scientific Name:</strong> {selectedCrop.scientificName}</p>
+                <p><strong>Suitability Score:</strong> {selectedCrop.score}/100</p>
+                <p><strong>Match Percentage:</strong> {selectedCrop.matchPercentage}%</p>
+              </div>
+              
+              <div style={modalSection}>
+                <h3>Economic Details</h3>
+                <p><strong>Profit Potential:</strong> {selectedCrop.profit}</p>
+                <p><strong>Risk Level:</strong> {selectedCrop.risk}</p>
+                <p><strong>Investment:</strong> {selectedCrop.investment}</p>
+                <p><strong>Expected Yield:</strong> {selectedCrop.yield}</p>
+                <p><strong>Duration:</strong> {selectedCrop.duration}</p>
+              </div>
+              
+              <div style={modalSection}>
+                <h3>Best Practices</h3>
+                <ul>
+                  {selectedCrop.bestPractices.map((practice, index) => (
+                    <li key={index}>{practice}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div style={modalSection}>
+                <h3>Challenges</h3>
+                <ul>
+                  {selectedCrop.challenges.map((challenge, index) => (
+                    <li key={index}>{challenge}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div style={modalSection}>
+                <h3>Market & Sustainability</h3>
+                <p><strong>Market Trends:</strong> {selectedCrop.marketTrends}</p>
+                <p><strong>Sustainability:</strong> {selectedCrop.sustainability}</p>
+              </div>
+            </div>
+            <div style={modalFooter}>
+              <button onClick={() => saveRecommendation(selectedCrop)} style={saveButton}>
+                <FaBookmark style={{ marginRight: '4px' }} />
+                Save Recommendation
+              </button>
+              <button onClick={() => downloadReport(selectedCrop)} style={downloadButton}>
+                <FaDownload style={{ marginRight: '4px' }} />
+                Download Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// Styles
+// Enhanced Styles
 const container = {
   maxWidth: '1200px',
   margin: '0 auto',
@@ -630,6 +811,31 @@ const description = {
   color: '#666',
   marginBottom: '30px',
   lineHeight: '1.6'
+};
+
+const tabContainer = {
+  display: 'flex',
+  justifyContent: 'center',
+  gap: '10px',
+  marginBottom: '30px'
+};
+
+const tabStyle = {
+  padding: '12px 24px',
+  border: '2px solid #28a745',
+  backgroundColor: 'transparent',
+  color: '#28a745',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '16px',
+  fontWeight: '600',
+  transition: 'all 0.3s'
+};
+
+const activeTabStyle = {
+  ...tabStyle,
+  backgroundColor: '#28a745',
+  color: '#fff'
 };
 
 const formStyle = {
@@ -675,6 +881,14 @@ const select = {
   backgroundColor: '#fff'
 };
 
+const characteristicsBox = {
+  marginTop: '10px',
+  padding: '10px',
+  backgroundColor: '#f8f9fa',
+  borderRadius: '6px',
+  fontSize: '14px'
+};
+
 const submitButton = {
   background: '#28a745',
   color: '#fff',
@@ -715,6 +929,11 @@ const resultsHeader = {
   justifyContent: 'space-between',
   alignItems: 'center',
   marginBottom: '30px'
+};
+
+const headerActions = {
+  display: 'flex',
+  gap: '10px'
 };
 
 const resetButton = {
@@ -813,7 +1032,8 @@ const riskBadge = (risk) => ({
 
 const cardActions = {
   display: 'flex',
-  gap: '10px'
+  gap: '10px',
+  flexWrap: 'wrap'
 };
 
 const primaryButton = {
@@ -823,7 +1043,9 @@ const primaryButton = {
   border: 'none',
   borderRadius: '6px',
   cursor: 'pointer',
-  flex: 1
+  display: 'flex',
+  alignItems: 'center',
+  fontSize: '14px'
 };
 
 const secondaryButton = {
@@ -833,7 +1055,21 @@ const secondaryButton = {
   border: 'none',
   borderRadius: '6px',
   cursor: 'pointer',
-  flex: 1
+  display: 'flex',
+  alignItems: 'center',
+  fontSize: '14px'
+};
+
+const downloadButton = {
+  background: '#28a745',
+  color: '#fff',
+  padding: '8px 16px',
+  border: 'none',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  fontSize: '14px'
 };
 
 const insightsSection = {
@@ -855,6 +1091,114 @@ const insightCard = {
   padding: '15px',
   borderRadius: '8px',
   border: '1px solid #e0e0e0'
+};
+
+const savedContainer = {
+  background: '#fff',
+  padding: '30px',
+  borderRadius: '12px',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+};
+
+const sectionTitle = {
+  fontSize: '2rem',
+  fontWeight: 'bold',
+  marginBottom: '30px',
+  color: '#333'
+};
+
+const emptyMessage = {
+  textAlign: 'center',
+  color: '#666',
+  fontSize: '16px'
+};
+
+const savedGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+  gap: '20px'
+};
+
+const savedCard = {
+  border: '1px solid #e0e0e0',
+  borderRadius: '8px',
+  padding: '15px',
+  background: '#f8f9fa'
+};
+
+const viewButton = {
+  background: '#007bff',
+  color: '#fff',
+  border: 'none',
+  padding: '8px 16px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  marginTop: '10px'
+};
+
+const modalOverlay = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1000
+};
+
+const modalContent = {
+  background: '#fff',
+  borderRadius: '12px',
+  maxWidth: '600px',
+  width: '90%',
+  maxHeight: '80vh',
+  overflow: 'auto'
+};
+
+const modalHeader = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '20px',
+  borderBottom: '1px solid #eee'
+};
+
+const closeModalButton = {
+  background: 'transparent',
+  border: 'none',
+  fontSize: '24px',
+  cursor: 'pointer',
+  color: '#666'
+};
+
+const modalBody = {
+  padding: '20px'
+};
+
+const modalSection = {
+  marginBottom: '20px'
+};
+
+const modalFooter = {
+  padding: '20px',
+  borderTop: '1px solid #eee',
+  display: 'flex',
+  gap: '10px',
+  justifyContent: 'flex-end'
+};
+
+const saveButton = {
+  background: '#28a745',
+  color: '#fff',
+  border: 'none',
+  padding: '10px 20px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center'
 };
 
 // Add CSS animation

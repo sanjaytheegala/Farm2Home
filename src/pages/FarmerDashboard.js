@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ref, push, set } from 'firebase/database'
+import { ref, push, set, get, remove } from 'firebase/database'
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
 import CropRecommendation from '../components/CropRecommendation';
 import WeatherDashboard from '../components/WeatherDashboard';
+import { FaLeaf, FaChartLine, FaCloudSun, FaPlus, FaEdit, FaTrash, FaSave, FaEye, FaTruck, FaMoneyBillWave, FaCalendarAlt } from 'react-icons/fa'
+
 // State/districts for dropdowns
 const stateDistricts = {
   telangana: [
@@ -33,21 +35,71 @@ const stateDistricts = {
 
 const FarmerDashboard = () => {
   const navigate = useNavigate()
-  const [rows, setRows] = useState([{ crop: '', quantity: '', price: '' }])
+  const [rows, setRows] = useState([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
+  const [savedCrops, setSavedCrops] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [editingIndex, setEditingIndex] = useState(null)
   const { t } = useTranslation();
   const [selectedState, setSelectedState] = useState('telangana');
   const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [activeTab, setActiveTab] = useState('crops'); // 'crops', 'recommendations', or 'weather'
+  const [activeTab, setActiveTab] = useState('crops'); // 'crops', 'recommendations', 'weather', 'analytics'
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [analytics, setAnalytics] = useState({
+    totalCrops: 0,
+    totalValue: 0,
+    availableCrops: 0,
+    soldCrops: 0
+  })
+
+  useEffect(() => {
+    loadSavedCrops()
+    calculateAnalytics()
+  }, [])
+
+  const loadSavedCrops = async () => {
+    try {
+      const cropsRef = ref(db, 'crops')
+      const snapshot = await get(cropsRef)
+      if (snapshot.exists()) {
+        const cropsData = []
+        snapshot.forEach((childSnapshot) => {
+          cropsData.push({
+            id: childSnapshot.key,
+            ...childSnapshot.val()
+          })
+        })
+        setSavedCrops(cropsData)
+      }
+    } catch (error) {
+      console.error('Error loading crops:', error)
+    }
+  }
+
+  const calculateAnalytics = () => {
+    const totalCrops = savedCrops.length
+    const totalValue = savedCrops.reduce((sum, crop) => sum + (parseFloat(crop.price) || 0), 0)
+    const availableCrops = savedCrops.filter(crop => crop.status === 'available').length
+    const soldCrops = savedCrops.filter(crop => crop.status === 'sold').length
+
+    setAnalytics({
+      totalCrops,
+      totalValue,
+      availableCrops,
+      soldCrops
+    })
+  }
+
   const handleStateChange = (e) => {
     setSelectedState(e.target.value);
     setSelectedDistrict('');
   };
+
   const handleDistrictChange = (e) => {
     setSelectedDistrict(e.target.value);
   };
 
   const handleAddRow = () => {
-    setRows([...rows, { crop: '', quantity: '', price: '' }])
+    setRows([...rows, { crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
   }
 
   const handleChange = (index, field, value) => {
@@ -56,23 +108,69 @@ const FarmerDashboard = () => {
     setRows(updatedRows)
   }
 
-  const handleDelete = (index) => {
-    const updatedRows = rows.filter((_, i) => i !== index)
-    setRows(updatedRows)
+  const handleDelete = async (cropId) => {
+    if (window.confirm('Are you sure you want to delete this crop?')) {
+      try {
+        await remove(ref(db, `crops/${cropId}`))
+        setSavedCrops(savedCrops.filter(crop => crop.id !== cropId))
+        alert('Crop deleted successfully!')
+      } catch (error) {
+        alert('Failed to delete crop')
+        console.error(error)
+      }
+    }
   }
 
   const handleEdit = (index) => {
-    alert(t('edit_clicked', { row: index + 1 }))
+    setEditingIndex(index)
+    setShowAddForm(true)
   }
 
   const handleSave = async (index) => {
     const row = rows[index]
+    if (!row.crop || !row.quantity || !row.price) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    setLoading(true)
     try {
       const newRef = push(ref(db, 'crops'))
-      await set(newRef, row)
-      alert(t('saved_crop', { crop: row.crop, quantity: row.quantity, price: row.price }))
+      const cropData = {
+        ...row,
+        state: selectedState,
+        district: selectedDistrict,
+        createdAt: new Date().toISOString()
+      }
+      await set(newRef, cropData)
+      
+      // Add to saved crops
+      const savedCrop = {
+        id: newRef.key,
+        ...cropData
+      }
+      setSavedCrops([...savedCrops, savedCrop])
+      
+      alert('Crop saved successfully!')
+      setRows([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
+      setShowAddForm(false)
     } catch (error) {
-      alert(t('failed_to_save'))
+      alert('Failed to save crop')
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateCropStatus = async (cropId, newStatus) => {
+    try {
+      await set(ref(db, `crops/${cropId}/status`), newStatus)
+      setSavedCrops(savedCrops.map(crop => 
+        crop.id === cropId ? { ...crop, status: newStatus } : crop
+      ))
+      alert('Status updated successfully!')
+    } catch (error) {
+      alert('Failed to update status')
       console.error(error)
     }
   }
@@ -85,80 +183,196 @@ const FarmerDashboard = () => {
     <div style={container}>
       <Navbar showEcommerce={true} />
       
-      {/* Tab Navigation */}
+      {/* Enhanced Tab Navigation */}
       <div style={tabContainer}>
         <button 
           style={activeTab === 'crops' ? activeTabStyle : tabStyle}
           onClick={() => setActiveTab('crops')}
         >
+          <FaLeaf style={{ marginRight: '8px' }} />
           {t('manage_crops') || 'Manage Crops'}
+        </button>
+        <button 
+          style={activeTab === 'analytics' ? activeTabStyle : tabStyle}
+          onClick={() => setActiveTab('analytics')}
+        >
+          <FaChartLine style={{ marginRight: '8px' }} />
+          Analytics
         </button>
         <button 
           style={activeTab === 'recommendations' ? activeTabStyle : tabStyle}
           onClick={() => setActiveTab('recommendations')}
         >
+          <FaLeaf style={{ marginRight: '8px' }} />
           {t('ai_recommendations') || 'AI Recommendations'}
         </button>
         <button 
           style={activeTab === 'weather' ? activeTabStyle : tabStyle}
           onClick={() => setActiveTab('weather')}
         >
-          🌤️ {t('weather_forecast') || 'Weather'}
+          <FaCloudSun style={{ marginRight: '8px' }} />
+          {t('weather_forecast') || 'Weather'}
         </button>
       </div>
 
       {activeTab === 'crops' ? (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', margin: '24px 32px 0 0' }}>
-            <form style={{ display: 'flex', gap: 12 }}>
-              <select value={selectedState} onChange={handleStateChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 180 }}>
+        <div style={contentContainer}>
+          {/* Location Selector */}
+          <div style={locationSelector}>
+            <h3 style={sectionTitle}>Select Your Location</h3>
+            <div style={locationForm}>
+              <select value={selectedState} onChange={handleStateChange} style={locationSelect}>
                 {Object.keys(stateDistricts).map((stateKey) => (
                   <option key={stateKey} value={stateKey}>{t(`states.${stateKey}`)}</option>
                 ))}
               </select>
-              <select value={selectedDistrict} onChange={handleDistrictChange} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', minWidth: 180 }}>
+              <select value={selectedDistrict} onChange={handleDistrictChange} style={locationSelect}>
                 <option value="">{t('select_district') || "Select District"}</option>
                 {stateDistricts[selectedState]?.map((districtKey) => (
                   <option key={districtKey} value={districtKey}>{t(`districts.${selectedState}.${districtKey}`)}</option>
                 ))}
               </select>
-            </form>
-          </div>
-          <h2 style={heading}>
-            <span style={greenText}>{t('farmer_dashboard')}</span>
-          </h2>
-
-          {rows.map((row, index) => (
-            <div key={index} style={rowStyle}>
-              <input
-                type="text"
-                placeholder={t('crop')}
-                value={row.crop}
-                onChange={(e) => handleChange(index, 'crop', e.target.value)}
-                style={input}
-              />
-              <input
-                type="text"
-                placeholder={t('quantity')}
-                value={row.quantity}
-                onChange={(e) => handleChange(index, 'quantity', e.target.value)}
-                style={input}
-              />
-              <input
-                type="text"
-                placeholder={t('price')}
-                value={row.price}
-                onChange={(e) => handleChange(index, 'price', e.target.value)}
-                style={input}
-              />
-              <button onClick={() => handleSave(index)} style={saveBtn}>{t('save')}</button>
-              <button onClick={() => handleEdit(index)} style={editBtn}>{t('edit')}</button>
-              <button onClick={() => handleDelete(index)} style={deleteBtn}>{t('delete')}</button>
             </div>
-          ))}
+          </div>
 
-          <button onClick={handleAddRow} style={addBtn}>+</button>
-        </>
+          {/* Add New Crop Button */}
+          <div style={addCropSection}>
+            <button 
+              onClick={() => setShowAddForm(!showAddForm)} 
+              style={addCropButton}
+            >
+              <FaPlus style={{ marginRight: '8px' }} />
+              Add New Crop
+            </button>
+          </div>
+
+          {/* Add Crop Form */}
+          {showAddForm && (
+            <div style={addFormContainer}>
+              <h3 style={sectionTitle}>Add New Crop</h3>
+              {rows.map((row, index) => (
+                <div key={index} style={formRow}>
+                  <input
+                    type="text"
+                    placeholder="Crop Name"
+                    value={row.crop}
+                    onChange={(e) => handleChange(index, 'crop', e.target.value)}
+                    style={formInput}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Quantity (kg)"
+                    value={row.quantity}
+                    onChange={(e) => handleChange(index, 'quantity', e.target.value)}
+                    style={formInput}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Price (₹)"
+                    value={row.price}
+                    onChange={(e) => handleChange(index, 'price', e.target.value)}
+                    style={formInput}
+                  />
+                  <input
+                    type="date"
+                    placeholder="Harvest Date"
+                    value={row.harvestDate}
+                    onChange={(e) => handleChange(index, 'harvestDate', e.target.value)}
+                    style={formInput}
+                  />
+                  <select
+                    value={row.status}
+                    onChange={(e) => handleChange(index, 'status', e.target.value)}
+                    style={formInput}
+                  >
+                    <option value="available">Available</option>
+                    <option value="sold">Sold</option>
+                    <option value="reserved">Reserved</option>
+                  </select>
+                  <textarea
+                    placeholder="Notes"
+                    value={row.notes}
+                    onChange={(e) => handleChange(index, 'notes', e.target.value)}
+                    style={formTextarea}
+                  />
+                  <div style={formActions}>
+                    <button onClick={() => handleSave(index)} style={saveButton} disabled={loading}>
+                      {loading ? 'Saving...' : <><FaSave style={{ marginRight: '4px' }} />Save</>}
+                    </button>
+                    <button onClick={() => handleAddRow()} style={addRowButton}>
+                      <FaPlus style={{ marginRight: '4px' }} />Add Row
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Saved Crops Display */}
+          <div style={savedCropsSection}>
+            <h3 style={sectionTitle}>Your Crops</h3>
+            <div style={cropsGrid}>
+              {savedCrops.map((crop, index) => (
+                <div key={crop.id} style={cropCard}>
+                  <div style={cropHeader}>
+                    <h4 style={cropName}>{crop.crop}</h4>
+                    <div style={statusBadge(crop.status)}>{crop.status}</div>
+                  </div>
+                  <div style={cropDetails}>
+                    <p><strong>Quantity:</strong> {crop.quantity} kg</p>
+                    <p><strong>Price:</strong> ₹{crop.price}</p>
+                    {crop.harvestDate && <p><strong>Harvest Date:</strong> {crop.harvestDate}</p>}
+                    {crop.notes && <p><strong>Notes:</strong> {crop.notes}</p>}
+                    <p><strong>Location:</strong> {crop.district}, {crop.state}</p>
+                  </div>
+                  <div style={cropActions}>
+                    <button onClick={() => handleEdit(index)} style={editButton}>
+                      <FaEdit style={{ marginRight: '4px' }} />Edit
+                    </button>
+                    <button onClick={() => handleDelete(crop.id)} style={deleteButton}>
+                      <FaTrash style={{ marginRight: '4px' }} />Delete
+                    </button>
+                    <select 
+                      value={crop.status} 
+                      onChange={(e) => updateCropStatus(crop.id, e.target.value)}
+                      style={statusSelect}
+                    >
+                      <option value="available">Available</option>
+                      <option value="sold">Sold</option>
+                      <option value="reserved">Reserved</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'analytics' ? (
+        <div style={analyticsContainer}>
+          <h2 style={sectionTitle}>Farm Analytics</h2>
+          <div style={analyticsGrid}>
+            <div style={analyticsCard}>
+              <FaLeaf style={analyticsIcon} />
+              <h3>Total Crops</h3>
+              <p style={analyticsValue}>{analytics.totalCrops}</p>
+            </div>
+            <div style={analyticsCard}>
+              <FaMoneyBillWave style={analyticsIcon} />
+              <h3>Total Value</h3>
+              <p style={analyticsValue}>₹{analytics.totalValue.toLocaleString()}</p>
+            </div>
+            <div style={analyticsCard}>
+              <FaTruck style={analyticsIcon} />
+              <h3>Available</h3>
+              <p style={analyticsValue}>{analytics.availableCrops}</p>
+            </div>
+            <div style={analyticsCard}>
+              <FaCalendarAlt style={analyticsIcon} />
+              <h3>Sold</h3>
+              <p style={analyticsValue}>{analytics.soldCrops}</p>
+            </div>
+          </div>
+        </div>
       ) : activeTab === 'weather' ? (
         <WeatherDashboard location={selectedDistrict || selectedState} />
       ) : (
@@ -168,10 +382,10 @@ const FarmerDashboard = () => {
   )
 }
 
-// ✅ Styles
+// Enhanced Styles
 const container = {
   paddingTop: '100px',
-  backgroundColor: '#f4f4f4',
+  backgroundColor: '#f8f9fa',
   minHeight: '100vh'
 }
 
@@ -180,7 +394,8 @@ const tabContainer = {
   justifyContent: 'center',
   gap: '10px',
   marginBottom: '20px',
-  padding: '20px'
+  padding: '20px',
+  flexWrap: 'wrap'
 }
 
 const tabStyle = {
@@ -192,7 +407,9 @@ const tabStyle = {
   cursor: 'pointer',
   fontSize: '16px',
   fontWeight: '600',
-  transition: 'all 0.3s'
+  transition: 'all 0.3s',
+  display: 'flex',
+  alignItems: 'center'
 }
 
 const activeTabStyle = {
@@ -201,106 +418,241 @@ const activeTabStyle = {
   color: '#fff'
 }
 
-const heading = {
-  textAlign: 'center',
-  marginBottom: '30px',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  fontSize: '36px',
-  fontWeight: 'bold',
-  gap: '30px'
+const contentContainer = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  padding: '20px'
 }
 
-const arrowButton = {
-  cursor: 'pointer',
-  fontSize: '20px',
-  fontWeight: 'bold',
-  width: '48px',
-  height: '48px',
-  backgroundColor: '#000',
-  color: '#fff',
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: 'none',
+const locationSelector = {
+  backgroundColor: 'white',
+  padding: '20px',
+  borderRadius: '12px',
+  marginBottom: '20px',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
 }
 
-const greenText = {
-  color: '#28a745',
-  fontWeight: 'bold',
-}
-
-const rowStyle = {
-  display: 'flex',
-  gap: '10px',
-  marginBottom: '15px',
-  alignItems: 'center',
-  justifyContent: 'center'
-}
-
-const input = {
-  padding: '8px',
-  width: '150px',
-  fontSize: '16px',
-  border: '1px solid #ccc',
-  borderRadius: '5px'
-}
-
-const saveBtn = {
-  backgroundColor: 'green',
-  border: 'none',
-  padding: '8px 12px',
-  borderRadius: '5px',
-  cursor: 'pointer',
-  color: '#fff'
-}
-
-const editBtn = {
-  backgroundColor: 'skyblue',
-  border: 'none',
-  padding: '8px 12px',
-  borderRadius: '5px',
-  cursor: 'pointer',
-  color: '#000'
-}
-
-const deleteBtn = {
-  backgroundColor: 'red',
-  border: 'none',
-  padding: '8px 12px',
-  borderRadius: '5px',
-  cursor: 'pointer',
-  color: '#fff'
-}
-
-const addBtn = {
-  width: '50px',
-  height: '50px',
+const sectionTitle = {
   fontSize: '24px',
   fontWeight: 'bold',
-  borderRadius: '50%',
-  border: 'none',
-  cursor: 'pointer',
-  margin: '30px auto',
-  display: 'block',
-  animation: 'rainbow 5s linear infinite'
+  marginBottom: '20px',
+  color: '#333'
 }
 
-// ✅ Inject rainbow keyframes
-const style = document.createElement('style')
-style.textContent = `
-  @keyframes rainbow {
-    0% { background-color: #ff0000; }
-    16% { background-color: #ff9900; }
-    32% { background-color: #ffff00; }
-    48% { background-color: #33cc33; }
-    64% { background-color: #0099ff; }
-    80% { background-color: #9900cc; }
-    100% { background-color: #ff0000; }
-  }
-`
-document.head.appendChild(style)
+const locationForm = {
+  display: 'flex',
+  gap: '15px',
+  flexWrap: 'wrap'
+}
+
+const locationSelect = {
+  padding: '10px',
+  borderRadius: '6px',
+  border: '1px solid #ddd',
+  fontSize: '16px',
+  minWidth: '200px'
+}
+
+const addCropSection = {
+  marginBottom: '20px'
+}
+
+const addCropButton = {
+  backgroundColor: '#28a745',
+  color: 'white',
+  border: 'none',
+  padding: '12px 24px',
+  borderRadius: '8px',
+  fontSize: '16px',
+  fontWeight: '600',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  transition: 'all 0.3s'
+}
+
+const addFormContainer = {
+  backgroundColor: 'white',
+  padding: '20px',
+  borderRadius: '12px',
+  marginBottom: '20px',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+}
+
+const formRow = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+  gap: '15px',
+  marginBottom: '20px'
+}
+
+const formInput = {
+  padding: '10px',
+  borderRadius: '6px',
+  border: '1px solid #ddd',
+  fontSize: '16px'
+}
+
+const formTextarea = {
+  padding: '10px',
+  borderRadius: '6px',
+  border: '1px solid #ddd',
+  fontSize: '16px',
+  resize: 'vertical',
+  minHeight: '80px'
+}
+
+const formActions = {
+  display: 'flex',
+  gap: '10px',
+  gridColumn: '1 / -1'
+}
+
+const saveButton = {
+  backgroundColor: '#28a745',
+  color: 'white',
+  border: 'none',
+  padding: '10px 20px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center'
+}
+
+const addRowButton = {
+  backgroundColor: '#007bff',
+  color: 'white',
+  border: 'none',
+  padding: '10px 20px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center'
+}
+
+const savedCropsSection = {
+  backgroundColor: 'white',
+  padding: '20px',
+  borderRadius: '12px',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+}
+
+const cropsGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+  gap: '20px'
+}
+
+const cropCard = {
+  border: '1px solid #e0e0e0',
+  borderRadius: '12px',
+  padding: '20px',
+  backgroundColor: 'white',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+  transition: 'transform 0.2s'
+}
+
+const cropHeader = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '15px'
+}
+
+const cropName = {
+  margin: 0,
+  fontSize: '18px',
+  fontWeight: 'bold',
+  color: '#333'
+}
+
+const statusBadge = (status) => ({
+  padding: '4px 12px',
+  borderRadius: '20px',
+  fontSize: '12px',
+  fontWeight: '600',
+  backgroundColor: status === 'available' ? '#d4edda' : status === 'sold' ? '#f8d7da' : '#fff3cd',
+  color: status === 'available' ? '#155724' : status === 'sold' ? '#721c24' : '#856404'
+})
+
+const cropDetails = {
+  marginBottom: '15px'
+}
+
+const cropDetailsParagraph = {
+  margin: '5px 0',
+  fontSize: '14px'
+}
+
+const cropActions = {
+  display: 'flex',
+  gap: '10px',
+  flexWrap: 'wrap'
+}
+
+const editButton = {
+  backgroundColor: '#007bff',
+  color: 'white',
+  border: 'none',
+  padding: '8px 16px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  fontSize: '14px'
+}
+
+const deleteButton = {
+  backgroundColor: '#dc3545',
+  color: 'white',
+  border: 'none',
+  padding: '8px 16px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  fontSize: '14px'
+}
+
+const statusSelect = {
+  padding: '8px',
+  borderRadius: '6px',
+  border: '1px solid #ddd',
+  fontSize: '14px'
+}
+
+const analyticsContainer = {
+  maxWidth: '1200px',
+  margin: '0 auto',
+  padding: '20px'
+}
+
+const analyticsGrid = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+  gap: '20px'
+}
+
+const analyticsCard = {
+  backgroundColor: 'white',
+  padding: '30px',
+  borderRadius: '12px',
+  textAlign: 'center',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+  transition: 'transform 0.2s'
+}
+
+const analyticsIcon = {
+  fontSize: '3rem',
+  color: '#28a745',
+  marginBottom: '15px'
+}
+
+const analyticsValue = {
+  fontSize: '2rem',
+  fontWeight: 'bold',
+  color: '#333',
+  margin: '10px 0'
+}
 
 export default FarmerDashboard

@@ -21,7 +21,7 @@ const AboutPage = () => {
             <div key={index} style={card}>
               <img src="https://via.placeholder.com/100" alt="Profile" style={image} />
               <h3>{member.name}</h3>
-              <p>{member.phone}</p>
+              <p>{member.phone.replace(/(\d{2})\d{6}(\d{2})/, '$1******$2')}</p>
             </div>
           ))}
         </div>

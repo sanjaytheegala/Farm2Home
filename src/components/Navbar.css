@@ -5,16 +5,17 @@
   padding: 14px 0;
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #ccc;
-  transition: background-color 1.5s ease, box-shadow 1.5s ease;
-  background-color: #007bff;
+  transition: background 0.5s ease, color 0.5s ease, box-shadow 0.5s ease;
+  background: linear-gradient(135deg, rgb(40, 167, 69) 0%, rgb(32, 201, 151) 100%);
   color: white;
   z-index: 999;
 }
 
 .navbar-container.scrolled {
-  background-color: #90ee90;
-  color: #262626;
+  background: #ffffff !important; /* White background when scrolled - override gradient */
+  color: #333333; /* Dark text when scrolled */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background 0.5s ease, color 0.5s ease, box-shadow 0.5s ease;
 }
 
 .navbar-content {
@@ -31,6 +32,7 @@
   font-weight: bold;
   cursor: pointer;
   color: inherit;
+  transition: color 0.3s ease;
 }
 
 .navbar-center {
@@ -44,11 +46,16 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
+  color: inherit;
 }
 
 .nav-item:hover {
   background-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
+}
+
+.navbar-container.scrolled .nav-item:hover {
+  background-color: rgba(40, 167, 69, 0.1); /* Green hover when scrolled */
 }
 
 .navbar-right {
@@ -63,11 +70,57 @@
   color: inherit;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.5s ease;
+  transition: all 0.3s ease;
   border: none;
+
+
 }
 
 .nav-button:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
+}
+
+.navbar-container.scrolled .nav-button:hover {
+  background-color: rgba(40, 167, 69, 0.1); /* Green hover when scrolled */
+}
+
+/* Language selector styling */
+.navbar-container select {
+  background-color: #fff !important;
+  color: #333 !important;
+  border: 2px solid #28a745 !important;
+  border-radius: 24px;
+  padding: 8px 20px;
+  font-weight: bold;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: background-color 0.3s, color 0.3s, border 0.3s, box-shadow 0.3s;
+  appearance: none;
+}
+
+.navbar-container.scrolled select {
+  border: 2px solid #28a745 !important;
+  color: #333 !important;
+  background-color: #fff !important;
+}
+
+.navbar-container select:focus {
+  outline: none;
+  border-color: #155724;
+  background-color: #e9ffe9 !important;
+  transition: background-color 0.3s, color 0.3s, border 0.3s, box-shadow 0.3s;
+}
+
+/* Navigation arrows styling */
+.navbar-container svg {
+  transition: color 0.3s ease;
+}
+
+.navbar-container.scrolled svg {
+  color: #333;
+}
+
+.navbar-container svg:hover {
+  color: #28a745;
 }

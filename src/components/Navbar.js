@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import './Navbar.css'
-import { FaHome, FaBoxOpen, FaShoppingCart, FaStore, FaInfoCircle, FaGlobe, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import {  FaBoxOpen, FaShoppingCart, FaStore, FaInfoCircle, FaGlobe, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 
 const Navbar = ({ showEcommerce = false, showCart = false, showOrders = false }) => {
   const navigate = useNavigate()
@@ -11,8 +11,10 @@ const Navbar = ({ showEcommerce = false, showCart = false, showOrders = false })
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
+      // Change color when scrolled more than 20px
+      setIsScrolled(window.scrollY > 20)
     }
+    
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -23,37 +25,60 @@ const Navbar = ({ showEcommerce = false, showCart = false, showOrders = false })
 
   return (
     <div className={`navbar-container ${isScrolled ? 'scrolled' : ''}`}>
-      <div className="navbar-content" style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-        {/* Far Left - Navigation Arrows */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginRight: 16 }}>
-          <FaArrowLeft style={{ fontSize: 20, cursor: 'pointer' }} onClick={() => window.history.back()} />
-          <FaArrowRight style={{ fontSize: 20, cursor: 'pointer' }} onClick={() => window.history.forward()} />
-        </div>
-        {/* Left - Project Name and Logo */}
+      <div className="navbar-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        
         <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-          <FaHome style={{ fontSize: 24 }} onClick={() => navigate('/')} />
-          <span className="navbar-project-name" onClick={() => navigate('/')}>Farm 2 Home</span>
+          <span className="navbar-project-name" onClick={() => navigate('/')}>
+            FARM
+            <img src={require('../logo/logo3.png')} alt="Farm 2 Home Logo" style={{ height: 52, verticalAlign: 'middle' }} />
+            HOME
+          </span>
         </div>
+        
         {/* Center - Navigation Links */}
-        <div className="navbar-center" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+        <div className="navbar-center" style={{ display: 'flex', justifyContent: 'center' }}>
           {showOrders && (
-            <div className="nav-item" onClick={() => navigate('/orders')}><FaBoxOpen style={{ marginRight: 4 }} /> {t('orders')}</div>
+            <div className="nav-item" onClick={() => navigate('/orders')}>
+              <FaBoxOpen style={{ marginRight: 4 }} /> {t('orders')}
+            </div>
           )}
           {showCart && (
-            <div className="nav-item" onClick={() => navigate('/cart')}><FaShoppingCart style={{ marginRight: 4 }} /> {t('cart')}</div>
+            <div className="nav-item" onClick={() => navigate('/cart')}>
+              <FaShoppingCart style={{ marginRight: 4 }} /> {t('cart')}
+            </div>
           )}
           {showEcommerce && (
-            <div className="nav-item" onClick={() => navigate('/ecommerce')}><FaStore style={{ marginRight: 4 }} /> {t('ecommerce')}</div>
+            <div className="nav-item" onClick={() => navigate('/ecommerce')}>
+              <FaStore style={{ marginRight: 4 }} /> {t('ecommerce')}
+            </div>
           )}
         </div>
+        
         {/* Right - About Us / Extra Buttons */}
         <div className="navbar-right">
-          <button className="nav-button" onClick={() => navigate('/about')} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button 
+            className="nav-button" 
+            onClick={() => navigate('/about')} 
+            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+            title="About Us"
+          >
             <FaInfoCircle /> {t('about')}
           </button>
           <div style={{ display: 'flex', alignItems: 'center', marginLeft: 12 }}>
             <FaGlobe style={{ marginRight: 4 }} />
-            <select onChange={e => changeLanguage(e.target.value)} value={i18n.language} style={{ padding: '2px 8px', borderRadius: 4, border: '1px solid #ccc' }}>
+            <select 
+              onChange={e => changeLanguage(e.target.value)} 
+              value={i18n.language} 
+              style={{ 
+                padding: '2px 8px', 
+                borderRadius: 4, 
+                border: '1px solid transparent',
+                background: 'transparent',
+                color: 'inherit',
+                cursor: 'pointer'
+              }}
+              title="Change Language"
+            >
               <option value="en">EN</option>
               <option value="hi">हिंदी</option>
               <option value="te">తెలుగు</option>
