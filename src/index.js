@@ -12,7 +12,40 @@ root.render(
   </React.StrictMode>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+// Register service worker for caching and offline functionality
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('SW registered: ', registration);
+      })
+      .catch((registrationError) => {
+        console.log('SW registration failed: ', registrationError);
+      });
+  });
+}
+
+// Performance monitoring
+reportWebVitals(console.log);
+
+// Preload critical resources
+const preloadCriticalResources = () => {
+  const criticalImages = [
+    '/images/fruits.jpg',
+    '/images/vegetables.jpg',
+    '/images/dry fruits.jpg',
+    '/images/apple.jpg',
+    '/images/banana.jpg'
+  ];
+
+  criticalImages.forEach(src => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = src;
+    document.head.appendChild(link);
+  });
+};
+
+// Execute preloading after initial render
+setTimeout(preloadCriticalResources, 100);

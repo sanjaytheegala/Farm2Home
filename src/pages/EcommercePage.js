@@ -325,10 +325,10 @@ const EcommercePage = () => {
             <option>ಕನ್ನಡ</option>
             <option>మరాఠీ</option>
           </select>
-          <a href="#" style={{ color: '#22543d', textDecoration: 'none', fontWeight: 500 }}>Track Order</a>
-          <a href="#" style={{ color: '#22543d', textDecoration: 'none', fontWeight: 500 }}>Wishlist</a>
-          <a href="#" style={{ color: '#22543d', textDecoration: 'none', fontWeight: 500 }}>Login</a>
-          <a href="#" style={{ color: '#22543d', textDecoration: 'none', fontWeight: 500 }}>Cart</a>
+          <button style={{ color: '#22543d', textDecoration: 'none', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>Track Order</button>
+          <button style={{ color: '#22543d', textDecoration: 'none', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>Wishlist</button>
+          <button style={{ color: '#22543d', textDecoration: 'none', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>Login</button>
+          <button style={{ color: '#22543d', textDecoration: 'none', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>Cart</button>
         </div>
       </div>
       {/* Category Menu */}
@@ -354,7 +354,7 @@ const EcommercePage = () => {
               onMouseEnter={() => setTapasOpen(true)}
               onMouseLeave={() => setTapasOpen(false)}
             >
-              <a href="#" style={{ color: tapasOpen ? '#fff' : '#22543d', background: tapasOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block' }}>TAPAS ▼</a>
+              <button style={{ color: tapasOpen ? '#fff' : '#22543d', background: tapasOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block', border: 'none', cursor: 'pointer' }}>TAPAS ▼</button>
               {tapasOpen && (
                 <div style={{ position: 'absolute', left: 0, top: '100%', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: '0 0 12px 12px', padding: '12px 0', minWidth: 220, zIndex: 10 }}>
                   {tapasSubcategories.map((sub, subIdx) => (
@@ -373,7 +373,7 @@ const EcommercePage = () => {
               onMouseEnter={() => setOrganicOpen(true)}
               onMouseLeave={() => setOrganicOpen(false)}
             >
-              <a href="#" style={{ color: organicOpen ? '#fff' : '#22543d', background: organicOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block' }}>ORGANIC ▼</a>
+              <button style={{ color: organicOpen ? '#fff' : '#22543d', background: organicOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block', border: 'none', cursor: 'pointer' }}>ORGANIC ▼</button>
               {organicOpen && (
                 <div style={{ position: 'absolute', left: 0, top: '100%', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: '0 0 12px 12px', padding: '32px 48px', minWidth: 600, zIndex: 10, display: 'flex', gap: 60 }}>
                   {organicMenu.map((col, colIdx) => (
@@ -392,7 +392,7 @@ const EcommercePage = () => {
               onMouseEnter={() => setAnimalOpen(true)}
               onMouseLeave={() => setAnimalOpen(false)}
             >
-              <a href="#" style={{ color: animalOpen ? '#fff' : '#22543d', background: animalOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block' }}>ANIMAL HUSBANDRY ▼</a>
+              <button style={{ color: animalOpen ? '#fff' : '#22543d', background: animalOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block', border: 'none', cursor: 'pointer' }}>ANIMAL HUSBANDRY ▼</button>
               {animalOpen && (
                 <div style={{ position: 'absolute', left: 0, top: '100%', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: '0 0 12px 12px', padding: '32px 48px', minWidth: 900, zIndex: 10, display: 'flex', gap: 60 }}>
                   {animalHusbandryMenu.map((col, colIdx) => (
@@ -411,7 +411,7 @@ const EcommercePage = () => {
               onMouseEnter={() => setCropProtectionOpen(true)}
               onMouseLeave={() => setCropProtectionOpen(false)}
             >
-              <a href="#" style={{ color: cropProtectionOpen ? '#fff' : '#22543d', background: cropProtectionOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block' }}>CROP PROTECTION ▼</a>
+              <button style={{ color: cropProtectionOpen ? '#fff' : '#22543d', background: cropProtectionOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block', border: 'none', cursor: 'pointer' }}>CROP PROTECTION ▼</button>
               {cropProtectionOpen && (
                 <div style={{ position: 'absolute', left: 0, top: '100%', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: '0 0 12px 12px', padding: '32px 48px', minWidth: 900, zIndex: 10, display: 'flex', gap: 60 }}>
                   {cropProtectionMenu.map((col, colIdx) => (
@@ -430,7 +430,7 @@ const EcommercePage = () => {
               onMouseEnter={() => setCropNutritionOpen(true)}
               onMouseLeave={() => setCropNutritionOpen(false)}
             >
-              <a href="#" style={{ color: cropNutritionOpen ? '#fff' : '#22543d', background: cropNutritionOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block' }}>CROP NUTRITION ▼</a>
+              <button style={{ color: cropNutritionOpen ? '#fff' : '#22543d', background: cropNutritionOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block', border: 'none', cursor: 'pointer' }}>CROP NUTRITION ▼</button>
               {cropNutritionOpen && (
                 <div style={{ position: 'absolute', left: 0, top: '100%', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: '0 0 12px 12px', padding: '32px 48px', minWidth: 900, zIndex: 10, display: 'flex', gap: 60 }}>
                   {cropNutritionMenu.map((col, colIdx) => (
@@ -449,7 +449,7 @@ const EcommercePage = () => {
               onMouseEnter={() => setEquipmentsOpen(true)}
               onMouseLeave={() => setEquipmentsOpen(false)}
             >
-              <a href="#" style={{ color: equipmentsOpen ? '#fff' : '#22543d', background: equipmentsOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block' }}>EQUIPMENTS ▼</a>
+              <button style={{ color: equipmentsOpen ? '#fff' : '#22543d', background: equipmentsOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block', border: 'none', cursor: 'pointer' }}>EQUIPMENTS ▼</button>
               {equipmentsOpen && (
                 <div style={{ position: 'absolute', left: 0, top: '100%', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: '0 0 12px 12px', padding: '32px 48px', minWidth: 900, zIndex: 10, display: 'flex', gap: 60 }}>
                   {equipmentsMenu.map((col, colIdx) => (
@@ -468,7 +468,7 @@ const EcommercePage = () => {
               onMouseEnter={() => setSeedsOpen(true)}
               onMouseLeave={() => setSeedsOpen(false)}
             >
-              <a href="#" style={{ color: seedsOpen ? '#fff' : '#22543d', background: seedsOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block' }}>SEEDS ▼</a>
+              <button style={{ color: seedsOpen ? '#fff' : '#22543d', background: seedsOpen ? '#38a169' : 'transparent', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, display: 'inline-block', border: 'none', cursor: 'pointer' }}>SEEDS ▼</button>
               {seedsOpen && (
                 <div style={{ position: 'absolute', left: 0, top: '100%', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: '0 0 12px 12px', padding: '32px 48px', minWidth: 900, zIndex: 10, display: 'flex', gap: 60 }}>
                   {seedsMenu.map((col, colIdx) => (
@@ -483,7 +483,7 @@ const EcommercePage = () => {
               )}
             </div>
           ) : (
-            <a key={cat} href="#" style={{ color: '#22543d', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, marginLeft: idx === 0 ? 8 : 0 }}>{cat}</a>
+            <button key={cat} style={{ color: '#22543d', textDecoration: 'none', fontWeight: 600, fontSize: 16, padding: '16px 18px', borderRadius: 6, marginLeft: idx === 0 ? 8 : 0, background: 'none', border: 'none', cursor: 'pointer' }}>{cat}</button>
           )
         ))}
       </div>

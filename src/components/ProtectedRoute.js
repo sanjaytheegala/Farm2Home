@@ -3,8 +3,13 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = true; // Replace with real auth check later
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  const isAuthenticated = true; // For development purposes
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 };
 
 export default ProtectedRoute;

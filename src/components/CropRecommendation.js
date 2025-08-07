@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaLeaf, FaThermometerHalf, FaCalendarAlt, FaChartLine, FaSeedling, FaWater, FaMapMarkerAlt, FaMoneyBillWave, FaClock, FaStar, FaDownload, FaShare, FaBookmark } from 'react-icons/fa';
+import { FaLeaf, FaThermometerHalf, FaCalendarAlt, FaChartLine, FaSeedling, FaWater, FaMapMarkerAlt, FaMoneyBillWave, FaStar, FaDownload, FaBookmark } from 'react-icons/fa';
 
 const CropRecommendation = () => {
   const { t } = useTranslation();
@@ -116,7 +116,7 @@ const CropRecommendation = () => {
           investment: '₹12,000-20,000 per acre',
           yield: '2-2.5 tons per acre',
           bestPractices: ['Timely sowing', 'Proper irrigation', 'Disease management'],
-          challenges: ['Weather dependency', 'Disease control', 'Storage issues'],
+          challenges: ['Market price fluctuations', 'Disease control', 'Storage issues'],
           marketTrends: 'Stable domestic demand',
           sustainability: 'High - staple food crop'
         },
@@ -156,7 +156,7 @@ const CropRecommendation = () => {
           investment: '₹8,000-15,000 per acre',
           yield: '1-1.5 tons per acre',
           bestPractices: ['Proper seed treatment', 'Disease management', 'Timely harvesting'],
-          challenges: ['Disease susceptibility', 'Weather dependency', 'Market access'],
+          challenges: ['Disease susceptibility', 'Market price fluctuations', 'Market access'],
           marketTrends: 'High demand for protein-rich food',
           sustainability: 'High - nitrogen fixing crop'
         },
@@ -177,7 +177,7 @@ const CropRecommendation = () => {
           investment: '₹12,000-20,000 per acre',
           yield: '1.5-2 tons per acre',
           bestPractices: ['Proper spacing', 'Disease control', 'Timely harvesting'],
-          challenges: ['Aflatoxin management', 'Weather dependency', 'Storage issues'],
+          challenges: ['Aflatoxin management', 'Market price fluctuations', 'Storage issues'],
           marketTrends: 'Growing demand for oil and protein',
           sustainability: 'Medium - oil crop'
         },
@@ -703,8 +703,8 @@ Generated on: ${new Date().toLocaleDateString()}
                     <p>{t('market_insight') || 'Current market prices are favorable for pulses and oilseeds. Consider diversifying your crop portfolio.'}</p>
                   </div>
                   <div style={insightCard}>
-                    <h4>{t('weather_forecast') || 'Weather Forecast'}</h4>
-                    <p>{t('weather_insight') || 'Expected normal monsoon this year. Good conditions for kharif crops like rice and maize.'}</p>
+                    <h4>{t('crop_rotation') || 'Crop Rotation'}</h4>
+                    <p>{t('rotation_insight') || 'Implementing crop rotation can improve soil health and reduce pest pressure. Consider alternating between different crop families.'}</p>
                   </div>
                   <div style={insightCard}>
                     <h4>{t('soil_health') || 'Soil Health'}</h4>

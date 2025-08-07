@@ -3,7 +3,7 @@ import Navbar from '../components/Navbar'
 const AboutPage = () => {
   return (
     <div style={container}>
-      <Navbar />
+      <Navbar languageSelector={2} />
       <div style={content}>
         <h1 style={heading}>About Us</h1>
         <p style={text}>

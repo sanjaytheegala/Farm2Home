@@ -5,14 +5,9 @@ import { FaLeaf, FaShoppingCart, FaChartLine, FaUsers, FaMapMarkerAlt, FaPhone, 
 
 const HomePage = () => {
   const navigate = useNavigate()
-  const [role, setRole] = useState('')
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
-  const [confirmation, setConfirmation] = useState(null)
   const [hoveredCard, setHoveredCard] = useState(null)
 
   const handleRoleSelect = (r) => {
-    setRole(r)
     if (r === 'farmer') navigate('/farmer')
     else if (r === 'consumer') navigate('/consumer')
   }
@@ -20,8 +15,7 @@ const HomePage = () => {
   return (
     <div style={container}>
       <Navbar />
-      
-      {/* 1. Hero Section - Enhanced */}
+      {/* Hero Section at the top */}
       <div style={heroSection}>
         <div style={heroContent}>
           <h1 style={heroTitle}>FARM 2 HOME</h1>
@@ -30,7 +24,6 @@ const HomePage = () => {
             Empowering local farmers to connect directly with consumers. 
             Fresh produce, fair prices, sustainable agriculture.
           </p>
-          
           <div style={ctaButtons}>
             <button 
               onClick={() => handleRoleSelect('farmer')} 
@@ -53,9 +46,8 @@ const HomePage = () => {
           </div>
         </div>
       </div>
-
       {/* 2. Features Section - Enhanced with hover effects */}
-      <div style={featuresSection}>
+      <div style={{ ...featuresSection, ...homepageTextShadow }}>
         <h2 style={sectionTitle}>Why Choose Farm 2 Home?</h2>
         <div style={featuresGrid}>
           {[
@@ -177,18 +169,27 @@ const HomePage = () => {
 
 // Enhanced Styles
 const container = {
-  backgroundColor: '#f8f9fa',
   minHeight: '100vh',
-  color: '#333'
-}
+  color: '#333',
+  position: 'relative',
+};
 
 const heroSection = {
   background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
   color: 'white',
-  padding: '120px 20px 80px',
+  padding: '120px 20px 80px', // original padding
   textAlign: 'center',
-  position: 'relative'
-}
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexDirection: 'column',
+};
+
+// Add a text shadow for homepage content readability
+const homepageTextShadow = {
+  textShadow: '0 2px 8px rgba(0,0,0,0.18)',
+};
 
 const heroContent = {
   maxWidth: '800px',
@@ -411,5 +412,4 @@ const footerBottom = {
   paddingTop: '20px',
   fontSize: '0.9rem'
 }
-
 export default HomePage

@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ref, push, set, get, remove } from 'firebase/database'
 import { db } from '../firebase'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
 import CropRecommendation from '../components/CropRecommendation';
-import WeatherDashboard from '../components/WeatherDashboard';
-import { FaLeaf, FaChartLine, FaCloudSun, FaPlus, FaEdit, FaTrash, FaSave, FaEye, FaTruck, FaMoneyBillWave, FaCalendarAlt } from 'react-icons/fa'
+
+
+import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaEye, FaTruck, FaMoneyBillWave, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa'
 
 // State/districts for dropdowns
 const stateDistricts = {
@@ -42,7 +43,7 @@ const FarmerDashboard = () => {
   const { t } = useTranslation();
   const [selectedState, setSelectedState] = useState('telangana');
   const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [activeTab, setActiveTab] = useState('crops'); // 'crops', 'recommendations', 'weather', 'analytics'
+  const [activeTab, setActiveTab] = useState('crops'); // 'crops', 'recommendations', 'analytics'
   const [showAddForm, setShowAddForm] = useState(false)
   const [analytics, setAnalytics] = useState({
     totalCrops: 0,
@@ -51,10 +52,24 @@ const FarmerDashboard = () => {
     soldCrops: 0
   })
 
+  const calculateAnalytics = useCallback(() => {
+    const totalCrops = savedCrops.length
+    const totalValue = savedCrops.reduce((sum, crop) => sum + (parseFloat(crop.price) || 0), 0)
+    const availableCrops = savedCrops.filter(crop => crop.status === 'available').length
+    const soldCrops = savedCrops.filter(crop => crop.status === 'sold').length
+
+    setAnalytics({
+      totalCrops,
+      totalValue,
+      availableCrops,
+      soldCrops
+    })
+  }, [savedCrops])
+
   useEffect(() => {
     loadSavedCrops()
     calculateAnalytics()
-  }, [])
+  }, [calculateAnalytics])
 
   const loadSavedCrops = async () => {
     try {
@@ -73,20 +88,6 @@ const FarmerDashboard = () => {
     } catch (error) {
       console.error('Error loading crops:', error)
     }
-  }
-
-  const calculateAnalytics = () => {
-    const totalCrops = savedCrops.length
-    const totalValue = savedCrops.reduce((sum, crop) => sum + (parseFloat(crop.price) || 0), 0)
-    const availableCrops = savedCrops.filter(crop => crop.status === 'available').length
-    const soldCrops = savedCrops.filter(crop => crop.status === 'sold').length
-
-    setAnalytics({
-      totalCrops,
-      totalValue,
-      availableCrops,
-      soldCrops
-    })
   }
 
   const handleStateChange = (e) => {
@@ -205,13 +206,6 @@ const FarmerDashboard = () => {
         >
           <FaLeaf style={{ marginRight: '8px' }} />
           {t('ai_recommendations') || 'AI Recommendations'}
-        </button>
-        <button 
-          style={activeTab === 'weather' ? activeTabStyle : tabStyle}
-          onClick={() => setActiveTab('weather')}
-        >
-          <FaCloudSun style={{ marginRight: '8px' }} />
-          {t('weather_forecast') || 'Weather'}
         </button>
       </div>
 
@@ -373,9 +367,7 @@ const FarmerDashboard = () => {
             </div>
           </div>
         </div>
-      ) : activeTab === 'weather' ? (
-        <WeatherDashboard location={selectedDistrict || selectedState} />
-      ) : (
+             ) : (
         <CropRecommendation />
       )}
     </div>
@@ -654,5 +646,7 @@ const analyticsValue = {
   color: '#333',
   margin: '10px 0'
 }
+
+
 
 export default FarmerDashboard

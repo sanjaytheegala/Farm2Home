@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import React from 'react'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
-import { FaSearch, FaFilter, FaShoppingCart, FaHeart, FaStar, FaMapMarkerAlt, FaPhone, FaWhatsapp } from 'react-icons/fa'
+import { FaSearch, FaShoppingCart, FaHeart, FaStar, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'
+import { useLocalStorage, useDebounce } from '../hooks'
+import { memoizedFilter, calculateCartTotal } from '../utils/performance'
+import LazyImage from '../components/LazyImage'
 
 const ConsumerDashboard = () => {
+  // Static data - moved outside component to prevent recreation
   const dryFruits = [
     { crop: 'Badam', quantity: '20kg', price: 8000, image: '/images/badam.jpg', rating: 4.5, reviews: 12, farmer: 'Rajesh Kumar', location: 'Hyderabad' },
     { crop: 'Cashews', quantity: '20kg', price: 9000, image: '/images/cashews.jpg', rating: 4.3, reviews: 8, farmer: 'Suresh Patel', location: 'Mumbai' },
@@ -11,8 +16,6 @@ const ConsumerDashboard = () => {
     { crop: 'Walnut', quantity: '20kg', price: 9500, image: '/images/waltnuts.jpg', rating: 4.2, reviews: 6, farmer: 'Kumar Reddy', location: 'Bangalore' },
     { crop: 'Peanut', quantity: '50kg', price: 1200, image: '/images/peanut.jpg', rating: 4.0, reviews: 20, farmer: 'Lakshmi Devi', location: 'Chennai' }
   ];
-
-  const [showDryFruits, setShowDryFruits] = useState(false);
 
   const fruits = [
     { crop: 'Apple', quantity: '40kg', price: 2500, image: '/images/apple.jpg', rating: 4.6, reviews: 25, farmer: 'Fruit Farm Co.', location: 'Shimla' },
@@ -33,8 +36,6 @@ const ConsumerDashboard = () => {
     { crop: 'Kiwi', quantity: '15kg', price: 5000, image: '/images/kiwi.jpg', rating: 4.9, reviews: 4, farmer: 'Kiwi Kingdom', location: 'Himachal' }
   ];
 
-  const [showFruits, setShowFruits] = useState(false);
-
   const vegetables = [
     { crop: 'Wheat', quantity: '100kg', price: 1200, image: '/images/wheat.jpg', rating: 4.3, reviews: 16, farmer: 'Wheat Farm', location: 'Punjab' },
     { crop: 'Rice', quantity: '80kg', price: 1000, image: '/images/rice.jpg', rating: 4.1, reviews: 19, farmer: 'Rice Bowl', location: 'West Bengal' },
@@ -47,37 +48,58 @@ const ConsumerDashboard = () => {
     { crop: 'Brinjal', quantity: '60kg', price: 700, image: '/images/brinjal.jpg', rating: 4.2, reviews: 14, farmer: 'Brinjal Garden', location: 'Tamil Nadu' }
   ];
 
-  const [showVegetables, setShowVegetables] = useState(false);
-
-  const [items, setItems] = useState([
+  const items = [
     { crop: 'Fruits', quantity: '', price: '', image: '/images/fruits.jpg', isFruits: true, description: 'Fresh and organic fruits from local farmers' },
     { crop: 'Dry Fruits', quantity: '', price: '', image: '/images/dry fruits.jpg', isDryFruits: true, description: 'Premium quality dry fruits and nuts' },
     { crop: 'Vegetables', quantity: '', price: '', image: '/images/vegetables.jpg', isVegetables: true, description: 'Fresh vegetables and grains' }
-  ])
+  ]
 
-  const [cart, setCart] = useState([])
-  const [wishlist, setWishlist] = useState([])
+  // State management with optimized hooks
+  const [cart, setCart] = useLocalStorage('cart', [])
+  const [wishlist, setWishlist] = useLocalStorage('wishlist', [])
   const [searchTerm, setSearchTerm] = useState('')
   const [sortType, setSortType] = useState('none')
   const [priceRange, setPriceRange] = useState('all')
-  const [selectedCategory, setSelectedCategory] = useState('all')
   const [showCart, setShowCart] = useState(false)
+  const [showDryFruits, setShowDryFruits] = useState(false)
+  const [showFruits, setShowFruits] = useState(false)
+  const [showVegetables, setShowVegetables] = useState(false)
+  
   const { t } = useTranslation();
+  
+  // Debounced search term for better performance
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
-  useEffect(() => {
-    // Load cart from localStorage
-    const savedCart = localStorage.getItem('cart')
-    if (savedCart) {
-      setCart(JSON.parse(savedCart))
-    }
-  }, [])
+  // Memoized filtered products
+  const filteredFruits = useMemo(() => {
+    return memoizedFilter(fruits, {
+      searchTerm: debouncedSearchTerm,
+      sortType,
+      priceRange
+    })
+  }, [fruits, debouncedSearchTerm, sortType, priceRange])
 
-  useEffect(() => {
-    // Save cart to localStorage
-    localStorage.setItem('cart', JSON.stringify(cart))
-  }, [cart])
+  const filteredDryFruits = useMemo(() => {
+    return memoizedFilter(dryFruits, {
+      searchTerm: debouncedSearchTerm,
+      sortType,
+      priceRange
+    })
+  }, [dryFruits, debouncedSearchTerm, sortType, priceRange])
 
-  const handleAddToCart = (item) => {
+  const filteredVegetables = useMemo(() => {
+    return memoizedFilter(vegetables, {
+      searchTerm: debouncedSearchTerm,
+      sortType,
+      priceRange
+    })
+  }, [vegetables, debouncedSearchTerm, sortType, priceRange])
+
+  // Memoized cart total
+  const cartTotal = useMemo(() => calculateCartTotal(cart), [cart])
+
+  // Optimized event handlers with useCallback
+  const handleAddToCart = useCallback((item) => {
     const existingItem = cart.find(cartItem => cartItem.crop === item.crop && cartItem.farmer === item.farmer)
     if (existingItem) {
       setCart(cart.map(cartItem => 
@@ -88,15 +110,15 @@ const ConsumerDashboard = () => {
     } else {
       setCart([...cart, { ...item, quantity: 1 }])
     }
-  }
+  }, [cart, setCart])
 
-  const handleRemoveFromCart = (itemToRemove) => {
+  const handleRemoveFromCart = useCallback((itemToRemove) => {
     setCart(cart.filter(item => 
       !(item.crop === itemToRemove.crop && item.farmer === itemToRemove.farmer)
     ))
-  }
+  }, [cart, setCart])
 
-  const handleUpdateQuantity = (item, newQuantity) => {
+  const handleUpdateQuantity = useCallback((item, newQuantity) => {
     if (newQuantity <= 0) {
       handleRemoveFromCart(item)
     } else {
@@ -106,9 +128,9 @@ const ConsumerDashboard = () => {
           : cartItem
       ))
     }
-  }
+  }, [cart, setCart, handleRemoveFromCart])
 
-  const toggleWishlist = (item) => {
+  const toggleWishlist = useCallback((item) => {
     const isInWishlist = wishlist.find(wishItem => 
       wishItem.crop === item.crop && wishItem.farmer === item.farmer
     )
@@ -119,28 +141,56 @@ const ConsumerDashboard = () => {
     } else {
       setWishlist([...wishlist, item])
     }
-  }
+  }, [wishlist, setWishlist])
 
-  const getFilteredProducts = (productList) => {
-    return productList
-      .filter(item => {
-        const matchesSearch = item.crop.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            item.farmer.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesPrice = priceRange === 'all' || 
-                           (priceRange === 'low' && item.price <= 1000) ||
-                           (priceRange === 'medium' && item.price > 1000 && item.price <= 3000) ||
-                           (priceRange === 'high' && item.price > 3000)
-        return matchesSearch && matchesPrice
-      })
-      .sort((a, b) => {
-        if (sortType === 'low') return a.price - b.price
-        if (sortType === 'high') return b.price - a.price
-        if (sortType === 'rating') return b.rating - a.rating
-        return 0
-      })
-  }
+  // Memoized product card component
+  const ProductCard = useCallback(({ item, idx }) => {
+    const isInWishlist = wishlist.find(wishItem => 
+      wishItem.crop === item.crop && wishItem.farmer === item.farmer
+    )
 
-  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0)
+    return (
+      <div key={idx} style={productCard}>
+        <div style={productImageContainer}>
+          <LazyImage 
+            src={item.image} 
+            alt={item.crop} 
+            style={productImage}
+          />
+          <button 
+            onClick={() => toggleWishlist(item)} 
+            style={wishlistButton(isInWishlist)}
+          >
+            <FaHeart />
+          </button>
+        </div>
+        <div style={productInfo}>
+          <h3 style={productTitle}>{item.crop}</h3>
+          <div style={ratingContainer}>
+            <FaStar style={starIcon} />
+            <span>{item.rating}</span>
+            <span style={reviewsText}>({item.reviews} reviews)</span>
+          </div>
+          <p style={farmerInfo}>
+            <FaMapMarkerAlt style={{ marginRight: '4px' }} />
+            {item.farmer}, {item.location}
+          </p>
+          <p style={quantityInfo}>Quantity: {item.quantity}</p>
+          <p style={priceInfo}>₹{item.price.toLocaleString()}</p>
+          <div style={productActions}>
+            <button onClick={() => handleAddToCart(item)} style={addToCartButton}>
+              <FaShoppingCart style={{ marginRight: '4px' }} />
+              Add to Cart
+            </button>
+            <button style={contactButton}>
+              <FaWhatsapp style={{ marginRight: '4px' }} />
+              Contact
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }, [wishlist, toggleWishlist, handleAddToCart])
 
   return (
     <div style={container}>
@@ -200,7 +250,11 @@ const ConsumerDashboard = () => {
             <>
               {cart.map((item, index) => (
                 <div key={index} style={cartItem}>
-                  <img src={item.image} alt={item.crop} style={cartItemImage} />
+                  <LazyImage 
+                    src={item.image} 
+                    alt={item.crop} 
+                    style={cartItemImage}
+                  />
                   <div style={cartItemDetails}>
                     <h4>{item.crop}</h4>
                     <p>₹{item.price}</p>
@@ -229,7 +283,11 @@ const ConsumerDashboard = () => {
         <div style={categoriesGrid}>
           {items.map((item, idx) => (
             <div key={idx} style={categoryCard}>
-              <img src={item.image} alt={item.crop} style={categoryImage} />
+              <LazyImage 
+                src={item.image} 
+                alt={item.crop} 
+                style={categoryImage}
+              />
               <div style={categoryContent}>
                 <h3 style={categoryTitle}>{item.crop}</h3>
                 <p style={categoryDescription}>{item.description}</p>
@@ -257,44 +315,8 @@ const ConsumerDashboard = () => {
             <button onClick={() => setShowFruits(false)} style={closeSectionButton}>Close</button>
           </div>
           <div style={productsGrid}>
-            {getFilteredProducts(fruits).map((item, idx) => (
-              <div key={idx} style={productCard}>
-                <div style={productImageContainer}>
-                  <img src={item.image} alt={item.crop} style={productImage} />
-                  <button 
-                    onClick={() => toggleWishlist(item)} 
-                    style={wishlistButton(wishlist.find(wishItem => 
-                      wishItem.crop === item.crop && wishItem.farmer === item.farmer
-                    ))}
-                  >
-                    <FaHeart />
-                  </button>
-                </div>
-                <div style={productInfo}>
-                  <h3 style={productTitle}>{item.crop}</h3>
-                  <div style={ratingContainer}>
-                    <FaStar style={starIcon} />
-                    <span>{item.rating}</span>
-                    <span style={reviewsText}>({item.reviews} reviews)</span>
-                  </div>
-                  <p style={farmerInfo}>
-                    <FaMapMarkerAlt style={{ marginRight: '4px' }} />
-                    {item.farmer}, {item.location}
-                  </p>
-                  <p style={quantityInfo}>Quantity: {item.quantity}</p>
-                  <p style={priceInfo}>₹{item.price.toLocaleString()}</p>
-                  <div style={productActions}>
-                    <button onClick={() => handleAddToCart(item)} style={addToCartButton}>
-                      <FaShoppingCart style={{ marginRight: '4px' }} />
-                      Add to Cart
-                    </button>
-                    <button style={contactButton}>
-                      <FaWhatsapp style={{ marginRight: '4px' }} />
-                      Contact
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {filteredFruits.map((item, idx) => (
+              <ProductCard key={idx} item={item} idx={idx} />
             ))}
           </div>
         </div>
@@ -307,44 +329,8 @@ const ConsumerDashboard = () => {
             <button onClick={() => setShowDryFruits(false)} style={closeSectionButton}>Close</button>
           </div>
           <div style={productsGrid}>
-            {getFilteredProducts(dryFruits).map((item, idx) => (
-              <div key={idx} style={productCard}>
-                <div style={productImageContainer}>
-                  <img src={item.image} alt={item.crop} style={productImage} />
-                  <button 
-                    onClick={() => toggleWishlist(item)} 
-                    style={wishlistButton(wishlist.find(wishItem => 
-                      wishItem.crop === item.crop && wishItem.farmer === item.farmer
-                    ))}
-                  >
-                    <FaHeart />
-                  </button>
-                </div>
-                <div style={productInfo}>
-                  <h3 style={productTitle}>{item.crop}</h3>
-                  <div style={ratingContainer}>
-                    <FaStar style={starIcon} />
-                    <span>{item.rating}</span>
-                    <span style={reviewsText}>({item.reviews} reviews)</span>
-                  </div>
-                  <p style={farmerInfo}>
-                    <FaMapMarkerAlt style={{ marginRight: '4px' }} />
-                    {item.farmer}, {item.location}
-                  </p>
-                  <p style={quantityInfo}>Quantity: {item.quantity}</p>
-                  <p style={priceInfo}>₹{item.price.toLocaleString()}</p>
-                  <div style={productActions}>
-                    <button onClick={() => handleAddToCart(item)} style={addToCartButton}>
-                      <FaShoppingCart style={{ marginRight: '4px' }} />
-                      Add to Cart
-                    </button>
-                    <button style={contactButton}>
-                      <FaWhatsapp style={{ marginRight: '4px' }} />
-                      Contact
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {filteredDryFruits.map((item, idx) => (
+              <ProductCard key={idx} item={item} idx={idx} />
             ))}
           </div>
         </div>
@@ -357,44 +343,8 @@ const ConsumerDashboard = () => {
             <button onClick={() => setShowVegetables(false)} style={closeSectionButton}>Close</button>
           </div>
           <div style={productsGrid}>
-            {getFilteredProducts(vegetables).map((item, idx) => (
-              <div key={idx} style={productCard}>
-                <div style={productImageContainer}>
-                  <img src={item.image} alt={item.crop} style={productImage} />
-                  <button 
-                    onClick={() => toggleWishlist(item)} 
-                    style={wishlistButton(wishlist.find(wishItem => 
-                      wishItem.crop === item.crop && wishItem.farmer === item.farmer
-                    ))}
-                  >
-                    <FaHeart />
-                  </button>
-                </div>
-                <div style={productInfo}>
-                  <h3 style={productTitle}>{item.crop}</h3>
-                  <div style={ratingContainer}>
-                    <FaStar style={starIcon} />
-                    <span>{item.rating}</span>
-                    <span style={reviewsText}>({item.reviews} reviews)</span>
-                  </div>
-                  <p style={farmerInfo}>
-                    <FaMapMarkerAlt style={{ marginRight: '4px' }} />
-                    {item.farmer}, {item.location}
-                  </p>
-                  <p style={quantityInfo}>Quantity: {item.quantity}</p>
-                  <p style={priceInfo}>₹{item.price.toLocaleString()}</p>
-                  <div style={productActions}>
-                    <button onClick={() => handleAddToCart(item)} style={addToCartButton}>
-                      <FaShoppingCart style={{ marginRight: '4px' }} />
-                      Add to Cart
-                    </button>
-                    <button style={contactButton}>
-                      <FaWhatsapp style={{ marginRight: '4px' }} />
-                      Contact
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {filteredVegetables.map((item, idx) => (
+              <ProductCard key={idx} item={item} idx={idx} />
             ))}
           </div>
         </div>
