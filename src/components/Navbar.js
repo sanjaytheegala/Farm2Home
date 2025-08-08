@@ -3,7 +3,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import './Navbar.css'
-import { FaHome, FaUser, FaShoppingCart, FaSignOutAlt, FaLeaf, FaSearch, FaBars, FaTimes, FaLanguage } from 'react-icons/fa'
+import { FaHome, FaUser, FaShoppingCart, FaSignOutAlt, FaLeaf, FaSearch, FaBars, FaTimes, FaLanguage, FaInfoCircle, FaBoxOpen, FaStore } from 'react-icons/fa'
 
 const Navbar = React.memo(({ showEcommerce = false, showCart = false, showOrders = false }) => {
   const navigate = useNavigate()
