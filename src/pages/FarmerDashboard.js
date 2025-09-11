@@ -202,10 +202,10 @@ const FarmerDashboard = () => {
         </button>
         <button 
           style={activeTab === 'recommendations' ? activeTabStyle : tabStyle}
-          onClick={() => setActiveTab('recommendations')}
+          onClick={() => window.open('/crop-recommendations', '_blank')}
         >
           <FaLeaf style={{ marginRight: '8px' }} />
-          {t('ai_recommendations') || 'AI Recommendations'}
+          Crop recommendation
         </button>
       </div>
 

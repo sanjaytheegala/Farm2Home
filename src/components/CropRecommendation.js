@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaLeaf, FaThermometerHalf, FaCalendarAlt, FaChartLine, FaSeedling, FaWater, FaMapMarkerAlt, FaMoneyBillWave, FaStar, FaDownload, FaBookmark } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { FaLeaf, FaThermometerHalf, FaCalendarAlt, FaChartLine, FaSeedling, FaWater, FaMapMarkerAlt, FaMoneyBillWave, FaStar, FaDownload, FaBookmark, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 const CropRecommendation = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     soilType: '',
     climate: '',
@@ -374,9 +376,20 @@ Generated on: ${new Date().toLocaleDateString()}
 
   return (
     <div style={container}>
-      <div style={header}>
-        <FaSeedling style={{ fontSize: 32, color: '#28a745', marginRight: 12 }} />
-        <h1 style={title}>{t('ai_crop_recommendations') || 'AI Crop Recommendations'}</h1>
+      {/* Navigation Header */}
+      <div style={navHeader}>
+        <button onClick={() => navigate(-1)} style={navButton}>
+          <FaChevronLeft style={{ marginRight: '8px' }} />
+          {t('back') || 'Back'}
+        </button>
+        <div style={header}>
+          <FaSeedling style={{ fontSize: 32, color: '#28a745', marginRight: 12 }} />
+          <h1 style={title}>{t('ai_crop_recommendations') || 'AI Crop Recommendations'}</h1>
+        </div>
+        <button onClick={() => navigate(1)} style={navButton}>
+          {t('forward') || 'Forward'}
+          <FaChevronRight style={{ marginLeft: '8px' }} />
+        </button>
       </div>
       
       <p style={description}>
@@ -390,13 +403,13 @@ Generated on: ${new Date().toLocaleDateString()}
           style={!showSaved ? activeTabStyle : tabStyle}
           onClick={() => { setShowSaved(false); setShowForm(true); }}
         >
-          New Analysis
+          {t('new_analysis') || 'New Analysis'}
         </button>
         <button 
           style={showSaved ? activeTabStyle : tabStyle}
           onClick={() => { setShowSaved(true); setShowForm(false); }}
         >
-          Saved Recommendations ({savedRecommendations.length})
+          {t('saved_recommendations') || 'Saved Recommendations'} ({savedRecommendations.length})
         </button>
       </div>
 
@@ -527,7 +540,7 @@ Generated on: ${new Date().toLocaleDateString()}
                 value={formData.landSize} 
                 onChange={(e) => handleInputChange('landSize', e.target.value)}
                 style={input}
-                placeholder="Enter land size in acres"
+                placeholder={t('enter_land_size') || 'Enter land size in acres'}
                 min="0.1"
                 step="0.1"
               />
@@ -537,14 +550,14 @@ Generated on: ${new Date().toLocaleDateString()}
             <div style={inputGroup}>
               <label style={label}>
                 <FaMoneyBillWave style={{ marginRight: 8 }} />
-                {t('budget') || 'Budget per Acre (₹)'}
+                {t('budget_per_acre') || 'Budget per Acre (₹)'}
               </label>
               <input 
                 type="number" 
                 value={formData.budget} 
                 onChange={(e) => handleInputChange('budget', e.target.value)}
                 style={input}
-                placeholder="Enter budget in ₹"
+                placeholder={t('enter_budget') || 'Enter budget in ₹'}
                 min="1000"
                 step="1000"
               />
@@ -561,7 +574,7 @@ Generated on: ${new Date().toLocaleDateString()}
                 style={select}
                 required
               >
-                <option value="">{t('select_experience') || 'Select Experience Level'}</option>
+                <option value="">{t('select_experience_level') || 'Select Experience Level'}</option>
                 {experienceLevels.map(exp => (
                   <option key={exp.value} value={exp.value}>
                     {exp.label} - {exp.description}
@@ -582,7 +595,7 @@ Generated on: ${new Date().toLocaleDateString()}
                 style={select}
                 required
               >
-                <option value="">{t('select_market') || 'Select Market Preference'}</option>
+                <option value="">{t('select_market_preference') || 'Select Market Preference'}</option>
                 {marketPreferences.map(market => (
                   <option key={market.value} value={market.value}>
                     {market.label} - {market.description}
@@ -595,20 +608,20 @@ Generated on: ${new Date().toLocaleDateString()}
             <div style={inputGroup}>
               <label style={label}>
                 <FaMapMarkerAlt style={{ marginRight: 8 }} />
-                Location (Optional)
+                {t('location_optional') || 'Location (Optional)'}
               </label>
               <input 
                 type="text" 
                 value={formData.location} 
                 onChange={(e) => handleInputChange('location', e.target.value)}
                 style={input}
-                placeholder="Enter your location for better recommendations"
+                placeholder={t('enter_location') || 'Enter your location for better recommendations'}
               />
             </div>
           </div>
 
           <button type="submit" style={submitButton}>
-            {t('get_recommendations') || 'Get AI Recommendations'}
+            {t('get_ai_recommendations') || 'Get AI Recommendations'}
           </button>
         </form>
       ) : (
@@ -791,12 +804,34 @@ const container = {
   fontFamily: 'Arial, sans-serif'
 };
 
+const navHeader = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: '20px',
+  padding: '10px 0'
+};
+
+const navButton = {
+  backgroundColor: '#28a745',
+  color: 'white',
+  border: 'none',
+  padding: '10px 16px',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  fontSize: '14px',
+  fontWeight: '600',
+  transition: 'all 0.3s'
+};
+
 const header = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  marginBottom: '20px',
-  textAlign: 'center'
+  textAlign: 'center',
+  flex: 1
 };
 
 const title = {
@@ -1200,15 +1235,5 @@ const saveButton = {
   display: 'flex',
   alignItems: 'center'
 };
-
-// Add CSS animation
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-document.head.appendChild(style);
 
 export default CropRecommendation; 

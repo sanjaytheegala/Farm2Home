@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Farm2Home",
+  "name": "Farm2Home - AI-Powered Agriculture Portal",
+  "description": "Connecting farmers directly to consumers with AI crop recommendations",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,18 +9,23 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "images/logo.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "logo512.png",
+      "src": "images/logo.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#28a745",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "lifestyle"],
+  "lang": "en"
 }

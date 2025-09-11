@@ -13,41 +13,44 @@ import EcommercePage from './pages/EcommercePage';
 import CropRecommendationPage from './pages/CropRecommendationPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const App = () => {
   return (
-    <Router>
-      <Navbar />
-      <div style={{ paddingTop: '80px' }}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/ecommerce" element={<EcommercePage />} />
-          <Route path="/crop-recommendations" element={<CropRecommendationPage />} />
+    <ErrorBoundary>
+      <Router>
+        <div className="App">
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/ecommerce" element={<EcommercePage />} />
+            <Route path="/crop-recommendations" element={<CropRecommendationPage />} />
 
-          <Route
-            path="/farmer"
-            element={
-              <ProtectedRoute>
-                <FarmerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/consumer"
-            element={
-              <ProtectedRoute>
-                <ConsumerDashboard />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </div>
-    </Router>
+            <Route
+              path="/farmer"
+              element={
+                <ProtectedRoute>
+                  <FarmerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/consumer"
+              element={
+                <ProtectedRoute>
+                  <ConsumerDashboard />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
+      </Router>
+    </ErrorBoundary>
   );
 };
 
