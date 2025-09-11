@@ -49,12 +49,20 @@ const HomePage = () => {
     let currentStep = 0
     const interval = setInterval(() => {
       currentStep++
-      setAnimatedStats(prev => ({
-        farmers: Math.min(prev.farmers + stepValue.farmers, targets.farmers),
-        consumers: Math.min(prev.consumers + stepValue.consumers, targets.consumers),
-        products: Math.min(prev.products + stepValue.products, targets.products),
-        satisfaction: Math.min(prev.satisfaction + stepValue.satisfaction, targets.satisfaction)
-      }))
+      setAnimatedStats(prev => {
+        const nextFarmers = Math.min(prev.farmers + stepValue.farmers, targets.farmers)
+        const nextConsumers = Math.min(prev.consumers + stepValue.consumers, targets.consumers)
+        const nextProducts = Math.min(prev.products + stepValue.products, targets.products)
+        const nextSatisfaction = Math.min(prev.satisfaction + stepValue.satisfaction, targets.satisfaction)
+
+        return {
+          farmers: Math.round(nextFarmers),
+          consumers: Math.round(nextConsumers),
+          products: Math.round(nextProducts),
+          // Keep satisfaction animated with two decimal precision
+          satisfaction: Number(nextSatisfaction.toFixed(2))
+        }
+      })
 
       if (currentStep >= steps) {
         clearInterval(interval)
@@ -84,12 +92,12 @@ const HomePage = () => {
             <div style={ctaButtons}>
               <button 
                 onClick={() => handleRoleSelect('farmer')} 
-                style={primaryBtn}
+                style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
               >
                 <FaLeaf style={{ marginRight: '8px' }} />
-      {/* Removed Get in Touch section */}
+                Join as Farmer
               </button>
               <button 
                 onClick={() => handleRoleSelect('consumer')} 
@@ -98,7 +106,7 @@ const HomePage = () => {
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
               >
                 <FaShoppingCart style={{ marginRight: '8px' }} />
-                Shop Fresh Produce
+                Shop Fresh Products
               </button>
             </div>
           </div>
@@ -111,22 +119,22 @@ const HomePage = () => {
         <div style={statsGrid}>
           <div style={statCard}>
             <FaUsers style={statIcon} />
-            <h3 style={statNumber}>{animatedStats.farmers.toLocaleString()}+</h3>
+            <h3 style={statNumber}>{Math.round(animatedStats.farmers).toLocaleString()}+</h3>
             <p style={statLabel}>Active Farmers</p>
           </div>
           <div style={statCard}>
             <FaShoppingCart style={statIcon} />
-            <h3 style={statNumber}>{animatedStats.consumers.toLocaleString()}+</h3>
+            <h3 style={statNumber}>{Math.round(animatedStats.consumers).toLocaleString()}+</h3>
             <p style={statLabel}>Happy Consumers</p>
           </div>
           <div style={statCard}>
             <FaLeaf style={statIcon} />
-            <h3 style={statNumber}>{animatedStats.products.toLocaleString()}+</h3>
+            <h3 style={statNumber}>{Math.round(animatedStats.products).toLocaleString()}+</h3>
             <p style={statLabel}>Fresh Products</p>
           </div>
           <div style={statCard}>
             <FaStar style={statIcon} />
-            <h3 style={statNumber}>{animatedStats.satisfaction}%</h3>
+            <h3 style={statNumber}>{Number(animatedStats.satisfaction).toFixed(2)}%</h3>
             <p style={statLabel}>Satisfaction Rate</p>
           </div>
         </div>
@@ -358,32 +366,32 @@ const ctaButtons = {
 };
 
 const primaryBtn = {
-  backgroundColor: 'white',
-  color: '#28a745',
+  backgroundColor: '#28a745',
+  color: '#ffffff',
   border: 'none',
-  padding: '15px 30px',
-  borderRadius: '25px',
-  fontSize: '1.1rem',
-  fontWeight: 'bold',
+  padding: '12px 26px',
+  borderRadius: '22px',
+  fontSize: '1.05rem',
+  fontWeight: '700',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
-  transition: 'all 0.3s ease',
-  boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+  transition: 'all 0.2s ease',
+  boxShadow: '0 6px 18px rgba(40,167,69,0.18)',
 };
 
 const secondaryBtn = {
   backgroundColor: 'transparent',
-  color: 'white',
-  border: '2px solid white',
-  padding: '15px 30px',
-  borderRadius: '25px',
-  fontSize: '1.1rem',
-  fontWeight: 'bold',
+  color: '#ffffff',
+  border: '2px solid rgba(255,255,255,0.6)',
+  padding: '12px 26px',
+  borderRadius: '22px',
+  fontSize: '1.05rem',
+  fontWeight: '700',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
-  transition: 'all 0.3s ease',
+  transition: 'all 0.2s ease',
 };
 
 // Statistics Section

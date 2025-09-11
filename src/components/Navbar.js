@@ -69,7 +69,7 @@ const Navbar = React.memo(({ showEcommerce = false, showCart = false, showOrders
         
         {/* Center - Navigation Links */}
         <div className="navbar-center">
-          <button className="nav-item" onClick={handleHomeClick}>
+          <button className="nav-item home-item" onClick={handleHomeClick}>
             <FaHome className="nav-icon" />
             <span className="nav-text">{t('home')}</span>
           </button>

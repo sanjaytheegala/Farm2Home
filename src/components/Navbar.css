@@ -495,3 +495,40 @@
     font-size: 11px;
   }
 }
+
+/* Home button special styling - appended */
+.home-item {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+}
+
+.home-item .nav-icon {
+  color: white;
+  font-size: 16px;
+}
+
+.home-item:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.navbar-container.scrolled .home-item {
+  background: #28a745;
+  color: #fff;
+}
+
+.navbar-container.scrolled .home-item .nav-icon {
+  color: #fff;
+}
+
+@media (max-width: 1024px) {
+  .home-item .nav-text { display: none; }
+}
