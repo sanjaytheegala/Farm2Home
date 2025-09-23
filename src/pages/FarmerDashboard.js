@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ref, push, set, get, remove } from 'firebase/database'
-import { db } from '../firebase'
+import { ref, push, set, get, remove, db } from '../firebase'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
 import CropRecommendation from '../components/CropRecommendation';
@@ -182,7 +181,7 @@ const FarmerDashboard = () => {
 
   return (
     <div style={container}>
-      <Navbar showEcommerce={true} />
+      <Navbar />
       
       {/* Enhanced Tab Navigation */}
       <div style={tabContainer}>

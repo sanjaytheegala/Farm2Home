@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ref, push, set } from 'firebase/database'
-import { db } from '../firebase'
+import { ref, push, set, db } from '../firebase'
 import Navbar from '../components/Navbar'
 
 const CartPage = () => {

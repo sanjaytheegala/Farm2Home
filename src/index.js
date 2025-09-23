@@ -2,13 +2,15 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
 import './i18n';
+import { AuthProvider } from './context/AuthContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>
 );
 
@@ -24,9 +26,6 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
-
-// Performance monitoring
-reportWebVitals(console.log);
 
 // Preload critical resources
 const preloadCriticalResources = () => {

@@ -1,11 +1,27 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Navbar from '../components/Navbar'
-import { FaLeaf, FaShoppingCart, FaChartLine, FaUsers, FaMapMarkerAlt, FaPhone, FaEnvelope, FaArrowRight, FaSeedling, FaTruck, FaHandshake, FaStar, FaQuoteLeft, FaGlobe, FaHeart, FaShieldAlt, FaClock, FaAward } from 'react-icons/fa'
+// Removed unused Navbar import since it's not being used directly in this component
+import { FaLeaf, FaShoppingCart, FaChartLine, FaUsers, FaMapMarkerAlt, FaArrowRight, FaSeedling, FaTruck, FaHandshake, FaStar, FaQuoteLeft, FaTimes, FaPhone, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa'
+import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword, doc, setDoc, db } from '../firebase'
 
 const HomePage = () => {
   const navigate = useNavigate()
   const [hoveredCard, setHoveredCard] = useState(null)
+  const [showLoginCard, setShowLoginCard] = useState(false)
+  const [selectedRole, setSelectedRole] = useState('consumer') // 'farmer' or 'consumer'
+  
+  // Auth form states
+  const [formType, setFormType] = useState('login') // 'login' or 'signup'
+  const [loginMethod, setLoginMethod] = useState('phone') // 'phone' or 'email'
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [otp, setOtp] = useState('')
+  const [confirmationResult, setConfirmationResult] = useState(null)
+  const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [animatedStats, setAnimatedStats] = useState({
     farmers: 0,
     consumers: 0,
@@ -13,9 +29,187 @@ const HomePage = () => {
     satisfaction: 0
   })
 
-  const handleRoleSelect = (r) => {
-    if (r === 'farmer') navigate('/farmer')
-    else if (r === 'consumer') navigate('/consumer')
+  // Authentication functions
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response) => {
+          console.log("Recaptcha verified");
+        }
+      });
+    }
+  };
+
+  const handleSendOTP = async () => {
+    setError('');
+    setLoading(true);
+    if (!phone) {
+      setError('Please enter a phone number.');
+      setLoading(false);
+      return;
+    }
+    setupRecaptcha();
+    const appVerifier = window.recaptchaVerifier;
+    try {
+      const result = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);
+      setConfirmationResult(result);
+      alert('OTP sent successfully!');
+    } catch (err) {
+      setError('Failed to send OTP. Please try again.');
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  const handleVerifyOTP = async () => {
+    setError('');
+    setLoading(true);
+    if (!otp || !confirmationResult) {
+      setError('Please enter the OTP.');
+      setLoading(false);
+      return;
+    }
+    try {
+      const result = await confirmationResult.confirm(otp);
+      const user = result.user;
+      
+      // Store user data for mock authentication
+      const userData = {
+        role: selectedRole,
+        name: 'Demo User',
+        email: user.email || phone,
+        uid: user.uid
+      };
+      localStorage.setItem('mockUserData', JSON.stringify(userData));
+      
+      // Navigate to appropriate dashboard
+      console.log('Navigating to dashboard for role:', selectedRole);
+      navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
+    } catch (err) {
+      setError('Invalid OTP. Please try again.');
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    if (!email || !password) {
+      setError('Please fill all fields.');
+      setLoading(false);
+      return;
+    }
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+      
+      // Store user data for mock authentication
+      const userData = {
+        role: selectedRole,
+        name: 'Demo User',
+        email: user.email,
+        uid: user.uid
+      };
+      localStorage.setItem('mockUserData', JSON.stringify(userData));
+      
+      // Navigate to appropriate dashboard
+      console.log('Navigating to dashboard for role:', selectedRole);
+      navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
+    } catch (err) {
+      setError('Invalid email or password.');
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email,
+        role: selectedRole,
+        createdAt: new Date()
+      });
+
+      // Store user data for mock authentication
+      const userData = {
+        role: selectedRole,
+        name: 'Demo User',
+        email: user.email,
+        uid: user.uid
+      };
+      localStorage.setItem('mockUserData', JSON.stringify(userData));
+      
+      // Navigate to appropriate dashboard
+      console.log('Navigating to dashboard for role:', selectedRole);
+      navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email address is already in use.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password should be at least 6 characters.');
+      } else {
+        setError('Failed to create an account. Please try again.');
+      }
+    }
+    setLoading(false);
+  };
+
+  const resetForm = () => {
+    setPhone('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setOtp('');
+    setError('');
+    setConfirmationResult(null);
+    setLoginMethod('phone');
+    setLoading(false);
+    setShowPassword(false);
+  };
+
+  const switchToLogin = () => {
+    resetForm();
+    setFormType('login');
+  };
+
+  const switchToSignup = () => {
+    resetForm();
+    setFormType('signup');
+  };
+
+  const closeLoginCard = () => {
+    setShowLoginCard(false);
+    resetForm();
+    setFormType('login'); // Reset to login by default
+  };
+
+  const handleRoleSelect = (role) => {
+    setSelectedRole(role)
+    setShowLoginCard(true)
+    // Scroll to login section (a bit above statistics)
+    setTimeout(() => {
+      const loginSection = document.getElementById('login-section')
+      if (loginSection) {
+        loginSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
   }
 
   // Animate statistics on scroll
@@ -113,6 +307,284 @@ const HomePage = () => {
           {/* Removed floating cards */}
         </div>
       </div>
+
+      {/* Login Card Section */}
+      {showLoginCard && (
+        <div id="login-section" style={loginSectionStyle}>
+          <div style={loginCardOverlay} onClick={closeLoginCard}></div>
+          <div style={loginCardStyle}>
+            <button 
+              onClick={closeLoginCard}
+              style={closeButtonStyle}
+              title="Close"
+            >
+              <FaTimes />
+            </button>
+            
+            <h2 style={loginCardTitle}>
+              {selectedRole === 'farmer' ? 'Join as Farmer' : 'Shop Fresh Products'}
+            </h2>
+            <p style={loginCardSubtitle}>
+              {selectedRole === 'farmer' 
+                ? 'Start selling your fresh produce directly to consumers'
+                : 'Get fresh produce directly from local farmers'
+              }
+            </p>
+
+            {/* Form Type Toggle */}
+            <div style={formToggleContainer}>
+              <button 
+                onClick={switchToLogin}
+                style={{...formToggleButton, ...(formType === 'login' ? activeToggleButton : {})}}
+              >
+                Login
+              </button>
+              <button 
+                onClick={switchToSignup}
+                style={{...formToggleButton, ...(formType === 'signup' ? activeToggleButton : {})}}
+              >
+                Register
+              </button>
+            </div>
+
+            {error && <div style={errorMessage}>{error}</div>}
+
+            {formType === 'login' ? (
+              <div style={formContainer}>
+                {/* Login Method Toggle */}
+                <div style={methodToggleContainer}>
+                  <button 
+                    onClick={() => setLoginMethod('phone')}
+                    style={{...methodToggleButton, ...(loginMethod === 'phone' ? activeMethodButton : {})}}
+                  >
+                    <FaPhone style={{ marginRight: '5px' }} />
+                    Phone
+                  </button>
+                  <button 
+                    onClick={() => setLoginMethod('email')}
+                    style={{...methodToggleButton, ...(loginMethod === 'email' ? activeMethodButton : {})}}
+                  >
+                    <FaEnvelope style={{ marginRight: '5px' }} />
+                    Email
+                  </button>
+                </div>
+
+                {loginMethod === 'phone' ? (
+                  <div>
+                    {!confirmationResult ? (
+                      <div>
+                        <div style={inputGroup}>
+                          <input
+                            type="tel"
+                            placeholder="Enter phone number with country code (e.g., 911234567890)"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            style={inputField}
+                          />
+                        </div>
+                        <button 
+                          onClick={handleSendOTP}
+                          disabled={loading}
+                          style={{...submitButton, opacity: loading ? 0.7 : 1}}
+                        >
+                          {loading ? 'Sending...' : 'Send OTP'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={inputGroup}>
+                          <input
+                            type="text"
+                            placeholder="Enter OTP"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            style={inputField}
+                          />
+                        </div>
+                        <button 
+                          onClick={handleVerifyOTP}
+                          disabled={loading}
+                          style={{...submitButton, opacity: loading ? 0.7 : 1}}
+                        >
+                          {loading ? 'Verifying...' : 'Verify OTP'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <form onSubmit={handleEmailLogin}>
+                    <div style={inputGroup}>
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={inputField}
+                        required
+                      />
+                    </div>
+                    <div style={inputGroup}>
+                      <div style={passwordContainer}>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          style={inputField}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={passwordToggle}
+                        >
+                          {showPassword ? <FaEyeSlash /> : <FaEye />}
+                        </button>
+                      </div>
+                    </div>
+                    <button 
+                      type="submit"
+                      disabled={loading}
+                      style={{...submitButton, opacity: loading ? 0.7 : 1}}
+                    >
+                      {loading ? 'Logging in...' : 'Login'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            ) : (
+              <div style={formContainer}>
+                {/* Register Method Toggle */}
+                <div style={methodToggleContainer}>
+                  <button 
+                    onClick={() => setLoginMethod('phone')}
+                    style={{...methodToggleButton, ...(loginMethod === 'phone' ? activeMethodButton : {})}}
+                  >
+                    <FaPhone style={{ marginRight: '5px' }} />
+                    Phone
+                  </button>
+                  <button 
+                    onClick={() => setLoginMethod('email')}
+                    style={{...methodToggleButton, ...(loginMethod === 'email' ? activeMethodButton : {})}}
+                  >
+                    <FaEnvelope style={{ marginRight: '5px' }} />
+                    Email
+                  </button>
+                </div>
+
+                {loginMethod === 'phone' ? (
+                  <div>
+                    {!confirmationResult ? (
+                      <div>
+                        <div style={inputGroup}>
+                          <input
+                            type="tel"
+                            placeholder="Enter phone number with country code (e.g., 911234567890)"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            style={inputField}
+                          />
+                        </div>
+                        <button 
+                          onClick={handleSendOTP}
+                          disabled={loading}
+                          style={{...submitButton, opacity: loading ? 0.7 : 1}}
+                        >
+                          {loading ? 'Sending...' : 'Send OTP'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={inputGroup}>
+                          <input
+                            type="text"
+                            placeholder="Enter OTP"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            style={inputField}
+                          />
+                        </div>
+                        <button 
+                          onClick={handleVerifyOTP}
+                          disabled={loading}
+                          style={{...submitButton, opacity: loading ? 0.7 : 1}}
+                        >
+                          {loading ? 'Verifying...' : 'Create Account'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <form onSubmit={handleSignup}>
+                    <div style={inputGroup}>
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={inputField}
+                        required
+                      />
+                    </div>
+                    <div style={inputGroup}>
+                      <div style={passwordContainer}>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          style={inputField}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={passwordToggle}
+                        >
+                          {showPassword ? <FaEyeSlash /> : <FaEye />}
+                        </button>
+                      </div>
+                    </div>
+                    <div style={inputGroup}>
+                      <input
+                        type="password"
+                        placeholder="Confirm Password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        style={inputField}
+                        required
+                      />
+                    </div>
+                    <button 
+                      type="submit"
+                      disabled={loading}
+                      style={{...submitButton, opacity: loading ? 0.7 : 1}}
+                    >
+                      {loading ? 'Creating Account...' : 'Create Account'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+
+            <div style={loginCardFeatures}>
+              {selectedRole === 'farmer' ? (
+                <>
+                  <div style={featureItem}>✓ Sell directly to consumers</div>
+                  <div style={featureItem}>✓ Get better prices for your produce</div>
+                  <div style={featureItem}>✓ Build your customer base</div>
+                </>
+              ) : (
+                <>
+                  <div style={featureItem}>✓ Fresh produce from local farms</div>
+                  <div style={featureItem}>✓ Direct farmer-to-consumer pricing</div>
+                  <div style={featureItem}>✓ Support local agriculture</div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Statistics Section */}
       <div id="stats-section" style={statsSection}>
@@ -227,7 +699,7 @@ const HomePage = () => {
         <h2 style={sectionTitle}>Quick Access</h2>
         <div style={quickAccessGrid}>
           {[
-            { icon: FaShoppingCart, title: 'Browse Products', desc: 'Explore fresh produce from local farmers', path: '/ecommerce' },
+            // Removed ecommerce quick access item
             { icon: FaSeedling, title: 'Crop recommendation', desc: 'Get expert advice on what to grow', path: '/crop-recommendations' },
             { icon: FaUsers, title: 'About Us', desc: 'Learn more about our mission and team', path: '/about' }
           ].map((item, index) => (
@@ -263,7 +735,7 @@ const HomePage = () => {
           <div style={footerSection}>
             <h4 style={footerTitle}>Quick Links</h4>
             <p onClick={() => navigate('/about')} style={footerLink}>About Us</p>
-            <p onClick={() => navigate('/ecommerce')} style={footerLink}>Shop Products</p>
+            {/* Removed ecommerce footer link */}
             <p onClick={() => navigate('/crop-recommendations')} style={footerLink}>Crop Advice</p>
           </div>
           <div style={footerSection}>
@@ -276,6 +748,9 @@ const HomePage = () => {
           <p>&copy; 2024 Farm 2 Home. Empowering local agriculture.</p>
         </div>
       </div>
+
+      {/* Recaptcha Container - Hidden */}
+      <div id="recaptcha-container" style={{ display: 'none' }}></div>
     </div>
   )
 }
@@ -365,20 +840,7 @@ const ctaButtons = {
   flexWrap: 'wrap',
 };
 
-const primaryBtn = {
-  backgroundColor: '#28a745',
-  color: '#ffffff',
-  border: 'none',
-  padding: '12px 26px',
-  borderRadius: '22px',
-  fontSize: '1.05rem',
-  fontWeight: '700',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  transition: 'all 0.2s ease',
-  boxShadow: '0 6px 18px rgba(40,167,69,0.18)',
-};
+// Removed unused primaryBtn style object
 
 const secondaryBtn = {
   backgroundColor: 'transparent',
@@ -514,14 +976,7 @@ const stepsContainer = {
   margin: '0 auto',
 };
 
-const step = {
-  textAlign: 'center',
-  padding: '30px',
-  background: 'white',
-  borderRadius: '15px',
-  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-  transition: 'all 0.3s ease',
-};
+// Removed unused step style object
 
 const stepNumber = {
   width: '60px',
@@ -667,38 +1122,7 @@ const quickAccessDesc = {
 };
 
 // Contact Section
-const contactSection = {
-  padding: '80px 20px',
-  backgroundColor: 'white',
-  textAlign: 'center',
-};
-
-const contactInfo = {
-  display: 'flex',
-  justifyContent: 'center',
-  gap: '40px',
-  flexWrap: 'wrap',
-  marginBottom: '30px',
-};
-
-const contactItem = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  fontSize: '1.1rem',
-};
-
-const contactIcon = {
-  color: '#28a745',
-  fontSize: '1.2rem',
-};
-
-const contactDescription = {
-  maxWidth: '600px',
-  margin: '0 auto',
-  fontSize: '1rem',
-  color: '#666',
-};
+// Removed unused contact-related style objects: contactSection, contactInfo, contactItem, contactIcon, contactDescription
 
 // Footer
 const footer = {
@@ -739,12 +1163,7 @@ const socialLinks = {
   gap: '15px',
 };
 
-const socialIcon = {
-  fontSize: '1.5rem',
-  color: '#28a745',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-};
+// Removed unused socialIcon style object
 
 const footerLink = {
   cursor: 'pointer',
@@ -768,12 +1187,219 @@ const footerBottom = {
   color: '#ccc',
 };
 
+// Login Card Styles
+const loginSectionStyle = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  zIndex: 1000,
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: '20px',
+};
+
+const loginCardOverlay = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  backdropFilter: 'blur(4px)',
+};
+
+const loginCardStyle = {
+  position: 'relative',
+  backgroundColor: 'white',
+  borderRadius: '16px',
+  padding: '25px',
+  maxWidth: '420px',
+  width: '100%',
+  maxHeight: '80vh',
+  overflowY: 'auto',
+  boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)',
+  textAlign: 'center',
+  transform: 'scale(1)',
+  animation: 'fadeInScale 0.3s ease-out',
+};
+
+const closeButtonStyle = {
+  position: 'absolute',
+  top: '15px',
+  right: '15px',
+  background: 'none',
+  border: 'none',
+  fontSize: '20px',
+  color: '#666',
+  cursor: 'pointer',
+  padding: '5px',
+  borderRadius: '50%',
+  transition: 'all 0.3s ease',
+};
+
+const loginCardTitle = {
+  fontSize: '1.6rem',
+  fontWeight: 'bold',
+  color: '#333',
+  marginBottom: '8px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+};
+
+const loginCardSubtitle = {
+  fontSize: '0.9rem',
+  color: '#666',
+  marginBottom: '20px',
+  lineHeight: 1.4,
+};
+
+const loginCardFeatures = {
+  textAlign: 'left',
+  backgroundColor: '#f8f9fa',
+  padding: '12px',
+  borderRadius: '6px',
+  marginTop: '15px',
+};
+
+const featureItem = {
+  padding: '4px 0',
+  fontSize: '0.8rem',
+  color: '#495057',
+  fontWeight: '500',
+};
+
+// Form Styles
+const formToggleContainer = {
+  display: 'flex',
+  marginBottom: '15px',
+  borderRadius: '6px',
+  overflow: 'hidden',
+  border: '1px solid #ddd',
+};
+
+const formToggleButton = {
+  flex: 1,
+  padding: '8px',
+  border: 'none',
+  background: '#f8f9fa',
+  cursor: 'pointer',
+  fontSize: '0.85rem',
+  fontWeight: '600',
+  transition: 'all 0.3s ease',
+};
+
+const activeToggleButton = {
+  background: 'linear-gradient(135deg, #28a745, #20c997)',
+  color: 'white',
+};
+
+const methodToggleContainer = {
+  display: 'flex',
+  marginBottom: '12px',
+  gap: '8px',
+};
+
+const methodToggleButton = {
+  flex: 1,
+  padding: '6px 10px',
+  border: '1px solid #ddd',
+  borderRadius: '5px',
+  background: '#f8f9fa',
+  cursor: 'pointer',
+  fontSize: '0.8rem',
+  fontWeight: '500',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.3s ease',
+};
+
+const activeMethodButton = {
+  background: '#007bff',
+  color: 'white',
+  borderColor: '#007bff',
+};
+
+const formContainer = {
+  marginBottom: '15px',
+};
+
+const inputGroup = {
+  marginBottom: '12px',
+};
+
+const inputField = {
+  width: '100%',
+  padding: '10px',
+  border: '1px solid #ddd',
+  borderRadius: '6px',
+  fontSize: '0.9rem',
+  transition: 'border-color 0.3s ease',
+  boxSizing: 'border-box',
+};
+
+const passwordContainer = {
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+};
+
+const passwordToggle = {
+  position: 'absolute',
+  right: '10px',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  color: '#666',
+  fontSize: '0.9rem',
+};
+
+const submitButton = {
+  width: '100%',
+  padding: '10px',
+  background: 'linear-gradient(135deg, #28a745, #20c997)',
+  color: 'white',
+  border: 'none',
+  borderRadius: '6px',
+  fontSize: '0.9rem',
+  fontWeight: '600',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+};
+
+const errorMessage = {
+  color: '#dc3545',
+  fontSize: '0.8rem',
+  marginBottom: '12px',
+  padding: '8px',
+  background: '#f8d7da',
+  border: '1px solid #f5c6cb',
+  borderRadius: '5px',
+  textAlign: 'center',
+};
+
 // Add CSS animations
 const style = document.createElement('style');
 style.textContent = `
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes fadeInScale {
+    0% { 
+      opacity: 0; 
+      transform: scale(0.8); 
+    }
+    100% { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
   }
 `;
 document.head.appendChild(style);

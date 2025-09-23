@@ -9,7 +9,7 @@ import LoginPage from './pages/LoginPage';
 import AboutPage from './pages/AboutPage';
 import CartPage from './pages/CartPage';
 import OrdersPage from './pages/OrdersPage';
-import EcommercePage from './pages/EcommercePage';
+// Removed EcommercePage import
 import CropRecommendationPage from './pages/CropRecommendationPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
@@ -28,13 +28,13 @@ const App = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/ecommerce" element={<EcommercePage />} />
+            {/* Removed ecommerce route */}
             <Route path="/crop-recommendations" element={<CropRecommendationPage />} />
 
             <Route
               path="/farmer"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['farmer']}>
                   <FarmerDashboard />
                 </ProtectedRoute>
               }
@@ -42,7 +42,7 @@ const App = () => {
             <Route
               path="/consumer"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['consumer']}>
                   <ConsumerDashboard />
                 </ProtectedRoute>
               }

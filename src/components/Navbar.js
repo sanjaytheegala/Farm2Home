@@ -3,15 +3,14 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import './Navbar.css'
-// Removed unused icons: FaUser, FaSignOutAlt, FaBars, FaTimes, FaCog
-import { FaHome, FaShoppingCart, FaLeaf, FaSearch, FaInfoCircle, FaBoxOpen, FaStore, FaBell } from 'react-icons/fa'
+// Removed unused icons: FaUser, FaSignOutAlt, FaBars, FaTimes, FaCog, FaStore, FaHome, FaLeaf, FaSearch, FaArrowLeft, FaArrowRight
+import { FaShoppingCart, FaInfoCircle, FaBoxOpen, /* FaStore, */ FaBell, FaChevronLeft, FaChevronRight } from 'react-icons/fa'
 
 // Pass cartCount and notificationCount as props
-const Navbar = React.memo(({ showEcommerce = false, showCart = false, showOrders = false, cartCount = 0, notifications = [] }) => {
+const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0, notifications = [] }) => {
   const navigate = useNavigate()
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+  // Removed unused search-related state variables
   const [showNotifications, setShowNotifications] = useState(false)
   const { t, i18n } = useTranslation();
 
@@ -26,70 +25,48 @@ const Navbar = React.memo(({ showEcommerce = false, showCart = false, showOrders
   }, [handleScroll])
 
   // Optimized navigation handlers
-  const handleHomeClick = useCallback(() => navigate('/'), [navigate])
   const handleOrdersClick = useCallback(() => navigate('/orders'), [navigate])
   const handleCartClick = useCallback(() => navigate('/cart'), [navigate])
-  const handleEcommerceClick = useCallback(() => navigate('/ecommerce'), [navigate])
+  // Removed ecommerce handler
   const handleAboutClick = useCallback(() => navigate('/about'), [navigate])
+  const handleHomeClick = useCallback(() => navigate('/'), [navigate])
 
 
   const changeLanguage = useCallback((lng) => {
     i18n.changeLanguage(lng);
   }, [i18n]);
 
-  const handleSearch = useCallback((e) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      // Navigate to ecommerce with search query
-      navigate(`/ecommerce?search=${encodeURIComponent(searchQuery.trim())}`)
-      setSearchQuery('')
-      setIsSearchOpen(false)
-    }
-  }, [searchQuery, navigate])
-
-  const toggleSearch = useCallback(() => {
-    setIsSearchOpen(prev => !prev) // Use functional update for state based on previous state
-    if (isSearchOpen) {
-      setSearchQuery('')
-    }
-  }, [isSearchOpen])
-
   return (
     <div className={`navbar-container ${isScrolled ? 'scrolled' : ''}`}>
       <div className="navbar-content">
-        
         {/* Left - Logo and Brand */}
-       <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-          <span className="navbar-project-name" onClick={handleHomeClick}>
+        <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={handleHomeClick}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <button className="nav-button nav-backward" title="Go Back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#666' }}>
+              <FaChevronLeft size={14} />
+            </button>
+            <button className="nav-button nav-forward" title="Go Forward" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#666' }}>
+              <FaChevronRight size={14} />
+            </button>
+          </div>
+          <span className="navbar-project-name">
             FARM
             <img src={require('../logo/logo3.png')} alt="Farm 2 Home Logo" style={{ height: 52, verticalAlign: 'middle' }} />
             HOME
           </span>
         </div>
-        
+
         {/* Center - Navigation Links */}
         <div className="navbar-center">
-          <button className="nav-item home-item" onClick={handleHomeClick}>
-            <FaHome className="nav-icon" />
-            <span className="nav-text">{t('home')}</span>
-          </button>
-          
-          {showEcommerce && (
-            <button className="nav-item" onClick={handleEcommerceClick}>
-              <FaStore className="nav-icon" />
-              <span className="nav-text">{t('ecommerce')}</span>
-            </button>
-          )}
-          
+          {/* Removed ecommerce button */}
 
-          
           {showOrders && (
             <button className="nav-item" onClick={handleOrdersClick}>
               <FaBoxOpen className="nav-icon" />
               <span className="nav-text">{t('orders')}</span>
             </button>
           )}
-          
+
           {showCart && (
             <button className="nav-item cart-item" onClick={handleCartClick}>
               <FaShoppingCart className="nav-icon" />
@@ -98,7 +75,7 @@ const Navbar = React.memo(({ showEcommerce = false, showCart = false, showOrders
             </button>
           )}
         </div>
-        
+
         {/* Right - Search, Notifications, Language, About */}
         <div className="navbar-right">
           {/* Search removed from homepage */}

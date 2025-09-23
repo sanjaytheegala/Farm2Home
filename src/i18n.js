@@ -12,7 +12,7 @@ const resources = {
       about: 'About',
       cart: 'Cart',
       orders: 'Orders',
-      ecommerce: 'Ecommerce',
+      // Removed ecommerce translation key
       farmer_dashboard: 'Farmer Dashboard',
       consumer_dashboard: 'Consumer Dashboard',
       crop: 'Crop',
@@ -91,7 +91,7 @@ const resources = {
       about: 'परिचय',
       cart: 'कार्ट',
       orders: 'ऑर्डर',
-      ecommerce: 'ई-कॉमर्स',
+      // Removed ecommerce translation key
       farmer_dashboard: 'किसान डैशबोर्ड',
       consumer_dashboard: 'उपभोक्ता डैशबोर्ड',
       crop: 'फसल',
@@ -170,7 +170,7 @@ const resources = {
       about: 'గురించి',
       cart: 'కార్ట్',
       orders: 'ఆర్డర్స్',
-      ecommerce: 'ఈ-కామర్స్',
+      // Removed ecommerce translation key
       farmer_dashboard: 'రైతు డాష్‌బోర్డ్',
       consumer_dashboard: 'వినియోగదారు డాష్‌బోర్డ్',
       crop: 'పంట',
@@ -225,7 +225,7 @@ const resources = {
       about: 'பற்றி',
       cart: 'வண்டி',
       orders: 'ஆணைகள்',
-      ecommerce: 'மின் வர்த்தகம்',
+      // Removed ecommerce translation key
       farmer_dashboard: 'விவசாயி டாஷ்போர்டு',
       consumer_dashboard: 'நுகர்வோர் டாஷ்போர்டு',
       crop: 'பயிர்',
@@ -280,7 +280,7 @@ const resources = {
       about: 'കുറിച്ച്',
       cart: 'കാർട്ട്',
       orders: 'ഓർഡറുകൾ',
-      ecommerce: 'ഇ-കൊമേഴ്‌സ്',
+      // Removed ecommerce translation key
       farmer_dashboard: 'കർഷക ഡാഷ്ബോർഡ്',
       consumer_dashboard: 'ഉപഭോക്തൃ ഡാഷ്ബോർഡ്',
       crop: 'വിള',
@@ -335,7 +335,7 @@ const resources = {
       about: 'ಬಗ್ಗೆ',
       cart: 'ಕಾರ್ಟ್',
       orders: 'ಆರ್ಡರ್‌ಗಳು',
-      ecommerce: 'ಇ-ಕಾಮರ್ಸ್',
+      // Removed ecommerce translation key
       farmer_dashboard: 'ರೈತ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
       consumer_dashboard: 'ಗ್ರಾಹಕ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
       crop: 'ಬೆಳೆ',
@@ -390,7 +390,7 @@ const resources = {
       about: 'विषयी',
       cart: 'कार्ट',
       orders: 'ऑर्डर्स',
-      ecommerce: 'ई-कॉमर्स',
+      // Removed ecommerce translation key
       farmer_dashboard: 'शेतकरी डॅशबोर्ड',
       consumer_dashboard: 'ग्राहक डॅशबोर्ड',
       crop: 'पिक',
