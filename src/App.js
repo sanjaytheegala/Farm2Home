@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import AboutPage from './pages/AboutPage';
 import CartPage from './pages/CartPage';
 import OrdersPage from './pages/OrdersPage';
+import ResourceSharePage from './pages/ResourceSharePage';
 // Removed EcommercePage import
 import CropRecommendationPage from './pages/CropRecommendationPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -30,6 +31,16 @@ const App = () => {
             <Route path="/orders" element={<OrdersPage />} />
             {/* Removed ecommerce route */}
             <Route path="/crop-recommendations" element={<CropRecommendationPage />} />
+            
+            {/* Resource Share - Protected route for farmers */}
+            <Route
+              path="/resource-share"
+              element={
+                <ProtectedRoute allowedRoles={['farmer']}>
+                  <ResourceSharePage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/farmer"

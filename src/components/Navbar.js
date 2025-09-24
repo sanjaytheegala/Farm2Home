@@ -1,18 +1,22 @@
 import { useEffect, useState, useCallback } from 'react'
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import './Navbar.css'
 // Removed unused icons: FaUser, FaSignOutAlt, FaBars, FaTimes, FaCog, FaStore, FaHome, FaLeaf, FaSearch, FaArrowLeft, FaArrowRight
-import { FaShoppingCart, FaInfoCircle, FaBoxOpen, /* FaStore, */ FaBell, FaChevronLeft, FaChevronRight } from 'react-icons/fa'
+import { FaShoppingCart, FaInfoCircle, FaBoxOpen, /* FaStore, */ FaBell, FaChevronLeft, FaChevronRight, FaTools } from 'react-icons/fa'
 
 // Pass cartCount and notificationCount as props
 const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0, notifications = [] }) => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [isScrolled, setIsScrolled] = useState(false)
   // Removed unused search-related state variables
   const [showNotifications, setShowNotifications] = useState(false)
   const { t, i18n } = useTranslation();
+
+  // Check if we're on farmer dashboard
+  const isFarmerDashboard = location.pathname === '/farmer'
 
   // Optimized scroll handler with useCallback
   const handleScroll = useCallback(() => {
@@ -27,6 +31,7 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
   // Optimized navigation handlers
   const handleOrdersClick = useCallback(() => navigate('/orders'), [navigate])
   const handleCartClick = useCallback(() => navigate('/cart'), [navigate])
+  const handleResourceShareClick = useCallback(() => navigate('/resource-share'), [navigate])
   // Removed ecommerce handler
   const handleAboutClick = useCallback(() => navigate('/about'), [navigate])
   const handleHomeClick = useCallback(() => navigate('/'), [navigate])
@@ -59,6 +64,14 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
         {/* Center - Navigation Links */}
         <div className="navbar-center">
           {/* Removed ecommerce button */}
+
+          {/* Resource Share - Only show on farmer dashboard */}
+          {isFarmerDashboard && (
+            <button className="nav-item" onClick={handleResourceShareClick}>
+              <FaTools className="nav-icon" />
+              <span className="nav-text">Resource Share</span>
+            </button>
+          )}
 
           {showOrders && (
             <button className="nav-item" onClick={handleOrdersClick}>
