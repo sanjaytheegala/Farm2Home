@@ -21,8 +21,11 @@
     "start": "react-scripts start",
     "dev": "react-scripts start",
     "build": "react-scripts build",
+    "build:analyze": "npm run build && npx serve -s build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "optimize-images": "echo 'Run image optimization tools here'",
+    "bundle-size": "npm run build && npx bundlesize"
   },
   "eslintConfig": {
     "extends": [

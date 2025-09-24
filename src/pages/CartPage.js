@@ -27,12 +27,11 @@ const CartPage = () => {
     try {
       const orderRef = push(ref(db, 'orders'))
       await set(orderRef, orderData)
-      alert(`✅ Order placed successfully! \n🧾 OTP for delivery: ${otp}`)
+      console.log(`Order placed successfully! OTP for delivery: ${otp}`)
       localStorage.removeItem('cart')
       navigate('/consumer')
     } catch (error) {
-      alert('❌ Failed to place order')
-      console.error(error)
+      console.error('Failed to place order:', error)
     }
   }
 

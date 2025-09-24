@@ -333,7 +333,7 @@ const CropRecommendation = () => {
       formData: formData
     };
     setSavedRecommendations([...savedRecommendations, savedCrop]);
-    alert('Recommendation saved!');
+    console.log('Recommendation saved!');
   };
 
   const downloadReport = (crop) => {

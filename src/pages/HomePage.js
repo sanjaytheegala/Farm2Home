@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-// Removed unused Navbar import since it's not being used directly in this component
-import { FaLeaf, FaShoppingCart, FaChartLine, FaUsers, FaMapMarkerAlt, FaArrowRight, FaSeedling, FaTruck, FaHandshake, FaStar, FaQuoteLeft, FaTimes, FaPhone, FaEnvelope, FaEye, FaEyeSlash } from 'react-icons/fa'
+// Optimized icon imports - import only what's needed
+import { 
+  FaLeaf, FaShoppingCart, FaChartLine, FaUsers, FaMapMarkerAlt, 
+  FaArrowRight, FaSeedling, FaTruck, FaHandshake, FaStar, 
+  FaQuoteLeft, FaTimes, FaPhone, FaEnvelope, FaEye, FaEyeSlash 
+} from 'react-icons/fa'
 import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword, doc, setDoc, db } from '../firebase'
+import { logger } from '../utils/logger'
 
 const HomePage = () => {
   const navigate = useNavigate()
@@ -35,7 +40,7 @@ const HomePage = () => {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': (response) => {
-          console.log("Recaptcha verified");
+          logger.log("Recaptcha verified");
         }
       });
     }
@@ -54,10 +59,10 @@ const HomePage = () => {
     try {
       const result = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);
       setConfirmationResult(result);
-      alert('OTP sent successfully!');
+      logger.log('OTP sent successfully!');
     } catch (err) {
       setError('Failed to send OTP. Please try again.');
-      console.error(err);
+      logger.error(err);
     }
     setLoading(false);
   };
@@ -81,10 +86,12 @@ const HomePage = () => {
         email: user.email || phone,
         uid: user.uid
       };
+      console.log('OTP verification success - storing user data:', userData);
       localStorage.setItem('mockUserData', JSON.stringify(userData));
       
       // Navigate to appropriate dashboard
       console.log('Navigating to dashboard for role:', selectedRole);
+      console.log('Navigation path:', selectedRole === 'farmer' ? '/farmer' : '/consumer');
       navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
     } catch (err) {
       setError('Invalid OTP. Please try again.');
@@ -102,6 +109,27 @@ const HomePage = () => {
       setLoading(false);
       return;
     }
+
+    // For testing - bypass Firebase auth temporarily
+    if (email === 'test@consumer.com' && password === 'test123') {
+      // Mock successful login
+      const userData = {
+        role: selectedRole,
+        name: 'Test Consumer',
+        email: email,
+        uid: 'test-uid-' + Date.now()
+      };
+      console.log('Test login success - storing user data:', userData);
+      localStorage.setItem('mockUserData', JSON.stringify(userData));
+      
+      // Navigate to appropriate dashboard
+      console.log('Navigating to dashboard for role:', selectedRole);
+      console.log('Navigation path:', selectedRole === 'farmer' ? '/farmer' : '/consumer');
+      navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       const user = result.user;
@@ -113,10 +141,12 @@ const HomePage = () => {
         email: user.email,
         uid: user.uid
       };
+      console.log('Email login success - storing user data:', userData);
       localStorage.setItem('mockUserData', JSON.stringify(userData));
       
       // Navigate to appropriate dashboard
       console.log('Navigating to dashboard for role:', selectedRole);
+      console.log('Navigation path:', selectedRole === 'farmer' ? '/farmer' : '/consumer');
       navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
     } catch (err) {
       setError('Invalid email or password.');

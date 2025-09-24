@@ -1,0 +1,59 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        ".validate": "newData.hasChildren(['role', 'email', 'createdAt'])",
+        "role": {
+          ".validate": "newData.isString() && (newData.val() === 'farmer' || newData.val() === 'consumer')"
+        },
+        "email": {
+          ".validate": "newData.isString()"
+        },
+        "createdAt": {
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+    
+    "crops": {
+      ".read": true,
+      "$cropId": {
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['crop', 'quantity', 'price'])",
+        "crop": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "quantity": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "price": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "status": {
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+    
+    "orders": {
+      "$orderId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['items', 'timestamp'])"
+      }
+    },
+    
+    "shared_resources": {
+      ".read": true,
+      "$resourceId": {
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['title'])"
+      }
+    }
+  }
+}

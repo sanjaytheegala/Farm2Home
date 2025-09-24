@@ -41,7 +41,7 @@ const LoginPage = () => {
     try {
       const result = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);
       setConfirmationResult(result);
-      alert('OTP sent successfully!');
+      console.log('OTP sent successfully!');
     } catch (err) {
       setError('Failed to send OTP. Please check the phone number or try again later.');
       console.error(err);

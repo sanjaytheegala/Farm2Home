@@ -38,6 +38,7 @@ const FarmerDashboard = () => {
   const [rows, setRows] = useState([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
   const [savedCrops, setSavedCrops] = useState([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [editingIndex, setEditingIndex] = useState(null)
   const { t } = useTranslation();
   const [selectedState, setSelectedState] = useState('telangana');
@@ -113,10 +114,9 @@ const FarmerDashboard = () => {
       try {
         await remove(ref(db, `crops/${cropId}`))
         setSavedCrops(savedCrops.filter(crop => crop.id !== cropId))
-        alert('Crop deleted successfully!')
+        console.log('Crop deleted successfully!')
       } catch (error) {
-        alert('Failed to delete crop')
-        console.error(error)
+        console.error('Failed to delete crop:', error)
       }
     }
   }
@@ -129,7 +129,7 @@ const FarmerDashboard = () => {
   const handleSave = async (index) => {
     const row = rows[index]
     if (!row.crop || !row.quantity || !row.price) {
-      alert('Please fill in all required fields')
+      setError('Please fill in all required fields')
       return
     }
 
@@ -151,11 +151,12 @@ const FarmerDashboard = () => {
       }
       setSavedCrops([...savedCrops, savedCrop])
       
-      alert('Crop saved successfully!')
+      console.log('Crop saved successfully!')
+      setError('')
       setRows([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
       setShowAddForm(false)
     } catch (error) {
-      alert('Failed to save crop')
+      setError('Failed to save crop')
       console.error(error)
     } finally {
       setLoading(false)
@@ -168,10 +169,9 @@ const FarmerDashboard = () => {
       setSavedCrops(savedCrops.map(crop => 
         crop.id === cropId ? { ...crop, status: newStatus } : crop
       ))
-      alert('Status updated successfully!')
+      console.log('Status updated successfully!')
     } catch (error) {
-      alert('Failed to update status')
-      console.error(error)
+      console.error('Failed to update status:', error)
     }
   }
 

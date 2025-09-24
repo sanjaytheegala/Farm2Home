@@ -64,8 +64,8 @@ export const handleError = (error, context = '') => {
 };
 
 export const showErrorNotification = (error) => {
-  // You can integrate with a notification library here
-  alert(error.message);
+  // Log error instead of showing alert
+  console.error('Error notification:', error.message);
 };
 
 export const validateRequiredFields = (data, requiredFields) => {
