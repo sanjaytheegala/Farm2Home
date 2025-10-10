@@ -31,8 +31,10 @@
 
 /* Brand/Logo Styling */
 .navbar-left {
-  cursor: pointer;
-  /* Removed hover transform effect */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0; /* Prevent this section from shrinking */
 }
 
 /* Removed navbar-left hover effect */
@@ -423,19 +425,32 @@
 }
 
 /* Forward and Backward Buttons */
-.nav-backward,
-.nav-forward {
-  background: transparent !important;
-  border: none !important;
-  color: #666 !important;
-  cursor: pointer;
-  /* Removed transitions and hover effects */
+.nav-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
+  background-color: transparent;
+  border: 1px solid orangered;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.3s ease;
 }
+
+.nav-button:hover {
+  background-color: #f0f0f0;
+  color: #000;
+  transform: scale(1.1);
+  border-color: orangered;
+}
+
+.nav-button:active {
+  transform: scale(0.95);
+  background-color: #e0e0e0;
+}
+
 
 /* Removed hover effects for nav buttons */
 

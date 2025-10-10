@@ -35,6 +35,15 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
   // Removed ecommerce handler
   const handleAboutClick = useCallback(() => navigate('/about'), [navigate])
   const handleHomeClick = useCallback(() => navigate('/'), [navigate])
+  const handleBackClick = useCallback((e) => {
+    e.stopPropagation();
+    navigate(-1);
+  }, [navigate]);
+
+  const handleForwardClick = useCallback((e) => {
+    e.stopPropagation();
+    navigate(1);
+  }, [navigate]);
 
 
   const changeLanguage = useCallback((lng) => {
@@ -47,10 +56,10 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
         {/* Left - Logo and Brand */}
         <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={handleHomeClick}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <button className="nav-button nav-backward" title="Go Back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#666' }}>
+            <button className="nav-button nav-backward" title="Go Back" onClick={handleBackClick}>
               <FaChevronLeft size={14} />
             </button>
-            <button className="nav-button nav-forward" title="Go Forward" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: '#666' }}>
+            <button className="nav-button nav-forward" title="Go Forward" onClick={handleForwardClick}>
               <FaChevronRight size={14} />
             </button>
           </div>

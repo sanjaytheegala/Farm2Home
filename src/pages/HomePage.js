@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 // Optimized icon imports - import only what's needed
 import { 
   FaLeaf, FaShoppingCart, FaChartLine, FaUsers, FaMapMarkerAlt, 
@@ -10,6 +11,7 @@ import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassw
 import { logger } from '../utils/logger'
 
 const HomePage = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [hoveredCard, setHoveredCard] = useState(null)
   const [showLoginCard, setShowLoginCard] = useState(false)
@@ -33,6 +35,50 @@ const HomePage = () => {
     products: 0,
     satisfaction: 0
   })
+  
+  // Typewriter animation states
+  const [currentText, setCurrentText] = useState('')
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [textIndex, setTextIndex] = useState(0)
+  
+  // Testimonial carousel state
+  const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0)
+  
+  // Messages to cycle through
+  const typewriterMessages = [
+    t('typewriter_message_1') || "Empowering local farmers to connect directly with consumers. Fresh produce, fair prices, sustainable agriculture.",
+    t('typewriter_message_2') || "Supporting sustainable farming practices that benefit both farmers and the environment.",
+    t('typewriter_message_3') || "Building stronger communities through direct farmer-consumer relationships and local food systems.",
+    t('typewriter_message_4') || "Providing fresh, nutritious produce while ensuring fair compensation for hardworking farmers."
+  ]
+
+  // Image carousel states
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  
+  // Agricultural images for carousel
+  const carouselImages = [
+    "https://wallpapercave.com/wp/wp3708742.jpg",
+    "https://imgs.search.brave.com/HQH2JBhLESNJ7Zyca7zqd2H_gh3IVq9as_S4IyMx__0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA0LzAxLzM1LzQw/LzM2MF9GXzQwMTM1/NDAzOF9FV01KRldk/MnFWdXVvZFZJTkFD/ZjJFRHlkcE1aSGNO/TS5qcGc",
+    "https://imgs.search.brave.com/nH78Jue8bO5rnhaYor8C4xQz_VeB6jKuFYLoMJdu_xA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzEyLzAyLzk5Lzk5/LzM2MF9GXzEyMDI5/OTk5NjNfZXdSMUFF/MlBkZjgxcXF2TnJB/aWhNMFZOR3ltVmtN/ZnMuanBn",
+    "https://imgs.search.brave.com/1ph_uKQ7dDqxI5tjElHHgzVHqlK78MWDpNGVQ23i8Os/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzc4LzMzLzc4/LzM2MF9GXzM3ODMz/NzgyMV9aMW82WDhr/dmJwekxEcUNWeWVU/T2VuY3JRSjh2R0RR/Zi5qcGc",
+    "https://imgs.search.brave.com/SijmE9ccEQfFxespOPafw1ZZicOoLLf39a2p2GR_VjY/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA0LzU3LzY0Lzg4/LzM2MF9GXzQ1NzY0/ODg3Ml9vd2xtdFZq/NE4wQUdERXEwZ2NC/RkZqeUJDbmNET0JT/ZC5qcGc",
+    "https://imgs.search.brave.com/241Bu6_0c2XNONE_DWWoEaOYEETVbf6BXvazU83EMiQ/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/c2h1dHRlcnN0b2Nr/LmNvbS9zaHV0dGVy/c3RvY2svdmlkZW9z/LzExMDc3NTQzMTUv/dGh1bWIvMS5qcGc_/aXA9eDQ4MA",
+    "https://imgs.search.brave.com/6njIXbYlYYwFiBOFPFRpC4cd2M7qXzYqohct7Qjs2CI/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzA4LzE2LzA4LzQ1/LzM2MF9GXzgxNjA4/NDUwMF9pcHRKalNG/Z2lKWjNFb1d0T09w/Rm82WGYzdmN4d0pj/OC5qcGc"
+  ]
+
+  // Expanded testimonials data for continuous scrolling
+  const testimonials = [
+    { name: 'Rajesh Kumar', role: 'Farmer', text: 'Farm 2 Home helped me connect directly with consumers. My income has increased by 40%!', rating: 5 },
+    { name: 'Priya Sharma', role: 'Consumer', text: 'I love getting fresh vegetables directly from local farmers. The quality is amazing!', rating: 5 },
+    { name: 'Amit Patel', role: 'Farmer', text: 'This platform has revolutionized how I sell my produce. Highly recommended!', rating: 5 },
+    { name: 'Sita Devi', role: 'Farmer', text: 'Before Farm 2 Home, I struggled to sell my organic vegetables. Now I have regular customers!', rating: 5 },
+    { name: 'Mohammed Ali', role: 'Consumer', text: 'The freshness and quality of produce is unmatched. Supporting local farmers feels great!', rating: 5 },
+    { name: 'Lakshmi Reddy', role: 'Farmer', text: 'The direct connection with customers has transformed my farming business completely.', rating: 5 },
+    { name: 'Ravi Krishnan', role: 'Consumer', text: 'Farm-fresh produce delivered to my doorstep. What more could I ask for?', rating: 5 },
+    { name: 'Sunita Gupta', role: 'Farmer', text: 'Thanks to this platform, I can now focus on growing quality crops without worrying about sales.', rating: 5 },
+    { name: 'Arjun Singh', role: 'Consumer', text: 'Supporting sustainable agriculture while getting the best produce. Win-win situation!', rating: 5 }
+  ]
 
   // Authentication functions
   const setupRecaptcha = () => {
@@ -56,8 +102,12 @@ const HomePage = () => {
     }
     setupRecaptcha();
     const appVerifier = window.recaptchaVerifier;
+    
+    // Ensure phone number is in E.164 format
+    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+
     try {
-      const result = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(result);
       logger.log('OTP sent successfully!');
     } catch (err) {
@@ -242,6 +292,70 @@ const HomePage = () => {
     }, 100)
   }
 
+  // Add CSS animation for cursor blinking
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = `
+      @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+      }
+    `
+    document.head.appendChild(style)
+    
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
+
+  // Image carousel animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % carouselImages.length)
+    }, 4000) // Change image every 4 seconds for better viewing
+    
+    return () => clearInterval(interval)
+  }, [carouselImages.length])
+
+  // Testimonials carousel animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTestimonialIndex((prevIndex) => (prevIndex + 1) % testimonials.length)
+    }, 3000) // Change testimonial every 3 seconds
+    
+    return () => clearInterval(interval)
+  }, [testimonials.length])
+
+  // Typewriter animation effect
+  useEffect(() => {
+    const currentMessage = typewriterMessages[textIndex]
+    
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        // Typing
+        if (currentIndex < currentMessage.length) {
+          setCurrentText(currentMessage.substring(0, currentIndex + 1))
+          setCurrentIndex(currentIndex + 1)
+        } else {
+          // Finished typing, wait then start deleting
+          setTimeout(() => setIsDeleting(true), 2000)
+        }
+      } else {
+        // Deleting
+        if (currentIndex > 0) {
+          setCurrentText(currentMessage.substring(0, currentIndex - 1))
+          setCurrentIndex(currentIndex - 1)
+        } else {
+          // Finished deleting, move to next message
+          setIsDeleting(false)
+          setTextIndex((textIndex + 1) % typewriterMessages.length)
+        }
+      }
+    }, isDeleting ? 50 : 100) // Faster deletion, slower typing
+    
+    return () => clearTimeout(timeout)
+  }, [currentIndex, isDeleting, textIndex, typewriterMessages])
+
   // Animate statistics on scroll
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -310,8 +424,8 @@ const HomePage = () => {
             </h1>
             <p style={heroSubtitle}>Connecting Farmers Directly to Consumers</p>
             <p style={heroDescription}>
-              Empowering local farmers to connect directly with consumers. 
-              Fresh produce, fair prices, sustainable agriculture.
+              {currentText}
+              <span style={cursorStyle}>|</span>
             </p>
             <div style={ctaButtons}>
               <button 
@@ -321,7 +435,7 @@ const HomePage = () => {
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
               >
                 <FaLeaf style={{ marginRight: '8px' }} />
-                Join as Farmer
+                {t('join_as_farmer') || 'Join as Farmer'}
               </button>
               <button 
                 onClick={() => handleRoleSelect('consumer')} 
@@ -330,11 +444,42 @@ const HomePage = () => {
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
               >
                 <FaShoppingCart style={{ marginRight: '8px' }} />
-                Shop Fresh Products
+                {t('shop_fresh_products') || 'Shop Fresh Products'}
               </button>
             </div>
           </div>
-          {/* Removed floating cards */}
+          
+          {/* Image Carousel */}
+          <div style={imageCarouselContainer}>
+            <div style={imageCarousel}>
+              {carouselImages.map((image, index) => (
+                <img
+                  key={index}
+                  src={image}
+                  alt={`Agriculture ${index + 1}`}
+                  style={{
+                    ...carouselImage,
+                    transform: `translateX(${(index - currentImageIndex) * 100}%)`,
+                  }}
+                />
+              ))}
+            </div>
+            
+            {/* Pagination Dots */}
+            <div style={paginationDots}>
+              {carouselImages.map((_, index) => (
+                <div
+                  key={index}
+                  style={{
+                    ...paginationDot,
+                    backgroundColor: index === currentImageIndex ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                    transform: index === currentImageIndex ? 'scale(1.2)' : 'scale(1)',
+                  }}
+                  onClick={() => setCurrentImageIndex(index)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -352,12 +497,12 @@ const HomePage = () => {
             </button>
             
             <h2 style={loginCardTitle}>
-              {selectedRole === 'farmer' ? 'Join as Farmer' : 'Shop Fresh Products'}
+              {selectedRole === 'farmer' ? t('join_as_farmer') : t('shop_fresh_products')}
             </h2>
             <p style={loginCardSubtitle}>
               {selectedRole === 'farmer' 
-                ? 'Start selling your fresh produce directly to consumers'
-                : 'Get fresh produce directly from local farmers'
+                ? t('farmer_join_subtitle')
+                : t('consumer_join_subtitle')
               }
             </p>
 
@@ -367,13 +512,13 @@ const HomePage = () => {
                 onClick={switchToLogin}
                 style={{...formToggleButton, ...(formType === 'login' ? activeToggleButton : {})}}
               >
-                Login
+                {t('login')}
               </button>
               <button 
                 onClick={switchToSignup}
                 style={{...formToggleButton, ...(formType === 'signup' ? activeToggleButton : {})}}
               >
-                Register
+                {t('register')}
               </button>
             </div>
 
@@ -388,14 +533,14 @@ const HomePage = () => {
                     style={{...methodToggleButton, ...(loginMethod === 'phone' ? activeMethodButton : {})}}
                   >
                     <FaPhone style={{ marginRight: '5px' }} />
-                    Phone
+                    {t('phone')}
                   </button>
                   <button 
                     onClick={() => setLoginMethod('email')}
                     style={{...methodToggleButton, ...(loginMethod === 'email' ? activeMethodButton : {})}}
                   >
                     <FaEnvelope style={{ marginRight: '5px' }} />
-                    Email
+                    {t('email')}
                   </button>
                 </div>
 
@@ -406,7 +551,7 @@ const HomePage = () => {
                         <div style={inputGroup}>
                           <input
                             type="tel"
-                            placeholder="Enter phone number with country code (e.g., 911234567890)"
+                            placeholder={t('phone_placeholder')}
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             style={inputField}
@@ -417,7 +562,7 @@ const HomePage = () => {
                           disabled={loading}
                           style={{...submitButton, opacity: loading ? 0.7 : 1}}
                         >
-                          {loading ? 'Sending...' : 'Send OTP'}
+                          {loading ? t('sending') : t('send_otp')}
                         </button>
                       </div>
                     ) : (
@@ -425,7 +570,7 @@ const HomePage = () => {
                         <div style={inputGroup}>
                           <input
                             type="text"
-                            placeholder="Enter OTP"
+                            placeholder={t('enter_otp')}
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
                             style={inputField}
@@ -436,7 +581,7 @@ const HomePage = () => {
                           disabled={loading}
                           style={{...submitButton, opacity: loading ? 0.7 : 1}}
                         >
-                          {loading ? 'Verifying...' : 'Verify OTP'}
+                          {loading ? t('verifying') : t('verify_otp')}
                         </button>
                       </div>
                     )}
@@ -446,7 +591,7 @@ const HomePage = () => {
                     <div style={inputGroup}>
                       <input
                         type="email"
-                        placeholder="Email"
+                        placeholder={t('email_placeholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         style={inputField}
@@ -457,7 +602,7 @@ const HomePage = () => {
                       <div style={passwordContainer}>
                         <input
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Password"
+                          placeholder={t('password_placeholder')}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           style={inputField}
@@ -477,7 +622,7 @@ const HomePage = () => {
                       disabled={loading}
                       style={{...submitButton, opacity: loading ? 0.7 : 1}}
                     >
-                      {loading ? 'Logging in...' : 'Login'}
+                      {loading ? t('logging_in') : t('login')}
                     </button>
                   </form>
                 )}
@@ -491,14 +636,14 @@ const HomePage = () => {
                     style={{...methodToggleButton, ...(loginMethod === 'phone' ? activeMethodButton : {})}}
                   >
                     <FaPhone style={{ marginRight: '5px' }} />
-                    Phone
+                    {t('phone')}
                   </button>
                   <button 
                     onClick={() => setLoginMethod('email')}
                     style={{...methodToggleButton, ...(loginMethod === 'email' ? activeMethodButton : {})}}
                   >
                     <FaEnvelope style={{ marginRight: '5px' }} />
-                    Email
+                    {t('email')}
                   </button>
                 </div>
 
@@ -509,7 +654,7 @@ const HomePage = () => {
                         <div style={inputGroup}>
                           <input
                             type="tel"
-                            placeholder="Enter phone number with country code (e.g., 911234567890)"
+                            placeholder={t('phone_placeholder')}
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             style={inputField}
@@ -520,7 +665,7 @@ const HomePage = () => {
                           disabled={loading}
                           style={{...submitButton, opacity: loading ? 0.7 : 1}}
                         >
-                          {loading ? 'Sending...' : 'Send OTP'}
+                          {loading ? t('sending') : t('send_otp')}
                         </button>
                       </div>
                     ) : (
@@ -528,7 +673,7 @@ const HomePage = () => {
                         <div style={inputGroup}>
                           <input
                             type="text"
-                            placeholder="Enter OTP"
+                            placeholder={t('enter_otp')}
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
                             style={inputField}
@@ -539,7 +684,7 @@ const HomePage = () => {
                           disabled={loading}
                           style={{...submitButton, opacity: loading ? 0.7 : 1}}
                         >
-                          {loading ? 'Verifying...' : 'Create Account'}
+                          {loading ? t('verifying') : t('create_account')}
                         </button>
                       </div>
                     )}
@@ -549,7 +694,7 @@ const HomePage = () => {
                     <div style={inputGroup}>
                       <input
                         type="email"
-                        placeholder="Email"
+                        placeholder={t('email_placeholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         style={inputField}
@@ -560,7 +705,7 @@ const HomePage = () => {
                       <div style={passwordContainer}>
                         <input
                           type={showPassword ? 'text' : 'password'}
-                          placeholder="Password"
+                          placeholder={t('password_placeholder')}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           style={inputField}
@@ -578,7 +723,7 @@ const HomePage = () => {
                     <div style={inputGroup}>
                       <input
                         type="password"
-                        placeholder="Confirm Password"
+                        placeholder={t('confirm_password_placeholder')}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         style={inputField}
@@ -590,7 +735,7 @@ const HomePage = () => {
                       disabled={loading}
                       style={{...submitButton, opacity: loading ? 0.7 : 1}}
                     >
-                      {loading ? 'Creating Account...' : 'Create Account'}
+                      {loading ? t('creating_account') : t('create_account')}
                     </button>
                   </form>
                 )}
@@ -598,17 +743,11 @@ const HomePage = () => {
             )}
 
             <div style={loginCardFeatures}>
-              {selectedRole === 'farmer' ? (
+              {selectedRole === 'consumer' && (
                 <>
-                  <div style={featureItem}>✓ Sell directly to consumers</div>
-                  <div style={featureItem}>✓ Get better prices for your produce</div>
-                  <div style={featureItem}>✓ Build your customer base</div>
-                </>
-              ) : (
-                <>
-                  <div style={featureItem}>✓ Fresh produce from local farms</div>
-                  <div style={featureItem}>✓ Direct farmer-to-consumer pricing</div>
-                  <div style={featureItem}>✓ Support local agriculture</div>
+                  <div style={featureItem}>✓ {t('fresh_produce_farms')}</div>
+                  <div style={featureItem}>✓ {t('direct_pricing')}</div>
+                  <div style={featureItem}>✓ {t('support_agriculture')}</div>
                 </>
               )}
             </div>
@@ -622,35 +761,35 @@ const HomePage = () => {
           <div style={statCard}>
             <FaUsers style={statIcon} />
             <h3 style={statNumber}>{Math.round(animatedStats.farmers).toLocaleString()}+</h3>
-            <p style={statLabel}>Active Farmers</p>
+            <p style={statLabel}>{t('active_farmers')}</p>
           </div>
           <div style={statCard}>
             <FaShoppingCart style={statIcon} />
             <h3 style={statNumber}>{Math.round(animatedStats.consumers).toLocaleString()}+</h3>
-            <p style={statLabel}>Happy Consumers</p>
+            <p style={statLabel}>{t('happy_consumers')}</p>
           </div>
           <div style={statCard}>
             <FaLeaf style={statIcon} />
             <h3 style={statNumber}>{Math.round(animatedStats.products).toLocaleString()}+</h3>
-            <p style={statLabel}>Fresh Products</p>
+            <p style={statLabel}>{t('fresh_products')}</p>
           </div>
           <div style={statCard}>
             <FaStar style={statIcon} />
             <h3 style={statNumber}>{Number(animatedStats.satisfaction).toFixed(2)}%</h3>
-            <p style={statLabel}>Satisfaction Rate</p>
+            <p style={statLabel}>{t('satisfaction_rate')}</p>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
       <div style={{ ...featuresSection, ...homepageTextShadow }}>
-        <h2 style={sectionTitle}>Why Choose Farm 2 Home?</h2>
+        <h2 style={sectionTitle}>{t('why_choose_us')}</h2>
         <div style={featuresGrid}>
           {[
-            { icon: FaLeaf, title: 'Fresh from Farm', desc: 'Direct from local farms to your table, ensuring maximum freshness and quality.', color: '#28a745' },
-            { icon: FaChartLine, title: 'Fair Pricing', desc: 'Eliminate middlemen. Farmers get better prices, consumers pay less.', color: '#ff6b35' },
-            { icon: FaUsers, title: 'Community Driven', desc: 'Support local agriculture and build stronger farming communities.', color: '#4ecdc4' },
-            { icon: FaMapMarkerAlt, title: 'Local Focus', desc: 'Connect with farmers in your region for sustainable, local food supply.', color: '#45b7d1' }
+            { icon: FaLeaf, title: t('feature_fresh_title'), desc: t('feature_fresh_desc'), color: '#28a745' },
+            { icon: FaChartLine, title: t('feature_pricing_title'), desc: t('feature_pricing_desc'), color: '#ff6b35' },
+            { icon: FaUsers, title: t('feature_community_title'), desc: t('feature_community_desc'), color: '#4ecdc4' },
+            { icon: FaMapMarkerAlt, title: t('feature_local_title'), desc: t('feature_local_desc'), color: '#45b7d1' }
           ].map((feature, index) => (
             <div 
               key={index}
@@ -674,12 +813,12 @@ const HomePage = () => {
 
       {/* How It Works Section */}
       <div style={howItWorksSection}>
-        <h2 style={sectionTitle}>How It Works</h2>
+        <h2 style={sectionTitle}>{t('how_it_works')}</h2>
         <div style={stepsContainer}>
           {[
-            { number: '1', title: 'Choose Your Role', desc: 'Join as a farmer to sell your produce or as a consumer to buy fresh food.', icon: FaUsers },
-            { number: '2', title: 'Connect & Trade', desc: 'Browse available products or list your harvest for direct transactions.', icon: FaHandshake },
-            { number: '3', title: 'Fresh Delivery', desc: 'Get fresh produce delivered to your doorstep or arrange pickup.', icon: FaTruck }
+            { number: '1', title: t('step_1_title'), desc: t('step_1_desc'), icon: FaUsers },
+            { number: '2', title: t('step_2_title'), desc: t('step_2_desc'), icon: FaHandshake },
+            { number: '3', title: t('step_3_title'), desc: t('step_3_desc'), icon: FaTruck }
           ].map((step, index) => (
             <div key={index} style={step}>
               <div style={stepNumber}>{step.number}</div>
@@ -693,63 +832,42 @@ const HomePage = () => {
 
       {/* Testimonials Section */}
       <div style={testimonialsSection}>
-        <h2 style={sectionTitle}>What Our Users Say</h2>
-        <div style={testimonialsGrid}>
-          {[
-            { name: 'Rajesh Kumar', role: 'Farmer', text: 'Farm 2 Home helped me connect directly with consumers. My income has increased by 40%!', rating: 5 },
-            { name: 'Priya Sharma', role: 'Consumer', text: 'I love getting fresh vegetables directly from local farmers. The quality is amazing!', rating: 5 },
-            { name: 'Amit Patel', role: 'Farmer', text: 'This platform has revolutionized how I sell my produce. Highly recommended!', rating: 5 }
-          ].map((testimonial, index) => (
-            <div key={index} style={testimonialCard}>
-              <div style={testimonialHeader}>
-                <FaQuoteLeft style={{ fontSize: '2rem', color: '#28a745', opacity: 0.3 }} />
-                <div style={ratingContainer}>
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <FaStar key={i} style={{ color: '#ffd700', fontSize: '1rem' }} />
-                  ))}
+        <h2 style={sectionTitle}>{t('what_users_say')}</h2>
+        <div style={testimonialsCarousel}>
+          <div style={testimonialsSlider}>
+            {[0, 1, 2].map((offset) => {
+              const testimonialIndex = (currentTestimonialIndex + offset) % testimonials.length;
+              const testimonial = testimonials[testimonialIndex];
+              return (
+                <div 
+                  key={`${currentTestimonialIndex}-${offset}`}
+                  style={{
+                    ...testimonialCard,
+                    transform: `translateX(${offset * 103}%)`,
+                  }}
+                >
+                  <div style={testimonialHeader}>
+                    <FaQuoteLeft style={{ fontSize: '1.5rem', color: '#28a745', opacity: 0.3 }} />
+                    <div style={ratingContainer}>
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <FaStar key={i} style={{ color: '#ffd700', fontSize: '0.9rem' }} />
+                      ))}
+                    </div>
+                  </div>
+                  <p style={testimonialText}>{testimonial.text}</p>
+                  <div style={testimonialAuthor}>
+                    <div style={authorAvatar}>
+                      <FaUsers style={{ fontSize: '1.2rem', color: '#28a745' }} />
+                    </div>
+                    <div>
+                      <h4 style={authorName}>{testimonial.name}</h4>
+                      <p style={authorRole}>{testimonial.role}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <p style={testimonialText}>{testimonial.text}</p>
-              <div style={testimonialAuthor}>
-                <div style={authorAvatar}>
-                  <FaUsers style={{ fontSize: '1.5rem', color: '#28a745' }} />
-                </div>
-                <div>
-                  <h4 style={authorName}>{testimonial.name}</h4>
-                  <p style={authorRole}>{testimonial.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Access Section */}
-      <div style={quickAccessSection}>
-        <h2 style={sectionTitle}>Quick Access</h2>
-        <div style={quickAccessGrid}>
-          {[
-            // Removed ecommerce quick access item
-            { icon: FaSeedling, title: 'Crop recommendation', desc: 'Get expert advice on what to grow', path: '/crop-recommendations' },
-            { icon: FaUsers, title: 'About Us', desc: 'Learn more about our mission and team', path: '/about' }
-          ].map((item, index) => (
-            <div 
-              key={index}
-              style={{
-                ...quickAccessCard,
-                transform: hoveredCard === `quick-${index}` ? 'translateY(-5px)' : 'translateY(0)',
-                boxShadow: hoveredCard === `quick-${index}` ? '0 10px 25px rgba(0,0,0,0.15)' : '0 2px 10px rgba(0,0,0,0.1)'
-              }}
-              onClick={() => navigate(item.path)}
-              onMouseEnter={() => setHoveredCard(`quick-${index}`)}
-              onMouseLeave={() => setHoveredCard(null)}
-            >
-              <item.icon style={quickAccessIcon} />
-              <h3 style={quickAccessTitle}>{item.title}</h3>
-              <p style={quickAccessDesc}>{item.desc}</p>
-              <FaArrowRight style={{ color: '#28a745', marginTop: '10px' }} />
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -758,24 +876,23 @@ const HomePage = () => {
         <div style={footerContent}>
           <div style={footerSection}>
             <h4 style={footerTitle}>Farm 2 Home</h4>
-            <p style={footerDesc}>Empowering local agriculture through direct farmer-consumer connections.</p>
+            <p style={footerDesc}>{t('footer_about')}</p>
             <div style={socialLinks}>
             </div>
           </div>
           <div style={footerSection}>
-            <h4 style={footerTitle}>Quick Links</h4>
-            <p onClick={() => navigate('/about')} style={footerLink}>About Us</p>
+            <h4 style={footerTitle}>{t('quick_links')}</h4>
+            <p onClick={() => navigate('/about')} style={footerLink}>{t('about_us')}</p>
             {/* Removed ecommerce footer link */}
-            <p onClick={() => navigate('/crop-recommendations')} style={footerLink}>Crop Advice</p>
+            <p onClick={() => navigate('/crop-recommendations')} style={footerLink}>{t('crop_advice')}</p>
           </div>
           <div style={footerSection}>
-            <h4 style={footerTitle}>Contact</h4>
-            <p style={footerContact}>+91 86******72</p>
-            <p style={footerContact}>sanjaytheegala05@gmail.com</p>
+            <h4 style={footerTitle}>{t('footer_contact')}</h4>
+            <p style={footerContact}>projects05@gmail.com</p>
           </div>
         </div>
         <div style={footerBottom}>
-          <p>&copy; 2024 Farm 2 Home. Empowering local agriculture.</p>
+          <p>{t('footer_rights')}</p>
         </div>
       </div>
 
@@ -795,13 +912,14 @@ const container = {
 const heroSection = {
   background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
   color: 'white',
-  padding: '120px 20px 80px',
+  minHeight: '100vh',
   textAlign: 'center',
   position: 'relative',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   overflow: 'hidden',
+  padding: '0 20px',
 };
 
 const heroBackground = {
@@ -823,20 +941,26 @@ const heroContent = {
   alignItems: 'center',
   position: 'relative',
   zIndex: 1,
+  padding: '0 20px',
 };
 
 const heroText = {
   textAlign: 'left',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  width: '100%',
 };
 
 const heroTitle = {
-  fontSize: '4rem',
+  fontSize: '3.5rem',
   fontWeight: 'bold',
   marginBottom: '20px',
   textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
   display: 'flex',
   alignItems: 'center',
-  gap: '10px',
+  gap: '2px',
+  fontFamily: '"Poppins", "Roboto", "Arial", sans-serif',
 };
 
 const heroTitleHighlight = {
@@ -844,9 +968,9 @@ const heroTitleHighlight = {
 };
 
 const heroTitleNumber = {
-  color: '#ffd700',
-  fontWeight: '900',
-  textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
+  color: '#fff',
+  fontWeight: 'bold',
+  textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
 };
 
 const heroSubtitle = {
@@ -861,6 +985,66 @@ const heroDescription = {
   marginBottom: '40px',
   opacity: 0.8,
   lineHeight: 1.6,
+  height: '96px', // Fixed pixel height to prevent any movement
+  width: '100%', // Full width to prevent horizontal movement
+  overflow: 'hidden',
+  textAlign: 'left',
+  position: 'relative',
+  display: 'block', // Changed from flex to block
+};
+
+const cursorStyle = {
+  animation: 'blink 1s infinite',
+  marginLeft: '2px',
+  fontWeight: 'bold',
+  display: 'inline',
+};
+
+const imageCarouselContainer = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '100%',
+  height: '100%',
+  paddingTop: '40px',
+};
+
+const imageCarousel = {
+  position: 'relative',
+  width: '600px',
+  height: '300px',
+  borderRadius: '0px',
+  overflow: 'hidden',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+};
+
+const carouselImage = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+  borderRadius: '0px',
+};
+
+const paginationDots = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: '8px',
+  marginTop: '15px',
+};
+
+const paginationDot = {
+  width: '10px',
+  height: '10px',
+  borderRadius: '50%',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  border: '1px solid rgba(255,255,255,0.6)',
 };
 
 const ctaButtons = {
@@ -1041,20 +1225,36 @@ const testimonialsSection = {
   backgroundColor: 'white',
 };
 
-const testimonialsGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-  gap: '30px',
+const testimonialsCarousel = {
   maxWidth: '1200px',
   margin: '0 auto',
+  position: 'relative',
+};
+
+const testimonialsSlider = {
+  position: 'relative',
+  width: '100%',
+  height: '280px',
+  overflow: 'hidden',
+  display: 'flex',
 };
 
 const testimonialCard = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '32%',
+  height: '100%',
   background: '#f8f9fa',
-  padding: '30px',
-  borderRadius: '15px',
+  padding: '25px',
+  borderRadius: '12px',
   border: '1px solid #e9ecef',
-  transition: 'all 0.3s ease',
+  transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+  boxSizing: 'border-box',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
 };
 
 const testimonialHeader = {
@@ -1070,10 +1270,10 @@ const ratingContainer = {
 };
 
 const testimonialText = {
-  fontSize: '1rem',
+  fontSize: '0.9rem',
   color: '#333',
-  lineHeight: 1.6,
-  marginBottom: '20px',
+  lineHeight: 1.5,
+  marginBottom: '15px',
   fontStyle: 'italic',
 };
 
@@ -1084,8 +1284,8 @@ const testimonialAuthor = {
 };
 
 const authorAvatar = {
-  width: '50px',
-  height: '50px',
+  width: '40px',
+  height: '40px',
   borderRadius: '50%',
   backgroundColor: '#28a745',
   display: 'flex',
@@ -1095,10 +1295,10 @@ const authorAvatar = {
 };
 
 const authorName = {
-  fontSize: '1.1rem',
+  fontSize: '1rem',
   fontWeight: 'bold',
   color: '#333',
-  margin: '0 0 5px 0',
+  margin: '0 0 3px 0',
 };
 
 const authorRole = {
