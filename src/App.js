@@ -1,6 +1,7 @@
 // App.js
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -62,6 +63,7 @@ const App = () => {
             </Routes>
           </Suspense>
         </div>
+        <Analytics />
       </Router>
     </ErrorBoundary>
   );
