@@ -621,7 +621,7 @@ Generated on: ${new Date().toLocaleDateString()}
           </div>
 
           <button type="submit" style={submitButton}>
-            {t('get_ai_recommendations') || 'Get AI Recommendations'}
+            {t('get_crop_recommendations') || 'Get Crop Recommendations'}
           </button>
         </form>
       ) : (

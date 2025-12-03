@@ -4,7 +4,7 @@ import { ref, push, set, get, remove, db } from '../firebase'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
 import CropRecommendation from '../components/CropRecommendation';
-
+import './FarmerDashboard.css'
 
 import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaEye, FaTruck, FaMoneyBillWave, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa'
 
@@ -180,59 +180,52 @@ const FarmerDashboard = () => {
   }
 
   return (
-    <div style={container}>
+    <div className="farmer-dashboard-container">
       <Navbar />
       
-      {/* Enhanced Tab Navigation */}
-      <div style={tabContainer}>
-        <button 
-          style={activeTab === 'crops' ? activeTabStyle : tabStyle}
-          onClick={() => setActiveTab('crops')}
-        >
-          <FaLeaf style={{ marginRight: '8px' }} />
-          {t('manage_crops') || 'Manage Crops'}
-        </button>
-        <button 
-          style={activeTab === 'analytics' ? activeTabStyle : tabStyle}
-          onClick={() => setActiveTab('analytics')}
-        >
-          <FaChartLine style={{ marginRight: '8px' }} />
-          Analytics
-        </button>
-        <button 
-          style={activeTab === 'recommendations' ? activeTabStyle : tabStyle}
-          onClick={() => window.open('/crop-recommendations', '_blank')}
-        >
-          <FaLeaf style={{ marginRight: '8px' }} />
-          Crop recommendation
-        </button>
+      {/* Enhanced Tab Navigation with Location Selector */}
+      <div className="farmer-tab-container">
+        <div className="farmer-tab-buttons">
+          <button 
+            className={`farmer-tab ${activeTab === 'crops' ? 'active' : ''}`}
+            onClick={() => setActiveTab('crops')}
+          >
+            <FaLeaf />
+            {t('manage_crops') || 'Manage Crops'}
+          </button>
+          <button 
+            className={`farmer-tab ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            <FaChartLine />
+            Analytics
+          </button>
+        </div>
+        
+        {/* Location Selector */}
+        <div className="farmer-location-selectors">
+          <select value={selectedState} onChange={handleStateChange} className="farmer-location-select">
+            {Object.keys(stateDistricts).map((stateKey) => (
+              <option key={stateKey} value={stateKey}>{t(`states.${stateKey}`)}</option>
+            ))}
+          </select>
+          <select value={selectedDistrict} onChange={handleDistrictChange} className="farmer-location-select">
+            <option value="">{t('select_district') || "Select District"}</option>
+            {stateDistricts[selectedState]?.map((districtKey) => (
+              <option key={districtKey} value={districtKey}>{t(`districts.${selectedState}.${districtKey}`)}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {activeTab === 'crops' ? (
-        <div style={contentContainer}>
-          {/* Location Selector */}
-          <div style={locationSelector}>
-            <h3 style={sectionTitle}>Select Your Location</h3>
-            <div style={locationForm}>
-              <select value={selectedState} onChange={handleStateChange} style={locationSelect}>
-                {Object.keys(stateDistricts).map((stateKey) => (
-                  <option key={stateKey} value={stateKey}>{t(`states.${stateKey}`)}</option>
-                ))}
-              </select>
-              <select value={selectedDistrict} onChange={handleDistrictChange} style={locationSelect}>
-                <option value="">{t('select_district') || "Select District"}</option>
-                {stateDistricts[selectedState]?.map((districtKey) => (
-                  <option key={districtKey} value={districtKey}>{t(`districts.${selectedState}.${districtKey}`)}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+        <div className="farmer-content-container">
 
           {/* Add New Crop Button */}
-          <div style={addCropSection}>
+          <div className="farmer-add-crop-section">
             <button 
               onClick={() => setShowAddForm(!showAddForm)} 
-              style={addCropButton}
+              className="farmer-add-crop-button"
             >
               <FaPlus style={{ marginRight: '8px' }} />
               Add New Crop
@@ -241,42 +234,42 @@ const FarmerDashboard = () => {
 
           {/* Add Crop Form */}
           {showAddForm && (
-            <div style={addFormContainer}>
-              <h3 style={sectionTitle}>Add New Crop</h3>
+            <div className="farmer-add-form-container">
+              <h3 className="farmer-section-title">Add New Crop</h3>
               {rows.map((row, index) => (
-                <div key={index} style={formRow}>
+                <div key={index} className="farmer-form-row">
                   <input
                     type="text"
                     placeholder="Crop Name"
                     value={row.crop}
                     onChange={(e) => handleChange(index, 'crop', e.target.value)}
-                    style={formInput}
+                    className="farmer-form-input"
                   />
                   <input
                     type="text"
                     placeholder="Quantity (kg)"
                     value={row.quantity}
                     onChange={(e) => handleChange(index, 'quantity', e.target.value)}
-                    style={formInput}
+                    className="farmer-form-input"
                   />
                   <input
                     type="number"
                     placeholder="Price (₹)"
                     value={row.price}
                     onChange={(e) => handleChange(index, 'price', e.target.value)}
-                    style={formInput}
+                    className="farmer-form-input"
                   />
                   <input
                     type="date"
                     placeholder="Harvest Date"
                     value={row.harvestDate}
                     onChange={(e) => handleChange(index, 'harvestDate', e.target.value)}
-                    style={formInput}
+                    className="farmer-form-input"
                   />
                   <select
                     value={row.status}
                     onChange={(e) => handleChange(index, 'status', e.target.value)}
-                    style={formInput}
+                    className="farmer-form-input"
                   >
                     <option value="available">Available</option>
                     <option value="sold">Sold</option>
@@ -286,13 +279,13 @@ const FarmerDashboard = () => {
                     placeholder="Notes"
                     value={row.notes}
                     onChange={(e) => handleChange(index, 'notes', e.target.value)}
-                    style={formTextarea}
+                    className="farmer-form-textarea"
                   />
-                  <div style={formActions}>
-                    <button onClick={() => handleSave(index)} style={saveButton} disabled={loading}>
+                  <div className="farmer-form-actions">
+                    <button onClick={() => handleSave(index)} className="farmer-submit-button" disabled={loading}>
                       {loading ? 'Saving...' : <><FaSave style={{ marginRight: '4px' }} />Save</>}
                     </button>
-                    <button onClick={() => handleAddRow()} style={addRowButton}>
+                    <button onClick={() => handleAddRow()} className="farmer-submit-button">
                       <FaPlus style={{ marginRight: '4px' }} />Add Row
                     </button>
                   </div>
@@ -302,33 +295,34 @@ const FarmerDashboard = () => {
           )}
 
           {/* Saved Crops Display */}
-          <div style={savedCropsSection}>
-            <h3 style={sectionTitle}>Your Crops</h3>
-            <div style={cropsGrid}>
+          <div>
+            <h3 className="farmer-section-title">Your Crops</h3>
+            <div className="farmer-crops-grid">
               {savedCrops.map((crop, index) => (
-                <div key={crop.id} style={cropCard}>
-                  <div style={cropHeader}>
-                    <h4 style={cropName}>{crop.crop}</h4>
-                    <div style={statusBadge(crop.status)}>{crop.status}</div>
+                <div key={crop.id} className="farmer-crop-card">
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                    <h4 style={{margin: 0, fontSize: '20px', color: '#28a745'}}>{crop.crop}</h4>
+                    <div style={{padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', backgroundColor: crop.status === 'available' ? '#d4edda' : crop.status === 'sold' ? '#f8d7da' : '#fff3cd', color: crop.status === 'available' ? '#155724' : crop.status === 'sold' ? '#721c24' : '#856404'}}>{crop.status}</div>
                   </div>
-                  <div style={cropDetails}>
-                    <p><strong>Quantity:</strong> {crop.quantity} kg</p>
-                    <p><strong>Price:</strong> ₹{crop.price}</p>
-                    {crop.harvestDate && <p><strong>Harvest Date:</strong> {crop.harvestDate}</p>}
-                    {crop.notes && <p><strong>Notes:</strong> {crop.notes}</p>}
-                    <p><strong>Location:</strong> {crop.district}, {crop.state}</p>
+                  <div style={{marginBottom: '15px'}}>
+                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Quantity:</strong> {crop.quantity} kg</p>
+                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Price:</strong> ₹{crop.price}</p>
+                    {crop.harvestDate && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Harvest Date:</strong> {crop.harvestDate}</p>}
+                    {crop.notes && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Notes:</strong> {crop.notes}</p>}
+                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Location:</strong> {crop.district}, {crop.state}</p>
                   </div>
-                  <div style={cropActions}>
-                    <button onClick={() => handleEdit(index)} style={editButton}>
+                  <div className="farmer-crop-actions">
+                    <button onClick={() => handleEdit(index)} className="farmer-edit-button">
                       <FaEdit style={{ marginRight: '4px' }} />Edit
                     </button>
-                    <button onClick={() => handleDelete(crop.id)} style={deleteButton}>
+                    <button onClick={() => handleDelete(crop.id)} className="farmer-delete-button">
                       <FaTrash style={{ marginRight: '4px' }} />Delete
                     </button>
                     <select 
                       value={crop.status} 
                       onChange={(e) => updateCropStatus(crop.id, e.target.value)}
-                      style={statusSelect}
+                      className="farmer-form-input"
+                      style={{maxWidth: '150px'}}
                     >
                       <option value="available">Available</option>
                       <option value="sold">Sold</option>

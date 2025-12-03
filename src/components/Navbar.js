@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import './Navbar.css'
 // Removed unused icons: FaUser, FaSignOutAlt, FaBars, FaTimes, FaCog, FaStore, FaHome, FaLeaf, FaSearch, FaArrowLeft, FaArrowRight
-import { FaShoppingCart, FaInfoCircle, FaBoxOpen, /* FaStore, */ FaBell, FaChevronLeft, FaChevronRight, FaTools } from 'react-icons/fa'
+import { FaShoppingCart, FaInfoCircle, FaBoxOpen, /* FaStore, */ FaBell, FaChevronLeft, FaChevronRight, FaTools, FaLeaf, FaBars, FaTimes } from 'react-icons/fa'
 
 // Pass cartCount and notificationCount as props
 const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0, notifications = [] }) => {
@@ -13,6 +13,7 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
   const [isScrolled, setIsScrolled] = useState(false)
   // Removed unused search-related state variables
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const { t, i18n } = useTranslation();
 
   // Check if we're on farmer dashboard
@@ -45,6 +46,9 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
     navigate(1);
   }, [navigate]);
 
+  const handleCropRecommendations = useCallback(() => {
+    window.open('/crop-recommendations', '_blank');
+  }, []);
 
   const changeLanguage = useCallback((lng) => {
     i18n.changeLanguage(lng);
@@ -73,6 +77,14 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
         {/* Center - Navigation Links */}
         <div className="navbar-center">
           {/* Removed ecommerce button */}
+
+          {/* Crop Recommendations - Only show on farmer dashboard */}
+          {isFarmerDashboard && (
+            <button className="nav-item" onClick={handleCropRecommendations}>
+              <FaLeaf className="nav-icon" />
+              <span className="nav-text">Crop Recommendations</span>
+            </button>
+          )}
 
           {/* Resource Share - Only show on farmer dashboard */}
           {isFarmerDashboard && (
@@ -153,15 +165,55 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
 
           {/* About Button */}
           <button 
-            className="nav-button about-btn" 
+            className="about-btn" 
             onClick={handleAboutClick} 
             title="About Us"
           >
             <FaInfoCircle />
             <span className="nav-text">{t('about')}</span>
           </button>
+
+          {/* Mobile Menu Toggle */}
+          <button 
+            className="mobile-menu-toggle" 
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            title="Menu"
+          >
+            {showMobileMenu ? <FaTimes /> : <FaBars />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {showMobileMenu && (
+        <div className="mobile-menu">
+          {isFarmerDashboard && (
+            <button className="mobile-menu-item" onClick={() => { handleCropRecommendations(); setShowMobileMenu(false); }}>
+              <FaLeaf className="nav-icon" />
+              <span>Crop Recommendations</span>
+            </button>
+          )}
+          {isFarmerDashboard && (
+            <button className="mobile-menu-item" onClick={() => { handleResourceShareClick(); setShowMobileMenu(false); }}>
+              <FaTools className="nav-icon" />
+              <span>Resource Share</span>
+            </button>
+          )}
+          {showOrders && (
+            <button className="mobile-menu-item" onClick={() => { handleOrdersClick(); setShowMobileMenu(false); }}>
+              <FaBoxOpen className="nav-icon" />
+              <span>{t('orders')}</span>
+            </button>
+          )}
+          {showCart && (
+            <button className="mobile-menu-item" onClick={() => { handleCartClick(); setShowMobileMenu(false); }}>
+              <FaShoppingCart className="nav-icon" />
+              <span>{t('cart')}</span>
+              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 })

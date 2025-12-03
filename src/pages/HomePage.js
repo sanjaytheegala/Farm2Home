@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import './HomePage.css'
 // Optimized icon imports - import only what's needed
 import { 
   FaLeaf, FaShoppingCart, FaChartLine, FaUsers, FaMapMarkerAlt, 
   FaArrowRight, FaSeedling, FaTruck, FaHandshake, FaStar, 
-  FaQuoteLeft, FaTimes, FaPhone, FaEnvelope, FaEye, FaEyeSlash 
+  FaQuoteLeft, FaTimes, FaPhone, FaEnvelope, FaEye, FaEyeSlash,
+  FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaApple, FaGooglePlay, FaUserTie
 } from 'react-icons/fa'
 import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword, doc, setDoc, db } from '../firebase'
 import { logger } from '../utils/logger'
@@ -51,20 +53,6 @@ const HomePage = () => {
     t('typewriter_message_2') || "Supporting sustainable farming practices that benefit both farmers and the environment.",
     t('typewriter_message_3') || "Building stronger communities through direct farmer-consumer relationships and local food systems.",
     t('typewriter_message_4') || "Providing fresh, nutritious produce while ensuring fair compensation for hardworking farmers."
-  ]
-
-  // Image carousel states
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  
-  // Agricultural images for carousel
-  const carouselImages = [
-    "https://wallpapercave.com/wp/wp3708742.jpg",
-    "https://imgs.search.brave.com/HQH2JBhLESNJ7Zyca7zqd2H_gh3IVq9as_S4IyMx__0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA0LzAxLzM1LzQw/LzM2MF9GXzQwMTM1/NDAzOF9FV01KRldk/MnFWdXVvZFZJTkFD/ZjJFRHlkcE1aSGNO/TS5qcGc",
-    "https://imgs.search.brave.com/nH78Jue8bO5rnhaYor8C4xQz_VeB6jKuFYLoMJdu_xA/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzEyLzAyLzk5Lzk5/LzM2MF9GXzEyMDI5/OTk5NjNfZXdSMUFF/MlBkZjgxcXF2TnJB/aWhNMFZOR3ltVmtN/ZnMuanBn",
-    "https://imgs.search.brave.com/1ph_uKQ7dDqxI5tjElHHgzVHqlK78MWDpNGVQ23i8Os/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzc4LzMzLzc4/LzM2MF9GXzM3ODMz/NzgyMV9aMW82WDhr/dmJwekxEcUNWeWVU/T2VuY3JRSjh2R0RR/Zi5qcGc",
-    "https://imgs.search.brave.com/SijmE9ccEQfFxespOPafw1ZZicOoLLf39a2p2GR_VjY/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA0LzU3LzY0Lzg4/LzM2MF9GXzQ1NzY0/ODg3Ml9vd2xtdFZq/NE4wQUdERXEwZ2NC/RkZqeUJDbmNET0JT/ZC5qcGc",
-    "https://imgs.search.brave.com/241Bu6_0c2XNONE_DWWoEaOYEETVbf6BXvazU83EMiQ/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly93d3cu/c2h1dHRlcnN0b2Nr/LmNvbS9zaHV0dGVy/c3RvY2svdmlkZW9z/LzExMDc3NTQzMTUv/dGh1bWIvMS5qcGc_/aXA9eDQ4MA",
-    "https://imgs.search.brave.com/6njIXbYlYYwFiBOFPFRpC4cd2M7qXzYqohct7Qjs2CI/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzA4LzE2LzA4LzQ1/LzM2MF9GXzgxNjA4/NDUwMF9pcHRKalNG/Z2lKWjNFb1d0T09w/Rm82WGYzdmN4d0pj/OC5qcGc"
   ]
 
   // Expanded testimonials data for continuous scrolling
@@ -308,15 +296,6 @@ const HomePage = () => {
     }
   }, [])
 
-  // Image carousel animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % carouselImages.length)
-    }, 4000) // Change image every 4 seconds for better viewing
-    
-    return () => clearInterval(interval)
-  }, [carouselImages.length])
-
   // Testimonials carousel animation
   useEffect(() => {
     const interval = setInterval(() => {
@@ -409,75 +388,45 @@ const HomePage = () => {
   }
 
   return (
-    <div style={container}>
+    <div style={container} className="responsive-homepage">
       {/* Hero Section */}
-      <div style={heroSection}>
+      <div style={heroSection} className="hero-section">
         <div style={heroBackground}></div>
         <div style={heroContent}>
           <div style={heroText}>
-            <h1 style={heroTitle}>
+            <h1 style={heroTitle} className="hero-title">
               <>
                 <span style={heroTitleHighlight}>FARM</span>
                 <span style={heroTitleNumber}>2</span>
                 <span style={heroTitleHighlight}>HOME</span>
               </>
             </h1>
-            <p style={heroSubtitle}>Connecting Farmers Directly to Consumers</p>
-            <p style={heroDescription}>
+            <p style={heroSubtitle} className="hero-subtitle">Connecting Farmers Directly to Consumers</p>
+            <p style={heroDescription} className="hero-description">
               {currentText}
               <span style={cursorStyle}>|</span>
             </p>
-            <div style={ctaButtons}>
+            <div style={ctaButtons} className="cta-buttons">
               <button 
-                onClick={() => handleRoleSelect('farmer')} 
+                onClick={() => navigate('/farmer')}
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                title="Go to Farmer Dashboard"
               >
                 <FaLeaf style={{ marginRight: '8px' }} />
                 {t('join_as_farmer') || 'Join as Farmer'}
               </button>
               <button 
-                onClick={() => handleRoleSelect('consumer')} 
+                onClick={() => navigate('/consumer')}
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                title="Go to Consumer Dashboard"
               >
                 <FaShoppingCart style={{ marginRight: '8px' }} />
                 {t('shop_fresh_products') || 'Shop Fresh Products'}
               </button>
-            </div>
-          </div>
-          
-          {/* Image Carousel */}
-          <div style={imageCarouselContainer}>
-            <div style={imageCarousel}>
-              {carouselImages.map((image, index) => (
-                <img
-                  key={index}
-                  src={image}
-                  alt={`Agriculture ${index + 1}`}
-                  style={{
-                    ...carouselImage,
-                    transform: `translateX(${(index - currentImageIndex) * 100}%)`,
-                  }}
-                />
-              ))}
-            </div>
-            
-            {/* Pagination Dots */}
-            <div style={paginationDots}>
-              {carouselImages.map((_, index) => (
-                <div
-                  key={index}
-                  style={{
-                    ...paginationDot,
-                    backgroundColor: index === currentImageIndex ? '#ffffff' : 'rgba(255,255,255,0.4)',
-                    transform: index === currentImageIndex ? 'scale(1.2)' : 'scale(1)',
-                  }}
-                  onClick={() => setCurrentImageIndex(index)}
-                />
-              ))}
             </div>
           </div>
         </div>
@@ -757,7 +706,7 @@ const HomePage = () => {
 
       {/* Statistics Section */}
       <div id="stats-section" style={statsSection}>
-        <div style={statsGrid}>
+        <div style={statsGrid} className="stats-grid">
           <div style={statCard}>
             <FaUsers style={statIcon} />
             <h3 style={statNumber}>{Math.round(animatedStats.farmers).toLocaleString()}+</h3>
@@ -784,7 +733,7 @@ const HomePage = () => {
       {/* Features Section */}
       <div style={{ ...featuresSection, ...homepageTextShadow }}>
         <h2 style={sectionTitle}>{t('why_choose_us')}</h2>
-        <div style={featuresGrid}>
+        <div style={featuresGrid} className="features-grid">
           {[
             { icon: FaLeaf, title: t('feature_fresh_title'), desc: t('feature_fresh_desc'), color: '#28a745' },
             { icon: FaChartLine, title: t('feature_pricing_title'), desc: t('feature_pricing_desc'), color: '#ff6b35' },
@@ -871,28 +820,99 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={footer}>
-        <div style={footerContent}>
-          <div style={footerSection}>
-            <h4 style={footerTitle}>Farm 2 Home</h4>
-            <p style={footerDesc}>{t('footer_about')}</p>
-            <div style={socialLinks}>
+      {/* Footer - Farm2Home Design */}
+      <div className="footer-wrapper">
+        {/* Floating Logo */}
+        <div className="footer-logo">
+          <img 
+            src="/images/logo.png" 
+            alt="Farm2Home Logo" 
+            style={{width: '120%', height: '120%', objectFit: 'cover', marginTop: '20px'}}
+          />
+        </div>
+
+        {/* Curved Top SVG */}
+        <div className="footer-curve">
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style={{display: 'block', width: '100%', height: '120px', fill: '#157F3D'}}>
+            <path d="M0,120 L0,80 Q600,0 1200,80 L1200,120 Z"></path>
+          </svg>
+        </div>
+
+        {/* Main Footer Content */}
+        <div className="footer-content">
+          <div className="footer-columns">
+            
+            {/* Menu Column */}
+            <div className="footer-col">
+              <h3 className="footer-col-header">MENU</h3>
+              <ul className="footer-links">
+                <li className="footer-link-item" onClick={() => navigate('/')}>
+                  <span className="footer-link">Home</span>
+                </li>
+                <li className="footer-link-item" onClick={() => navigate('/about')}>
+                  <span className="footer-link">About Us</span>
+                </li>
+                <li className="footer-link-item">
+                  <span className="footer-link">Contact Us</span>
+                </li>
+                <li className="footer-link-item">
+                  <span className="footer-link">FAQs</span>
+                </li>
+                <li className="footer-link-item">
+                  <span className="footer-link">Why Farm2Home?</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contacts Column */}
+            <div className="footer-col">
+              <h3 className="footer-col-header">CONTACTS</h3>
+              <p className="contact-paragraph"><strong>Farm2Home Corporate Office</strong></p>
+              <p className="contact-paragraph">
+                Agricultural Innovation Center,<br/>
+                HITEC City, Hyderabad,<br/>
+                Telangana - 500081
+              </p>
+              <p className="contact-paragraph">
+                <a href="tel:+919876543210" className="highlight-phone">+91 9876543210</a>
+              </p>
+              <p className="contact-paragraph">
+                <a href="mailto:info@farm2home.in" className="contact-email">info@farm2home.in</a>
+              </p>
+            </div>
+
+            {/* Download App Column */}
+            <div className="footer-col">
+              <h3 className="footer-col-header">DOWNLOAD THE APP</h3>
+              <button className="app-btn">
+                <FaApple style={{fontSize: '24px'}} />
+                <div>
+                  <div style={{fontSize: '10px'}}>Download on the</div>
+                  <div style={{fontSize: '14px', fontWeight: 'bold'}}>App Store</div>
+                </div>
+              </button>
+              <button className="app-btn">
+                <FaGooglePlay style={{fontSize: '24px'}} />
+                <div>
+                  <div style={{fontSize: '10px'}}>Get it on</div>
+                  <div style={{fontSize: '14px', fontWeight: 'bold'}}>Google Play</div>
+                </div>
+              </button>
             </div>
           </div>
-          <div style={footerSection}>
-            <h4 style={footerTitle}>{t('quick_links')}</h4>
-            <p onClick={() => navigate('/about')} style={footerLink}>{t('about_us')}</p>
-            {/* Removed ecommerce footer link */}
-            <p onClick={() => navigate('/crop-recommendations')} style={footerLink}>{t('crop_advice')}</p>
+
+          {/* Social Media & Copyright */}
+          <div className="social-row">
+            <div className="social-icons-container">
+              <a href="#" className="social-icon"><FaFacebookF /></a>
+              <a href="#" className="social-icon"><FaInstagram /></a>
+              <a href="#" className="social-icon"><FaLinkedinIn /></a>
+              <a href="#" className="social-icon"><FaTwitter /></a>
+            </div>
+            <div className="copyright-text">
+              &copy; 2025, Farm2Home | Privacy Policy | Sitemap | Terms & Conditions
+            </div>
           </div>
-          <div style={footerSection}>
-            <h4 style={footerTitle}>{t('footer_contact')}</h4>
-            <p style={footerContact}>projects05@gmail.com</p>
-          </div>
-        </div>
-        <div style={footerBottom}>
-          <p>{t('footer_rights')}</p>
         </div>
       </div>
 
@@ -910,7 +930,10 @@ const container = {
 };
 
 const heroSection = {
-  background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+  background: 'linear-gradient(135deg, rgba(40, 167, 69, 0.8) 0%, rgba(32, 201, 151, 0.8) 100%), url("https://images.unsplash.com/photo-1500937386664-56d1dfef3854?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"), url("https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80")',
+  backgroundSize: 'cover, cover, cover',
+  backgroundPosition: 'center, center, center',
+  backgroundBlendMode: 'overlay, normal, normal',
   color: 'white',
   minHeight: '100vh',
   textAlign: 'center',
@@ -964,11 +987,11 @@ const heroTitle = {
 };
 
 const heroTitleHighlight = {
-  color: '#fff',
+  color: '#1e40af',
 };
 
 const heroTitleNumber = {
-  color: '#fff',
+  color: '#1e40af',
   fontWeight: 'bold',
   textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
 };
@@ -976,14 +999,17 @@ const heroTitleNumber = {
 const heroSubtitle = {
   fontSize: '1.8rem',
   marginBottom: '20px',
-  opacity: 0.9,
-  fontWeight: '300',
+  color: '#1e40af',
+  opacity: 1,
+  fontWeight: '500',
+  textShadow: '1px 1px 2px rgba(255,255,255,0.8)',
 };
 
 const heroDescription = {
   fontSize: '1.2rem',
   marginBottom: '40px',
-  opacity: 0.8,
+  color: '#000000',
+  opacity: 1,
   lineHeight: 1.6,
   height: '96px', // Fixed pixel height to prevent any movement
   width: '100%', // Full width to prevent horizontal movement
@@ -991,6 +1017,7 @@ const heroDescription = {
   textAlign: 'left',
   position: 'relative',
   display: 'block', // Changed from flex to block
+  textShadow: '1px 1px 2px rgba(255,255,255,0.8)',
 };
 
 const cursorStyle = {
@@ -998,53 +1025,7 @@ const cursorStyle = {
   marginLeft: '2px',
   fontWeight: 'bold',
   display: 'inline',
-};
-
-const imageCarouselContainer = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '100%',
-  height: '100%',
-  paddingTop: '40px',
-};
-
-const imageCarousel = {
-  position: 'relative',
-  width: '600px',
-  height: '300px',
-  borderRadius: '0px',
-  overflow: 'hidden',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-};
-
-const carouselImage = {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  objectFit: 'cover',
-  transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
-  borderRadius: '0px',
-};
-
-const paginationDots = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  gap: '8px',
-  marginTop: '15px',
-};
-
-const paginationDot = {
-  width: '10px',
-  height: '10px',
-  borderRadius: '50%',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  border: '1px solid rgba(255,255,255,0.6)',
+  color: '#000000',
 };
 
 const ctaButtons = {
@@ -1631,7 +1612,575 @@ style.textContent = `
       transform: scale(1); 
     }
   }
+  
+  /* Footer Link Hover Effects */
+  .footer-link:hover {
+    color: #ffffff !important;
+  }
+  
+  /* Footer Responsive Styles */
+  @media (max-width: 1024px) {
+    footer > div {
+      padding: 60px 40px 30px !important;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    footer > div > div:nth-child(2) {
+      flex-direction: column !important;
+      padding-left: 0 !important;
+      gap: 30px !important;
+    }
+    
+    footer > div > div:first-child {
+      position: static !important;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: center;
+    }
+  }
+  
+  /* HomePage Responsive Styles */
+  @media (max-width: 1200px) {
+    .hero-section {
+      padding: 60px 15px !important;
+    }
+    
+    .hero-title {
+      font-size: 2.8rem !important;
+    }
+    
+    .hero-subtitle {
+      font-size: 1.1rem !important;
+    }
+    
+    .cta-buttons {
+      flex-direction: row !important;
+      gap: 15px !important;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .hero-section {
+      padding: 50px 10px !important;
+      text-align: center !important;
+    }
+    
+    .hero-title {
+      font-size: 2.2rem !important;
+      line-height: 1.2 !important;
+      margin-bottom: 15px !important;
+    }
+    
+    .hero-subtitle {
+      font-size: 1rem !important;
+      margin-bottom: 20px !important;
+    }
+    
+    .hero-description {
+      font-size: 1rem !important;
+      height: auto !important;
+      margin-bottom: 30px !important;
+    }
+    
+    .cta-buttons {
+      flex-direction: column !important;
+      gap: 12px !important;
+      align-items: center !important;
+    }
+    
+    .cta-buttons button {
+      width: 100% !important;
+      max-width: 280px !important;
+      padding: 12px 20px !important;
+    }
+    
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 20px !important;
+    }
+    
+    .features-grid {
+      grid-template-columns: 1fr !important;
+      gap: 15px !important;
+    }
+    
+    .testimonials-carousel {
+      padding: 40px 10px !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .hero-section {
+      padding: 40px 8px !important;
+    }
+    
+    .hero-title {
+      font-size: 1.8rem !important;
+      margin-bottom: 10px !important;
+    }
+    
+    .hero-subtitle {
+      font-size: 0.9rem !important;
+      margin-bottom: 15px !important;
+    }
+    
+    .hero-description {
+      font-size: 0.9rem !important;
+      margin-bottom: 25px !important;
+    }
+    
+    .cta-buttons button {
+      padding: 10px 16px !important;
+      font-size: 0.9rem !important;
+    }
+    
+    .stats-grid {
+      grid-template-columns: 1fr !important;
+      gap: 15px !important;
+    }
+    
+    .stat-card {
+      padding: 20px 15px !important;
+    }
+    
+    .stat-number {
+      font-size: 1.8rem !important;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem !important;
+    }
+    
+    .section-title {
+      font-size: 1.8rem !important;
+      margin-bottom: 30px !important;
+    }
+    
+    .testimonials-carousel {
+      padding: 30px 8px !important;
+    }
+    
+    .testimonial-card {
+      padding: 15px !important;
+      margin: 0 5px !important;
+    }
+  }
+  
+  @media (max-width: 360px) {
+    .hero-section {
+      padding: 30px 5px !important;
+    }
+    
+    .hero-title {
+      font-size: 1.5rem !important;
+    }
+    
+    .hero-subtitle {
+      font-size: 0.8rem !important;
+    }
+    
+    .hero-description {
+      font-size: 0.8rem !important;
+    }
+    
+    .cta-buttons button {
+      padding: 8px 12px !important;
+      font-size: 0.8rem !important;
+    }
+    
+    .stat-number {
+      font-size: 1.5rem !important;
+    }
+    
+    .section-title {
+      font-size: 1.5rem !important;
+      margin-bottom: 20px !important;
+    }
+  }
 `;
 document.head.appendChild(style);
+
+// New Footer Styles
+const newFooter = {
+  background: 'linear-gradient(135deg, #1e7e34 0%, #28a745 100%)',
+  color: 'white',
+  padding: '0',
+  position: 'relative',
+  marginTop: '-1px',
+  overflow: 'visible',
+};
+
+const newFooterContent = {
+  maxWidth: '1400px',
+  margin: '0 auto',
+  padding: '50px 80px 30px',
+  display: 'flex',
+  justifyContent: 'flex-start',
+  alignItems: 'flex-start',
+  position: 'relative',
+  gap: '80px',
+};
+
+const footerLogo = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  marginTop: '-80px',
+  marginLeft: '0',
+  position: 'relative',
+  zIndex: 10,
+  flexShrink: 0,
+};
+
+const logoCircle = {
+  width: '180px',
+  height: '180px',
+  borderRadius: '50%',
+  border: '7px solid white',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: 'white',
+  padding: '30px',
+  boxSizing: 'border-box',
+  boxShadow: '0 8px 25px rgba(0,0,0,0.25)',
+};
+
+const logoText = {
+  fontSize: '22px',
+  fontWeight: 'bold',
+  margin: 0,
+  textAlign: 'center',
+  lineHeight: '1.1',
+  color: 'white',
+  textTransform: 'lowercase',
+};
+
+const footerMenuSection = {
+  display: 'flex',
+  flexDirection: 'column',
+  marginTop: '20px',
+  minWidth: '150px',
+};
+
+const footerMenuTitle = {
+  fontSize: '20px',
+  fontWeight: 'bold',
+  marginBottom: '22px',
+  color: 'white',
+  letterSpacing: '1.2px',
+  textTransform: 'uppercase',
+};
+
+const footerMenuList = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+};
+
+const footerMenuItem = {
+  fontSize: '16px',
+  color: 'white',
+  cursor: 'pointer',
+  margin: 0,
+  transition: 'all 0.3s ease',
+  fontWeight: '400',
+  padding: '2px 0',
+};
+
+const footerContactsSection = {
+  display: 'flex',
+  flexDirection: 'column',
+  marginTop: '20px',
+  minWidth: '250px',
+};
+
+const footerContactsTitle = {
+  fontSize: '20px',
+  fontWeight: 'bold',
+  marginBottom: '22px',
+  color: 'white',
+  letterSpacing: '1.2px',
+  textTransform: 'uppercase',
+};
+
+const footerContactInfo = {
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const footerContactText = {
+  fontSize: '15px',
+  color: 'rgba(255, 255, 255, 0.95)',
+  margin: '4px 0',
+  lineHeight: '1.6',
+  fontWeight: '400',
+};
+
+const footerContactPhone = {
+  fontSize: '16px',
+  color: 'white',
+  fontWeight: 'bold',
+  margin: '8px 0 5px 0',
+};
+
+const footerContactEmail = {
+  fontSize: '15px',
+  color: 'white',
+  margin: '2px 0',
+};
+
+const downloadSection = {
+  display: 'flex',
+  flexDirection: 'column',
+  marginTop: '20px',
+  alignItems: 'flex-start',
+  minWidth: '340px',
+};
+
+const downloadTitle = {
+  fontSize: '20px',
+  fontWeight: 'bold',
+  marginBottom: '22px',
+  color: 'white',
+  letterSpacing: '1.2px',
+  textTransform: 'uppercase',
+};
+
+const downloadButtons = {
+  display: 'flex',
+  flexDirection: 'row',
+  gap: '12px',
+  marginBottom: '25px',
+  flexWrap: 'wrap',
+};
+
+const appButton = {
+  display: 'flex',
+  alignItems: 'center',
+  backgroundColor: 'white',
+  borderRadius: '10px',
+  padding: '10px 16px',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  border: 'none',
+  minWidth: '160px',
+  boxShadow: '0 3px 12px rgba(0,0,0,0.15)',
+};
+
+const appIcon = {
+  fontSize: '32px',
+  color: '#000',
+  marginRight: '12px',
+};
+
+const appButtonText = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+};
+
+const downloadOn = {
+  fontSize: '10px',
+  color: '#666',
+  lineHeight: '1',
+  marginBottom: '3px',
+};
+
+const storeName = {
+  fontSize: '15px',
+  color: '#000',
+  fontWeight: 'bold',
+  lineHeight: '1.2',
+};
+
+const socialMediaIcons = {
+  display: 'flex',
+  gap: '20px',
+  marginTop: '10px',
+};
+
+const socialIcon = {
+  fontSize: '32px',
+  color: 'white',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  opacity: 0.95,
+};
+
+const newFooterBottom = {
+  padding: '20px 80px',
+  marginTop: '30px',
+  textAlign: 'left',
+};
+
+const copyrightText = {
+  fontSize: '13px',
+  color: 'rgba(255, 255, 255, 0.95)',
+  margin: 0,
+  fontWeight: '300',
+};
+
+// Footer Styles - Based on provided HTML/CSS
+const footerWrapper = {
+  position: 'relative',
+  marginTop: '100px',
+  color: 'white',
+  filter: 'drop-shadow(0 -5px 10px rgba(0,0,0,0.05))',
+};
+
+const footerLogoStyle = {
+  width: '200px',
+  height: '200px',
+  background: 'white',
+  borderRadius: '50%',
+  position: 'absolute',
+  top: '-150px',
+  left: '10%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+  zIndex: 10,
+  overflow: 'hidden',
+};
+
+const footerCurve = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  overflow: 'hidden',
+  lineHeight: 0,
+  transform: 'translateY(-99%)',
+};
+
+const footerContentStyle = {
+  backgroundColor: '#157F3D',
+  padding: '20px 20px 10px',
+  position: 'relative',
+};
+
+const footerColumnsStyle = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  maxWidth: '1200px',
+  margin: '0 auto',
+  paddingTop: '0',
+};
+
+const colStyle = {
+  flex: 1,
+  minWidth: '250px',
+  marginBottom: '10px',
+  padding: '0 15px',
+};
+
+const colHeaderStyle = {
+  fontSize: '16px',
+  fontWeight: '700',
+  marginBottom: '15px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
+};
+
+const footerLinksStyle = {
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+};
+
+const footerLinkItemStyle = {
+  marginBottom: '10px',
+  color: '#e0e0e0',
+  fontSize: '14px',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  fontWeight: '400',
+};
+
+const contactInfoStyle = {};
+
+const contactParagraphStyle = {
+  fontSize: '14px',
+  lineHeight: '1.6',
+  marginBottom: '8px',
+  color: '#e0e0e0',
+};
+
+const highlightPhoneStyle = {
+  fontWeight: 'bold',
+  color: 'white',
+  fontSize: '15px',
+  marginBottom: '8px',
+};
+
+const contactEmailStyle = {
+  color: '#e0e0e0',
+  fontSize: '14px',
+  marginBottom: '8px',
+};
+
+const appBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  background: 'white',
+  color: 'black',
+  borderRadius: '8px',
+  padding: '8px 12px',
+  marginBottom: '10px',
+  textDecoration: 'none',
+  width: 'fit-content',
+  border: '1px solid #ddd',
+  transition: 'transform 0.2s',
+  cursor: 'pointer',
+};
+
+const appTextStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const appTextSpanStyle = {
+  display: 'block',
+  fontSize: '10px',
+  color: '#555',
+};
+
+const appTextStrongStyle = {
+  display: 'block',
+  fontSize: '14px',
+  fontWeight: 'bold',
+};
+
+const socialRowStyle = {
+  textAlign: 'center',
+  marginTop: '15px',
+  paddingTop: '12px',
+  borderTop: '1px solid rgba(255,255,255,0.1)',
+};
+
+const socialIconsContainerStyle = {
+  display: 'flex',
+  justifyContent: 'center',
+  gap: '25px',
+  marginBottom: '10px',
+};
+
+const socialLinkIconStyle = {
+  color: 'white',
+  transition: 'opacity 0.3s',
+  cursor: 'pointer',
+  textDecoration: 'none',
+};
+
+const copyrightStyle = {
+  textAlign: 'center',
+  fontSize: '12px',
+  color: '#bbb',
+  marginTop: '8px',
+  paddingBottom: '8px',
+};
 
 export default HomePage
