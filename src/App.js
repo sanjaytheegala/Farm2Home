@@ -6,6 +6,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
 
+// Import styles
+import './App.css';
+import './styles/responsive.css';
+
 // Lazy load pages for better performance
 const HomePage = React.lazy(() => import('./pages/HomePage'));
 const FarmerDashboard = React.lazy(() => import('./pages/FarmerDashboard'));
