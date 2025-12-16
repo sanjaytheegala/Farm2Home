@@ -2,8 +2,7 @@
 // Production Firebase configuration
 import { initializeApp } from 'firebase/app';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getDatabase, ref, push, set, get, remove } from 'firebase/database';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { logger } from './utils/logger';
 
@@ -24,8 +23,7 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
 export const auth = getAuth(app);
-export const db = getDatabase(app);
-export const firestore = getFirestore(app);
+export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
 
 // Export Firebase functions for use in components
@@ -34,15 +32,19 @@ export {
   signInWithPhoneNumber,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  ref,
-  push,
-  set,
-  get,
-  remove,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit
 };
 
-logger.log('Firebase.js loaded - using production Firebase configuration');
+logger.log('Firebase.js loaded - using Cloud Firestore configuration');
 

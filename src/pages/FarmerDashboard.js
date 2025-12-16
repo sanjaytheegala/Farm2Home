@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ref, push, set, get, remove, db } from '../firebase'
+import { db, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from '../firebase'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
 import CropRecommendation from '../components/CropRecommendation';
@@ -73,18 +73,15 @@ const FarmerDashboard = () => {
 
   const loadSavedCrops = async () => {
     try {
-      const cropsRef = ref(db, 'crops')
-      const snapshot = await get(cropsRef)
-      if (snapshot.exists()) {
-        const cropsData = []
-        snapshot.forEach((childSnapshot) => {
-          cropsData.push({
-            id: childSnapshot.key,
-            ...childSnapshot.val()
-          })
+      const cropsSnapshot = await getDocs(collection(db, 'crops'))
+      const cropsData = []
+      cropsSnapshot.forEach((docSnapshot) => {
+        cropsData.push({
+          id: docSnapshot.id,
+          ...docSnapshot.data()
         })
-        setSavedCrops(cropsData)
-      }
+      })
+      setSavedCrops(cropsData)
     } catch (error) {
       console.error('Error loading crops:', error)
     }
@@ -112,7 +109,7 @@ const FarmerDashboard = () => {
   const handleDelete = async (cropId) => {
     if (window.confirm('Are you sure you want to delete this crop?')) {
       try {
-        await remove(ref(db, `crops/${cropId}`))
+        await deleteDoc(doc(db, 'crops', cropId))
         setSavedCrops(savedCrops.filter(crop => crop.id !== cropId))
         console.log('Crop deleted successfully!')
       } catch (error) {
@@ -135,18 +132,18 @@ const FarmerDashboard = () => {
 
     setLoading(true)
     try {
-      const newRef = push(ref(db, 'crops'))
       const cropData = {
         ...row,
         state: selectedState,
         district: selectedDistrict,
-        createdAt: new Date().toISOString()
+        createdAt: new Date()
       }
-      await set(newRef, cropData)
+      
+      const docRef = await addDoc(collection(db, 'crops'), cropData)
       
       // Add to saved crops
       const savedCrop = {
-        id: newRef.key,
+        id: docRef.id,
         ...cropData
       }
       setSavedCrops([...savedCrops, savedCrop])
@@ -165,7 +162,9 @@ const FarmerDashboard = () => {
 
   const updateCropStatus = async (cropId, newStatus) => {
     try {
-      await set(ref(db, `crops/${cropId}/status`), newStatus)
+      await updateDoc(doc(db, 'crops', cropId), {
+        status: newStatus
+      })
       setSavedCrops(savedCrops.map(crop => 
         crop.id === cropId ? { ...crop, status: newStatus } : crop
       ))

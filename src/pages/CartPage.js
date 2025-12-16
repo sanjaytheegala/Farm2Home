@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ref, push, set, db } from '../firebase'
+import { db, collection, addDoc } from '../firebase'
 import Navbar from '../components/Navbar'
 
 const CartPage = () => {
@@ -21,12 +21,12 @@ const CartPage = () => {
     const orderData = {
       items: cartItems,
       timestamp: Date.now(),
-      otp
+      otp,
+      createdAt: new Date()
     }
 
     try {
-      const orderRef = push(ref(db, 'orders'))
-      await set(orderRef, orderData)
+      await addDoc(collection(db, 'orders'), orderData)
       console.log(`Order placed successfully! OTP for delivery: ${otp}`)
       localStorage.removeItem('cart')
       navigate('/consumer')
