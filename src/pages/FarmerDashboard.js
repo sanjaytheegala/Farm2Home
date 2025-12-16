@@ -133,10 +133,16 @@ const FarmerDashboard = () => {
     setLoading(true)
     try {
       const cropData = {
-        ...row,
+        cropName: row.crop,  // Changed from 'crop' to 'cropName' for Firestore consistency
+        quantity: row.quantity,
+        price: parseFloat(row.price),
+        status: row.status,
+        harvestDate: row.harvestDate,
+        notes: row.notes,
         state: selectedState,
         district: selectedDistrict,
-        createdAt: new Date()
+        createdAt: new Date(),
+        farmerId: 'farmer_' + Date.now()  // Generate unique farmer ID
       }
       
       const docRef = await addDoc(collection(db, 'crops'), cropData)
@@ -148,12 +154,17 @@ const FarmerDashboard = () => {
       }
       setSavedCrops([...savedCrops, savedCrop])
       
+      alert('✅ Crop saved successfully!')  // User-friendly alert
       console.log('Crop saved successfully!')
       setError('')
       setRows([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
       setShowAddForm(false)
+      
+      // Reload crops to show new data
+      loadSavedCrops()
     } catch (error) {
       setError('Failed to save crop')
+      alert('❌ Failed to save crop: ' + error.message)
       console.error(error)
     } finally {
       setLoading(false)
