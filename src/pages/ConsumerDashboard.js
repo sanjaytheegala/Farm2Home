@@ -1,15 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import './ConsumerDashboard.css';
-import { FaShoppingCart, FaSearch, FaHeart, FaStar, FaLeaf, FaAppleAlt, FaSeedling, FaShoppingBag, FaMapMarkerAlt, FaRupeeSign, FaStore, FaPhone, FaEye, FaShieldAlt, FaFilter, FaSort, FaTruck, FaClock, FaThumbsUp, FaComments, FaChartLine, FaGift, FaBell, FaUserCircle, FaHistory, FaLocationArrow, FaPercentage, FaFire, FaMedal, FaAward, FaLightbulb, FaShippingFast, FaHandshake, FaCheck, FaPlus, FaMinus, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaShoppingCart, FaSearch, FaHeart, FaStar, FaLeaf, FaAppleAlt, FaSeedling, FaShoppingBag, FaMapMarkerAlt, FaRupeeSign, FaStore, FaPhone, FaEye, FaShieldAlt, FaFilter, FaSort, FaTruck, FaClock, FaThumbsUp, FaComments, FaChartLine, FaGift, FaBell, FaUserCircle, FaHistory, FaLocationArrow, FaPercentage, FaFire, FaMedal, FaAward, FaLightbulb, FaShippingFast, FaHandshake, FaCheck, FaPlus, FaMinus, FaChevronLeft, FaChevronRight, FaHome } from 'react-icons/fa';
 
 const ConsumerDashboard = () => {
-  const [activeTab, setActiveTab] = useState('browse'); // 'browse', 'cart', 'orders', 'deals'
+  const [activeTab, setActiveTab] = useState('browse'); // 'browse', 'cart', 'orders', 'deals', 'profile'
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [hoveredCard, setHoveredCard] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [favorites, setFavorites] = useState([]);
+  const [showNavBar, setShowNavBar] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = JSON.parse(localStorage.getItem('cart')) || [];
+    setCartItems(savedCart);
+  }, []);
+  
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+  }, [cartItems]);
+  
+  // Handle scroll to hide/show navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < 50) {
+        setShowNavBar(true);
+      } else if (currentScrollY > lastScrollY) {
+        // Scrolling down
+        setShowNavBar(false);
+      } else {
+        // Scrolling up
+        setShowNavBar(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
   const [sortBy, setSortBy] = useState('featured'); // 'featured', 'price_low', 'price_high', 'rating', 'newest'
   const [showFilters, setShowFilters] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 1000]);
@@ -91,7 +140,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543210',
       description: 'Fresh, crispy red apples directly from Himachal orchards. Sweet and juicy with excellent taste.',
       availability: 'In Stock',
-      image: '/images/Apple.jpg',
+      image: '/images/fruits/Apple.jpg',
       rating: 4.8,
       totalSales: 247,
       harvestDate: '2025-09-20',
@@ -123,7 +172,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543211',
       description: 'Premium quality organic bananas, naturally ripened and pesticide-free.',
       availability: 'In Stock',
-      image: '/images/Banana.jpg',
+      image: '/images/fruits/Banana.jpg',
       rating: 4.7,
       totalSales: 189,
       harvestDate: '2025-09-22',
@@ -155,7 +204,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543212',
       description: 'Fresh beetroot, rich in nutrients and perfect for salads and juices.',
       availability: 'In Stock',
-      image: '/images/Beetroot.jpg',
+      image: '/images/vegetables/Beetroot.jpg',
       rating: 4.5,
       totalSales: 156,
       harvestDate: '2025-09-21',
@@ -187,7 +236,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543213',
       description: 'Premium Alphonso mangoes with rich, sweet flavor. King of fruits from Maharashtra.',
       availability: 'In Stock',
-      image: '/images/Mango.jpg',
+      image: '/images/fruits/Mango.jpg',
       rating: 4.9,
       totalSales: 312,
       harvestDate: '2025-09-15',
@@ -315,7 +364,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543217',
       description: 'Juicy Nagpur oranges, packed with vitamin C. Sweet and tangy taste.',
       availability: 'In Stock',
-      image: '/images/Oranges.jpg',
+      image: '/images/fruits/orange.jpg',
       rating: 4.7,
       totalSales: 298,
       harvestDate: '2025-09-17',
@@ -411,7 +460,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543220',
       description: 'Premium Kashmiri almonds, rich in nutrients. Perfect for health-conscious consumers.',
       availability: 'In Stock',
-      image: '/images/Badam.jpg',
+      image: '/images/dryfruits/Badam.jpg',
       rating: 4.9,
       totalSales: 189,
       harvestDate: '2025-08-05',
@@ -443,7 +492,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543221',
       description: 'Fresh green grapes, seedless and sweet. Perfect for snacking and desserts.',
       availability: 'In Stock',
-      image: '/images/green grape.jpg',
+      image: '/images/fruits/green grape.jpg',
       rating: 4.7,
       totalSales: 301,
       harvestDate: '2025-09-18',
@@ -507,7 +556,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543223',
       description: 'Fresh farm potatoes, perfect for all types of cooking. Daily essential vegetable.',
       availability: 'In Stock',
-      image: '/images/potato.jpg',
+      image: '/images/vegetables/potato.jpg',
       rating: 4.3,
       totalSales: 567,
       harvestDate: '2025-09-22',
@@ -539,7 +588,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543224',
       description: 'Premium Kashmiri walnuts, rich in omega-3 fatty acids. Brain-boosting superfood.',
       availability: 'In Stock',
-      image: '/images/Waltnut.jpg',
+      image: '/images/dryfruits/Waltnut.jpg',
       rating: 4.8,
       totalSales: 156,
       harvestDate: '2025-08-01',
@@ -603,7 +652,7 @@ const ConsumerDashboard = () => {
       phone: '+91 9876543226',
       description: 'Sweet and juicy watermelons, perfect for summer refreshment. Hydrating and delicious.',
       availability: 'In Stock',
-      image: '/images/water melon.jpg',
+      image: '/images/fruits/water melon.jpg',
       rating: 4.5,
       totalSales: 389,
       harvestDate: '2025-09-16',
@@ -1810,228 +1859,417 @@ const ConsumerDashboard = () => {
     }
   };
 
+  // Calculate cart total
+  const getCartTotal = () => {
+    return cartItems.reduce((total, item) => total + (item.pricePerKg * item.quantity), 0);
+  };
+
+  const getCartSubtotal = () => {
+    return getCartTotal();
+  };
+
+  const getDeliveryCharge = () => {
+    return getCartTotal() >= 500 ? 0 : 40;
+  };
+
+  const getGrandTotal = () => {
+    return getCartSubtotal() + getDeliveryCharge();
+  };
+
   return (
     <div className="consumer-dashboard">
-      <Navbar />
-      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', marginTop: '100px' }}>
-        {/* Enhanced Header Section with User Profile */}
-        <div style={styles.headerSection}>
-          <div style={styles.headerLeft}>
-            <h1 style={styles.pageTitle}>
-              <FaShoppingCart style={{ marginRight: '15px', color: '#28a745' }} />
-              Fresh Market
-            </h1>
-            <p style={styles.pageSubtitle}>Farm-to-table fresh produce marketplace</p>
-            <div style={styles.marketStats}>
-              <div style={styles.statItem}>
-                <FaStore style={{ color: '#28a745' }} />
-                <span>500+ Farmers</span>
-              </div>
-              <div style={styles.statItem}>
-                <FaTruck style={{ color: '#007bff' }} />
-                <span>Fast Delivery</span>
-              </div>
-              <div style={styles.statItem}>
-                <FaShieldAlt style={{ color: '#ffc107' }} />
-                <span>Quality Assured</span>
-              </div>
-            </div>
-          </div>
-          
-          <div style={styles.headerRight}>
-            <div style={styles.userProfileCard}>
-              <div style={styles.profileHeader}>
-                <FaUserCircle size={50} color="#28a745" />
-                <div>
-                  <h3 style={{ margin: 0, color: 'white' }}>{userProfile.name}</h3>
-                  <p style={{ margin: '5px 0', color: '#e0e0e0', fontSize: '14px' }}>
-                    <FaLocationArrow style={{ marginRight: '5px' }} />
-                    {userProfile.location}
-                  </p>
-                </div>
-                <div style={styles.notificationBadge}>
-                  <FaBell size={20} />
-                  {notifications > 0 && <span style={styles.notificationCount}>{notifications}</span>}
-                </div>
-              </div>
-              <div style={styles.profileStats}>
-                <div style={styles.profileStat}>
-                  <span style={styles.statLabel}>Total Orders</span>
-                  <span style={styles.statValue}>{userProfile.orders}</span>
-                </div>
-                <div style={styles.profileStat}>
-                  <span style={styles.statLabel}>Total Savings</span>
-                  <span style={styles.statValue}>₹{userProfile.savings}</span>
-                </div>
-              </div>
+      <Navbar 
+        showCart={false}
+        cartCount={getTotalCartItems()} 
+        isConsumerDashboard={true}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onSearchClick={() => setShowSearchModal(!showSearchModal)}
+      />
+      
+      {/* Search Modal */}
+      {showSearchModal && (
+        <div style={styles.searchModal} onClick={() => setShowSearchModal(false)}>
+          <div style={styles.searchModalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.searchModalHeader}>
+              <FaSearch style={{ marginRight: '10px', color: '#28a745' }} />
+              <input
+                type="text"
+                placeholder="Search for products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={styles.searchModalInput}
+                autoFocus
+              />
+              <button onClick={() => setShowSearchModal(false)} style={styles.closeSearchBtn}>✕</button>
             </div>
           </div>
         </div>
-
-        {/* Enhanced Tab Navigation */}
-        <div style={styles.tabContainer}>
-          <button 
-            onClick={() => setActiveTab('browse')}
-            style={{...styles.tabButton, ...(activeTab === 'browse' ? styles.activeTabButton : {})}}
-          >
-            <FaSearch style={{ marginRight: '8px' }} />
-            Browse Products
-          </button>
-          <button 
-            onClick={() => setActiveTab('deals')}
-            style={{...styles.tabButton, ...(activeTab === 'deals' ? styles.activeTabButton : {})}}
-          >
-            <FaGift style={{ marginRight: '8px' }} />
-            Special Deals
-          </button>
-          <button 
-            onClick={() => setActiveTab('cart')}
-            style={{...styles.tabButton, ...(activeTab === 'cart' ? styles.activeTabButton : {})}}
-          >
-            <FaShoppingCart style={{ marginRight: '8px' }} />
-            Cart ({getTotalCartItems()})
-          </button>
-          <button 
-            onClick={() => setActiveTab('orders')}
-            style={{...styles.tabButton, ...(activeTab === 'orders' ? styles.activeTabButton : {})}}
-          >
-            <FaHistory style={{ marginRight: '8px' }} />
-            My Orders
-          </button>
-        </div>
-
+      )}
+      
+      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', marginTop: '80px' }}>
         {/* Tab Content */}
         {activeTab === 'browse' && (
-          <div>
-            {/* Search and Filter Section */}
-            <div style={styles.filterSection}>
-              <div style={styles.searchContainer}>
-                <FaSearch style={styles.searchIcon} />
+          <div style={styles.browseContainer}>
+            {/* Mobile Filter Button */}
+            {isMobile && (
+              <button 
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                style={styles.mobileFilterBtn}
+              >
+                <FaFilter style={{ marginRight: '8px' }} />
+                {showMobileFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+            )}
+
+            {/* Left Sidebar - Filters */}
+            {(!isMobile || showMobileFilters) && (
+              <div style={isMobile ? styles.mobileFilterSidebar : styles.filterSidebar}>
+              <h3 style={styles.sidebarTitle}>
+                <FaFilter style={{ marginRight: '8px' }} />
+                Filters
+              </h3>
+              
+              {/* Category Filter */}
+              <div style={styles.filterSection}>
+                <h4 style={styles.filterLabel}>Category</h4>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  style={styles.filterSelect}
+                >
+                  {categories.map(category => (
+                    <option key={category} value={category}>
+                      {category === 'all' ? 'All Categories' : category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price Range Filter */}
+              <div style={styles.filterSection}>
+                <h4 style={styles.filterLabel}>Price Range</h4>
+                <div style={styles.priceRangeDisplay}>
+                  ₹{priceRange[0]} - ₹{priceRange[1]}
+                </div>
                 <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={styles.searchInput}
+                  type="range"
+                  min="0"
+                  max="1000"
+                  value={priceRange[1]}
+                  onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
+                  style={styles.rangeSlider}
                 />
               </div>
-              
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                style={styles.categorySelect}
-              >
-                {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
-                  </option>
-                ))}
-              </select>
-            </div>
+
+              {/* Sort By */}
+              <div style={styles.filterSection}>
+                <h4 style={styles.filterLabel}>
+                  <FaSort style={{ marginRight: '8px' }} />
+                  Sort By
+                </h4>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  style={styles.filterSelect}
+                >
+                  <option value="featured">Featured</option>
+                  <option value="price_low">Price: Low to High</option>
+                  <option value="price_high">Price: High to Low</option>
+                  <option value="rating">Rating</option>
+                  <option value="newest">Newest</option>
+                </select>
+              </div>
+
+              {/* Organic Only */}
+              <div style={styles.filterSection}>
+                <label style={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={organicOnly}
+                    onChange={(e) => setOrganicOnly(e.target.checked)}
+                    style={styles.checkbox}
+                  />
+                  <FaLeaf style={{ color: '#28a745', marginLeft: '8px', marginRight: '5px' }} />
+                  Organic Only
+                </label>
+              </div>
+
+              {/* Quick Stats */}
+              <div style={styles.statsCard}>
+                <h4 style={styles.statsTitle}>Quick Stats</h4>
+                <div style={styles.statRow}>
+                  <FaStore style={{ color: '#28a745' }} />
+                  <span>500+ Farmers</span>
+                </div>
+                <div style={styles.statRow}>
+                  <FaTruck style={{ color: '#007bff' }} />
+                  <span>Fast Delivery</span>
+                </div>
+                <div style={styles.statRow}>
+                  <FaShieldAlt style={{ color: '#ffc107' }} />
+                  <span>Quality Assured</span>
+                </div>
+              </div>
+              </div>
+            )}
 
             {/* Products Grid */}
-            <div className="products-grid">
+            <div className="products-grid" style={{ flex: 1 }}>
               {filteredProducts.map(product => {
                 const cartItem = cartItems.find(item => item.id === product.id);
                 const isInCart = !!cartItem;
                 
+                // Calculate market price (30% higher than farmer price for simulated offer)
+                const marketPrice = Math.round(product.pricePerKg * 1.3);
+                const discountPercent = product.discount || Math.floor(Math.random() * 40) + 20; // Random 20-60% if not set
+                
                 return (
                   <div 
                     key={product.id} 
-                    className="product-card"
-                    onMouseEnter={() => setHoveredCard(product.id)}
-                    onMouseLeave={() => setHoveredCard(null)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      height: '100%',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backgroundColor: '#ffffff'
+                    }}
                   >
-                    {/* Top Section - Badges */}
-                    <div className="product-card-header">
-                      {product.discount > 0 && (
-                        <div className="discount-badge">
-                          {product.discount}% OFF
-                        </div>
-                      )}
-                      <button 
-                        className={`wishlist-btn ${favorites.includes(product.id) ? 'active' : ''}`}
-                        onClick={() => toggleFavorite(product.id)}
-                      >
-                        <FaHeart />
-                      </button>
-                    </div>
+                    {/* Main Card Container - Top Part (White with Rounded Top-Left Corner) */}
+                    <div 
+                      className="main-card-container"
+                      style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '24px 0 0 0',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                        overflow: 'hidden',
+                        flexGrow: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                        border: '1px solid #e5e7eb'
+                      }}
+                    >
+                      {/* Discount Badge - Top Right */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '6px',
+                        right: '6px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        color: 'white',
+                        fontSize: '9px',
+                        fontWeight: '700',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        zIndex: 10,
+                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
+                        letterSpacing: '0.3px'
+                      }}>
+                        {discountPercent}% Off
+                      </div>
 
-                    {/* Image Area */}
-                    <div className="product-image-container">
-                      {product.image ? (
-                        <img 
-                          src={product.image} 
-                          alt={product.name}
-                          className="product-image"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="skeleton-loader"></div>
-                      )}
-                    </div>
-                    
-                    {/* Info Section */}
-                    <div className="product-info">
-                      <h3 className="product-title">{product.name}</h3>
-                      <div className="product-unit">{product.unit}</div>
+                      {/* Image Area - Centered */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px 16px 16px',
+                        minHeight: '120px',
+                        position: 'relative',
+                        backgroundColor: 'transparent'
+                      }}>
+                        {product.image ? (
+                          <img 
+                            src={product.image} 
+                            alt={product.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              maxWidth: '100px',
+                              maxHeight: '100px',
+                              objectFit: 'contain',
+                              display: 'block',
+                              margin: '0 auto'
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(90deg, #d1d5db 25%, #e5e7eb 50%, #d1d5db 75%)',
+                            backgroundSize: '200% 100%',
+                            animation: 'shimmer 1.5s infinite'
+                          }}></div>
+                        )}
+                      </div>
                       
-                      <div className="product-meta">
-                        {product.organic && (
-                          <span className="organic-tag">
-                            <FaLeaf style={{ fontSize: '10px', marginRight: '3px' }} />
-                            Organic
+                      {/* Info Section - Centered Text */}
+                      <div style={{
+                        padding: '8px 12px 12px',
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px'
+                      }}>
+                        {/* Crop Name */}
+                        <h3 style={{
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          color: '#111827',
+                          margin: '0',
+                          lineHeight: '1.3',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          letterSpacing: '-0.01em'
+                        }}>
+                          {product.name}
+                        </h3>
+                        
+                        {/* Quantity/Weight */}
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#6b7280',
+                          fontWeight: '400',
+                          letterSpacing: '0.02em'
+                        }}>
+                          {product.unit}
+                        </div>
+                        
+                        {/* Price Section - Simulated Offer */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          marginTop: '4px',
+                          padding: '4px 0'
+                        }}>
+                          {/* Fake Market Price (Strikethrough) */}
+                          <span style={{
+                            fontSize: '11px',
+                            color: '#9ca3af',
+                            textDecoration: 'line-through',
+                            fontWeight: '400'
+                          }}>
+                            ₹{marketPrice}
                           </span>
-                        )}
-                        {product.featured && (
-                          <span className="featured-tag">
-                            <FaStar style={{ fontSize: '10px', marginRight: '3px' }} />
-                            Featured
+                          
+                          {/* Actual Farmer Price (Bold Black) */}
+                          <span style={{
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            color: '#111827',
+                            letterSpacing: '-0.02em'
+                          }}>
+                            ₹{product.pricePerKg}
                           </span>
-                        )}
-                        <div className="product-rating">
-                          <FaStar />
-                          <span>{product.rating}</span>
                         </div>
                       </div>
                     </div>
                     
-                    {/* Action Section */}
-                    <div className="product-action">
-                      <div className="product-pricing">
-                        <span className="current-price">₹{product.pricePerKg}</span>
-                        {product.discount > 0 && (
-                          <span className="mrp-price">₹{product.originalPrice}</span>
-                        )}
-                      </div>
-                      
-                      {!isInCart ? (
+                    {/* Add Button - Bottom Part (Gradient Green with Rounded Bottom-Right Corner) */}
+                    {!isInCart ? (
+                      <button 
+                        onClick={() => addToCart(product)}
+                        style={{
+                          width: '100%',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          borderRadius: '0 0 20px 0',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          boxShadow: '0 -1px 6px rgba(16, 185, 129, 0.15)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+                          e.target.style.transform = 'translateY(-2px)';
+                          e.target.style.boxShadow = '0 -4px 16px rgba(16, 185, 129, 0.3)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = '0 -2px 12px rgba(16, 185, 129, 0.2)';
+                        }}
+                      >
+                        Add
+                      </button>
+                    ) : (
+                      <div style={{
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        color: 'white',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderRadius: '0 0 20px 0',
+                        boxShadow: '0 -1px 6px rgba(16, 185, 129, 0.15)'
+                      }}>
                         <button 
-                          className="add-to-cart-btn"
-                          onClick={() => addToCart(product)}
+                          onClick={() => updateCartQuantity(product.id, cartItem.quantity - 1)}
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            border: '1px solid white',
+                            color: 'white',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: '700',
+                            transition: 'background-color 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
                         >
-                          ADD
+                          <FaMinus />
                         </button>
-                      ) : (
-                        <div className="quantity-counter">
-                          <button 
-                            className="quantity-btn"
-                            onClick={() => updateCartQuantity(product.id, cartItem.quantity - 1)}
-                          >
-                            <FaMinus />
-                          </button>
-                          <span className="quantity-display">{cartItem.quantity}</span>
-                          <button 
-                            className="quantity-btn"
-                            onClick={() => updateCartQuantity(product.id, cartItem.quantity + 1)}
-                          >
-                            <FaPlus />
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        <span style={{
+                          fontSize: '18px',
+                          fontWeight: '700'
+                        }}>
+                          {cartItem.quantity}
+                        </span>
+                        <button 
+                          onClick={() => updateCartQuantity(product.id, cartItem.quantity + 1)}
+                          style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            border: '1px solid white',
+                            color: 'white',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: '700',
+                            transition: 'background-color 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+                        >
+                          <FaPlus />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -2091,9 +2329,45 @@ const ConsumerDashboard = () => {
                   </div>
                 ))}
                 
+                {/* Enhanced Cart Summary with Breakdown */}
                 <div style={styles.cartSummary}>
-                  <h3>Total: ₹{cartItems.reduce((total, item) => total + (item.pricePerKg * item.quantity), 0).toFixed(2)}</h3>
-                  <button style={styles.checkoutButton}>Proceed to Checkout</button>
+                  <div style={styles.billBreakdown}>
+                    <div style={styles.billRow}>
+                      <span style={styles.billLabel}>Subtotal ({getTotalCartItems()} items)</span>
+                      <span style={styles.billValue}>₹{getCartSubtotal().toFixed(2)}</span>
+                    </div>
+                    <div style={styles.billRow}>
+                      <span style={styles.billLabel}>Delivery Charges</span>
+                      <span style={styles.billValue}>
+                        {getDeliveryCharge() === 0 ? (
+                          <span style={{ color: '#28a745', fontWeight: 'bold' }}>FREE</span>
+                        ) : (
+                          `₹${getDeliveryCharge()}`
+                        )}
+                      </span>
+                    </div>
+                    {getCartTotal() < 500 && (
+                      <div style={styles.freeDeliveryNote}>
+                        <FaTruck style={{ marginRight: '5px', color: '#28a745' }} />
+                        Add ₹{(500 - getCartTotal()).toFixed(2)} more for FREE delivery!
+                      </div>
+                    )}
+                    <div style={styles.billDivider}></div>
+                    <div style={{...styles.billRow, ...styles.grandTotalRow}}>
+                      <span style={styles.billLabel}>Grand Total</span>
+                      <span style={styles.billValue}>₹{getGrandTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
+                  <button style={styles.checkoutButton}>
+                    <FaShoppingBag style={{ marginRight: '8px' }} />
+                    Proceed to Checkout (₹{getGrandTotal().toFixed(2)})
+                  </button>
+                  <button 
+                    onClick={clearCart}
+                    style={styles.clearCartButton}
+                  >
+                    Clear Cart
+                  </button>
                 </div>
               </div>
             )}
@@ -2143,6 +2417,43 @@ const ConsumerDashboard = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'profile' && (
+          <div style={styles.profileSection}>
+            <h2 style={styles.sectionTitle}>My Profile</h2>
+            <div style={styles.profileCard}>
+              <div style={styles.profileAvatar}>
+                <FaUserCircle size={100} color="#28a745" />
+              </div>
+              <div style={styles.profileInfo}>
+                <h3>{userProfile.name}</h3>
+                <p><FaLocationArrow style={{ marginRight: '8px' }} />{userProfile.location}</p>
+              </div>
+              <div style={styles.profileStatsGrid}>
+                <div style={styles.statBox}>
+                  <FaShoppingBag size={30} color="#28a745" />
+                  <h4>{userProfile.orders}</h4>
+                  <p>Total Orders</p>
+                </div>
+                <div style={styles.statBox}>
+                  <FaRupeeSign size={30} color="#ffc107" />
+                  <h4>₹{userProfile.savings}</h4>
+                  <p>Total Savings</p>
+                </div>
+                <div style={styles.statBox}>
+                  <FaHeart size={30} color="#e74c3c" />
+                  <h4>{favorites.length}</h4>
+                  <p>Favorites</p>
+                </div>
+                <div style={styles.statBox}>
+                  <FaMedal size={30} color="#007bff" />
+                  <h4>Gold</h4>
+                  <p>Member Status</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2150,6 +2461,309 @@ const ConsumerDashboard = () => {
 
 // Styles object
 const styles = {
+  browseContainer: {
+    display: 'flex',
+    gap: '15px',
+    alignItems: 'flex-start',
+    marginLeft: '235px',
+    marginRight: '20px',
+    maxWidth: 'calc(100vw - 255px)',
+    '@media (max-width: 768px)': {
+      flexDirection: 'column',
+      marginLeft: '0',
+      marginRight: '0',
+      maxWidth: '100%'
+    }
+  },
+  filterSidebar: {
+    width: '200px',
+    flexShrink: 0,
+    backgroundColor: '#d4f4dd',
+    borderRadius: '12px',
+    padding: '12px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+    position: 'fixed',
+    top: '90px',
+    left: '20px',
+    height: 'calc(100vh - 110px)',
+    overflowY: 'auto',
+    zIndex: 1000
+  },
+  mobileFilterSidebar: {
+    width: '100%',
+    backgroundColor: '#d4f4dd',
+    borderRadius: '12px',
+    padding: '15px',
+    marginBottom: '20px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+  },
+  mobileFilterBtn: {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#28a745',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '15px',
+    boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)'
+  },
+  sidebarTitle: {
+    fontSize: '14px',
+    fontWeight: 'bold',
+    marginBottom: '12px',
+    color: '#1a1a1a',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  filterGroup: {
+    marginBottom: '12px',
+    paddingBottom: '10px',
+    borderBottom: '1px solid rgba(0, 0, 0, 0.08)'
+  },
+  filterLabel: {
+    fontSize: '11px',
+    fontWeight: '700',
+    color: '#2d3748',
+    marginBottom: '6px',
+    display: 'block',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  filterSelect: {
+    width: '100%',
+    padding: '8px 10px',
+    borderRadius: '8px',
+    border: '1px solid rgba(0, 0, 0, 0.1)',
+    fontSize: '12px',
+    backgroundColor: '#ffffff',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    outline: 'none',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+    appearance: 'none',
+    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 8px center',
+    backgroundSize: '16px',
+    paddingRight: '32px'
+  },
+  priceRangeDisplay: {
+    fontSize: '14px',
+    fontWeight: 'bold',
+    color: '#28a745',
+    marginBottom: '8px'
+  },
+  rangeSlider: {
+    width: '100%',
+    height: '5px',
+    borderRadius: '5px',
+    outline: 'none',
+    cursor: 'pointer'
+  },
+  checkboxLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  checkbox: {
+    width: '16px',
+    height: '16px',
+    cursor: 'pointer'
+  },
+  statsCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: '10px',
+    padding: '10px',
+    marginTop: '12px',
+    border: '1px solid rgba(0, 0, 0, 0.06)'
+  },
+  statsTitle: {
+    fontSize: '12px',
+    fontWeight: 'bold',
+    marginBottom: '10px',
+    color: '#333'
+  },
+  statRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '6px 0',
+    fontSize: '11px',
+    color: '#666'
+  },
+  navMenuBar: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '10px',
+    padding: '15px 20px',
+    backgroundColor: 'white',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    position: 'fixed',
+    top: '70px',
+    left: 0,
+    right: 0,
+    zIndex: 999,
+    flexWrap: 'wrap',
+    transition: 'transform 0.3s ease, opacity 0.3s ease'
+  },
+  searchModal: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingTop: '100px'
+  },
+  searchModalContent: {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    padding: '20px',
+    width: '90%',
+    maxWidth: '600px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+  },
+  searchModalHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px'
+  },
+  searchModalInput: {
+    flex: 1,
+    padding: '15px',
+    fontSize: '16px',
+    border: 'none',
+    outline: 'none',
+    backgroundColor: 'transparent'
+  },
+  closeSearchBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    cursor: 'pointer',
+    color: '#666',
+    padding: '5px 10px'
+  },
+  navMenuItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 24px',
+    border: 'none',
+    borderRadius: '25px',
+    background: '#f8f9fa',
+    color: '#333',
+    cursor: 'pointer',
+    fontSize: '15px',
+    fontWeight: '600',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+  },
+  activeNavItem: {
+    background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+    color: 'white',
+    boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)'
+  },
+  cartBadge: {
+    marginLeft: '5px',
+    backgroundColor: '#e74c3c',
+    color: 'white',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: 'bold'
+  },
+  billBreakdown: {
+    marginBottom: '20px'
+  },
+  billRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '10px 0',
+    fontSize: '16px'
+  },
+  billLabel: {
+    color: '#666',
+    fontWeight: '500'
+  },
+  billValue: {
+    color: '#333',
+    fontWeight: '600'
+  },
+  grandTotalRow: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#28a745'
+  },
+  billDivider: {
+    height: '2px',
+    background: 'linear-gradient(90deg, transparent, #28a745, transparent)',
+    margin: '15px 0'
+  },
+  freeDeliveryNote: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px',
+    backgroundColor: '#e8f5e9',
+    borderRadius: '8px',
+    marginTop: '10px',
+    fontSize: '14px',
+    color: '#2e7d32',
+    fontWeight: '500'
+  },
+  clearCartButton: {
+    width: '100%',
+    padding: '12px',
+    border: '2px solid #e74c3c',
+    borderRadius: '8px',
+    backgroundColor: 'transparent',
+    color: '#e74c3c',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600',
+    marginTop: '10px',
+    transition: 'all 0.3s ease'
+  },
+  profileSection: {
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    padding: '30px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+  },
+  profileCard: {
+    textAlign: 'center'
+  },
+  profileAvatar: {
+    marginBottom: '20px'
+  },
+  profileInfo: {
+    marginBottom: '30px'
+  },
+  profileStatsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+    gap: '20px',
+    marginTop: '30px'
+  },
+  statBox: {
+    padding: '20px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '12px',
+    textAlign: 'center',
+    transition: 'transform 0.3s ease',
+    cursor: 'pointer'
+  },
   headerSection: {
     display: 'flex',
     justifyContent: 'space-between',

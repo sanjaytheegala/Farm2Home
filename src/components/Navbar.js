@@ -4,20 +4,29 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import './Navbar.css'
 // Removed unused icons: FaUser, FaSignOutAlt, FaBars, FaTimes, FaCog, FaStore, FaHome, FaLeaf, FaSearch, FaArrowLeft, FaArrowRight
-import { FaShoppingCart, FaInfoCircle, FaBoxOpen, /* FaStore, */ FaBell, FaChevronLeft, FaChevronRight, FaTools, FaLeaf, FaBars, FaTimes } from 'react-icons/fa'
+import { FaShoppingCart, FaBoxOpen, FaBell, FaChevronLeft, FaChevronRight, FaTools, FaLeaf, FaBars, FaTimes, FaHome, FaGift, FaHistory, FaUserCircle, FaSearch } from 'react-icons/fa'
 
 // Pass cartCount and notificationCount as props
-const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0, notifications = [] }) => {
+const Navbar = React.memo(({ 
+  showCart = false, 
+  showOrders = false, 
+  cartCount = 0, 
+  notifications = [],
+  isConsumerDashboard = false,
+  activeTab = 'browse',
+  onTabChange = () => {},
+  onSearchClick = () => {}
+}) => {
   const navigate = useNavigate()
   const location = useLocation()
   const [isScrolled, setIsScrolled] = useState(false)
-  // Removed unused search-related state variables
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const { t, i18n } = useTranslation();
 
   // Check if we're on farmer dashboard
   const isFarmerDashboard = location.pathname === '/farmer'
+  const isConsumerPage = location.pathname === '/consumer'
 
   // Optimized scroll handler with useCallback
   const handleScroll = useCallback(() => {
@@ -76,36 +85,74 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
 
         {/* Center - Navigation Links */}
         <div className="navbar-center">
-          {/* Removed ecommerce button */}
-
-          {/* Crop Recommendations - Only show on farmer dashboard */}
-          {isFarmerDashboard && (
-            <button className="nav-item" onClick={handleCropRecommendations}>
-              <FaLeaf className="nav-icon" />
-              <span className="nav-text">Crop Recommendations</span>
-            </button>
+          {/* Consumer Dashboard Navigation */}
+          {isConsumerPage && (
+            <>
+              <button 
+                className={`nav-item ${activeTab === 'browse' ? 'active' : ''}`}
+                onClick={() => onTabChange('browse')}
+              >
+                <FaHome className="nav-icon" />
+                <span className="nav-text">Home</span>
+              </button>
+              <button 
+                className={`nav-item ${activeTab === 'deals' ? 'active' : ''}`}
+                onClick={() => onTabChange('deals')}
+              >
+                <FaGift className="nav-icon" />
+                <span className="nav-text">Deals</span>
+              </button>
+              <button 
+                className={`nav-item ${activeTab === 'cart' ? 'active' : ''}`}
+                onClick={() => onTabChange('cart')}
+              >
+                <FaShoppingCart className="nav-icon" />
+                <span className="nav-text">Cart</span>
+                {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+              </button>
+              <button 
+                className={`nav-item ${activeTab === 'orders' ? 'active' : ''}`}
+                onClick={() => onTabChange('orders')}
+              >
+                <FaHistory className="nav-icon" />
+                <span className="nav-text">Orders</span>
+              </button>
+              <button 
+                className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+                onClick={() => onTabChange('profile')}
+              >
+                <FaUserCircle className="nav-icon" />
+                <span className="nav-text">Profile</span>
+              </button>
+              <button 
+                className="nav-item"
+                onClick={onSearchClick}
+              >
+                <FaSearch className="nav-icon" />
+                <span className="nav-text">Search</span>
+              </button>
+            </>
           )}
 
-          {/* Resource Share - Only show on farmer dashboard */}
+          {/* Farmer Dashboard Navigation */}
           {isFarmerDashboard && (
-            <button className="nav-item" onClick={handleResourceShareClick}>
-              <FaTools className="nav-icon" />
-              <span className="nav-text">Resource Share</span>
-            </button>
+            <>
+              <button className="nav-item" onClick={handleCropRecommendations}>
+                <FaLeaf className="nav-icon" />
+                <span className="nav-text">Crop Recommendations</span>
+              </button>
+              <button className="nav-item" onClick={handleResourceShareClick}>
+                <FaTools className="nav-icon" />
+                <span className="nav-text">Resource Share</span>
+              </button>
+            </>
           )}
 
-          {showOrders && (
+          {/* Common Navigation Items (only show when not on consumer page) */}
+          {!isConsumerPage && showOrders && (
             <button className="nav-item" onClick={handleOrdersClick}>
               <FaBoxOpen className="nav-icon" />
               <span className="nav-text">{t('orders')}</span>
-            </button>
-          )}
-
-          {showCart && (
-            <button className="nav-item cart-item" onClick={handleCartClick}>
-              <FaShoppingCart className="nav-icon" />
-              <span className="nav-text">{t('cart')}</span>
-              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </button>
           )}
         </div>
@@ -163,16 +210,6 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
             </select>
           </div>
 
-          {/* About Button */}
-          <button 
-            className="about-btn" 
-            onClick={handleAboutClick} 
-            title="About Us"
-          >
-            <FaInfoCircle />
-            <span className="nav-text">{t('about')}</span>
-          </button>
-
           {/* Mobile Menu Toggle */}
           <button 
             className="mobile-menu-toggle" 
@@ -187,29 +224,51 @@ const Navbar = React.memo(({ showCart = false, showOrders = false, cartCount = 0
       {/* Mobile Menu */}
       {showMobileMenu && (
         <div className="mobile-menu">
-          {isFarmerDashboard && (
-            <button className="mobile-menu-item" onClick={() => { handleCropRecommendations(); setShowMobileMenu(false); }}>
-              <FaLeaf className="nav-icon" />
-              <span>Crop Recommendations</span>
-            </button>
+          {isConsumerPage && (
+            <>
+              <button className="mobile-menu-item" onClick={() => { onTabChange('browse'); setShowMobileMenu(false); }}>
+                <FaHome className="nav-icon" />
+                <span>Home</span>
+              </button>
+              <button className="mobile-menu-item" onClick={() => { onTabChange('deals'); setShowMobileMenu(false); }}>
+                <FaGift className="nav-icon" />
+                <span>Deals</span>
+              </button>
+              <button className="mobile-menu-item" onClick={() => { onTabChange('cart'); setShowMobileMenu(false); }}>
+                <FaShoppingCart className="nav-icon" />
+                <span>Cart</span>
+                {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+              </button>
+              <button className="mobile-menu-item" onClick={() => { onTabChange('orders'); setShowMobileMenu(false); }}>
+                <FaHistory className="nav-icon" />
+                <span>Orders</span>
+              </button>
+              <button className="mobile-menu-item" onClick={() => { onTabChange('profile'); setShowMobileMenu(false); }}>
+                <FaUserCircle className="nav-icon" />
+                <span>Profile</span>
+              </button>
+              <button className="mobile-menu-item" onClick={() => { onSearchClick(); setShowMobileMenu(false); }}>
+                <FaSearch className="nav-icon" />
+                <span>Search</span>
+              </button>
+            </>
           )}
           {isFarmerDashboard && (
-            <button className="mobile-menu-item" onClick={() => { handleResourceShareClick(); setShowMobileMenu(false); }}>
-              <FaTools className="nav-icon" />
-              <span>Resource Share</span>
-            </button>
+            <>
+              <button className="mobile-menu-item" onClick={() => { handleCropRecommendations(); setShowMobileMenu(false); }}>
+                <FaLeaf className="nav-icon" />
+                <span>Crop Recommendations</span>
+              </button>
+              <button className="mobile-menu-item" onClick={() => { handleResourceShareClick(); setShowMobileMenu(false); }}>
+                <FaTools className="nav-icon" />
+                <span>Resource Share</span>
+              </button>
+            </>
           )}
-          {showOrders && (
+          {!isConsumerPage && showOrders && (
             <button className="mobile-menu-item" onClick={() => { handleOrdersClick(); setShowMobileMenu(false); }}>
               <FaBoxOpen className="nav-icon" />
               <span>{t('orders')}</span>
-            </button>
-          )}
-          {showCart && (
-            <button className="mobile-menu-item" onClick={() => { handleCartClick(); setShowMobileMenu(false); }}>
-              <FaShoppingCart className="nav-icon" />
-              <span>{t('cart')}</span>
-              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </button>
           )}
         </div>

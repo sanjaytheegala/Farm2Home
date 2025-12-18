@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import CropRecommendation from '../components/CropRecommendation';
 import './FarmerDashboard.css'
 
-import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaEye, FaTruck, FaMoneyBillWave, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa'
+import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaEye, FaTruck, FaMoneyBillWave, FaCalendarAlt, FaMapMarkerAlt, FaHome, FaSeedling, FaUserCircle, FaBox } from 'react-icons/fa'
 
 // State/districts for dropdowns
 const stateDistricts = {
