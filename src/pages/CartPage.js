@@ -112,7 +112,6 @@ const CartPage = () => {
     try {
       await addDoc(collection(db, 'orders'), orderData)
       setOrderId(newOrderId)
-      setOrderPlaced(true)
       setCheckoutStep('confirmation')
       localStorage.removeItem('cart')
       setLoading(false)

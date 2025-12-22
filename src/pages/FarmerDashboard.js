@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { db, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from '../firebase'
 import Navbar from '../components/Navbar'
 import { useTranslation } from 'react-i18next';
