@@ -17,7 +17,6 @@ const CartPage = () => {
     pincode: ''
   })
   const [paymentMethod, setPaymentMethod] = useState('cod') // 'cod', 'upi', 'card', 'netbanking'
-  const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderId, setOrderId] = useState(null)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()

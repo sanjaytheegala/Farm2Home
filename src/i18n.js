@@ -280,7 +280,6 @@ const resources = {
       shipped: 'Shipped',
       delivered: 'Delivered',
       more_items: 'more items',
-      view_details: 'View Details',
       order_details: 'Order Details',
       order_status: 'Order Status',
       loading: 'Loading orders...',

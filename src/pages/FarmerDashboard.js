@@ -34,7 +34,6 @@ const stateDistricts = {
 };
 
 const FarmerDashboard = () => {
-  const navigate = useNavigate()
   const [rows, setRows] = useState([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
   const [savedCrops, setSavedCrops] = useState([])
   const [loading, setLoading] = useState(false)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { db, collection, getDocs, query, orderBy, auth } from '../firebase'
+import { db, collection, getDocs, query, orderBy } from '../firebase'
 import { useTranslation } from 'react-i18next'
 import Navbar from '../components/Navbar'
 import { FaBox, FaTruck, FaCheckCircle, FaClock, FaMapMarkerAlt, FaPhone, FaCalendar } from 'react-icons/fa'
@@ -109,8 +109,6 @@ const OrdersPage = () => {
   }
 
   const OrderDetails = ({ order }) => {
-    const statusInfo = getStatusInfo(order.status)
-    
     return (
       <div style={detailsModal} onClick={() => setSelectedOrder(null)}>
         <div style={detailsContent} onClick={(e) => e.stopPropagation()}>
