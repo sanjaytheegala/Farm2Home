@@ -27,51 +27,52 @@ const CropRecommendation = () => {
 
   // Enhanced soil types with more details
   const soilTypes = [
-    { value: 'clay', label: 'Clay Soil', description: 'Heavy, retains water well, good for rice and wheat', characteristics: ['High water retention', 'Rich in minerals', 'Good for paddy crops'] },
-    { value: 'sandy', label: 'Sandy Soil', description: 'Light, well-draining, good for root vegetables', characteristics: ['Fast drainage', 'Warms quickly', 'Good for root crops'] },
-    { value: 'loamy', label: 'Loamy Soil', description: 'Balanced, ideal for most crops', characteristics: ['Perfect balance', 'High fertility', 'Best for most crops'] },
-    { value: 'silt', label: 'Silt Soil', description: 'Fine particles, good for vegetables and fruits', characteristics: ['Smooth texture', 'Good moisture retention', 'Ideal for vegetables'] },
-    { value: 'red', label: 'Red Soil', description: 'Rich in iron, good for pulses and oilseeds', characteristics: ['Iron rich', 'Slightly acidic', 'Good for pulses'] },
-    { value: 'black', label: 'Black Soil', description: 'High fertility, excellent for cotton and sugarcane', characteristics: ['High fertility', 'Rich in minerals', 'Excellent for cash crops'] }
+    { value: 'clay', label: t('soil_clay') || 'Clay Soil', description: t('soil_clay_desc') || 'Heavy, retains water well, good for rice and wheat', characteristics: ['High water retention', 'Rich in minerals', 'Good for paddy crops'] },
+    { value: 'sandy', label: t('soil_sandy') || 'Sandy Soil', description: t('soil_sandy_desc') || 'Light, well-draining, good for root vegetables', characteristics: ['Fast drainage', 'Warms quickly', 'Good for root crops'] },
+    { value: 'loamy', label: t('soil_loamy') || 'Loamy Soil', description: t('soil_loamy_desc') || 'Balanced, ideal for most crops', characteristics: ['Perfect balance', 'High fertility', 'Best for most crops'] },
+    { value: 'silt', label: t('soil_silt') || 'Silt Soil', description: t('soil_silt_desc') || 'Fine particles, good for vegetables and fruits', characteristics: ['Smooth texture', 'Good moisture retention', 'Ideal for vegetables'] },
+    { value: 'red', label: t('soil_red') || 'Red Soil', description: t('soil_red_desc') || 'Rich in iron, good for pulses and oilseeds', characteristics: ['Iron rich', 'Slightly acidic', 'Good for pulses'] },
+    { value: 'black', label: t('soil_black') || 'Black Soil', description: t('soil_black_desc') || 'High fertility, excellent for cotton and sugarcane', characteristics: ['High fertility', 'Rich in minerals', 'Excellent for cash crops'] }
   ];
 
   // Enhanced climate zones
   const climates = [
-    { value: 'tropical', label: 'Tropical', description: 'Hot and humid, year-round growing', characteristics: ['High temperature', 'High humidity', 'Year-round growing'] },
-    { value: 'subtropical', label: 'Subtropical', description: 'Warm with distinct seasons', characteristics: ['Moderate temperature', 'Distinct seasons', 'Good for diverse crops'] },
-    { value: 'temperate', label: 'Temperate', description: 'Moderate temperatures, seasonal changes', characteristics: ['Moderate climate', 'Seasonal changes', 'Good for grains'] },
-    { value: 'arid', label: 'Arid', description: 'Hot and dry, limited rainfall', characteristics: ['Low rainfall', 'High temperature', 'Drought-resistant crops'] },
-    { value: 'semi_arid', label: 'Semi-Arid', description: 'Moderate rainfall, drought-resistant crops', characteristics: ['Moderate rainfall', 'Drought-resistant', 'Mixed farming'] }
+    { value: 'tropical', label: t('climate_tropical') || 'Tropical', description: t('climate_tropical_desc') || 'Hot and humid, year-round growing', characteristics: ['High temperature', 'High humidity', 'Year-round growing'] },
+    { value: 'subtropical', label: t('climate_subtropical') || 'Subtropical', description: t('climate_subtropical_desc') || 'Warm with distinct seasons', characteristics: ['Moderate temperature', 'Distinct seasons', 'Good for diverse crops'] },
+    { value: 'temperate', label: t('climate_temperate') || 'Temperate', description: t('climate_temperate_desc') || 'Moderate temperatures, seasonal changes', characteristics: ['Moderate climate', 'Seasonal changes', 'Good for grains'] },
+    { value: 'arid', label: t('climate_arid') || 'Arid', description: t('climate_arid_desc') || 'Hot and dry, limited rainfall', characteristics: ['Low rainfall', 'High temperature', 'Drought-resistant crops'] },
+    { value: 'semi_arid', label: t('climate_semi_arid') || 'Semi-Arid', description: t('climate_semi_arid_desc') || 'Moderate rainfall, drought-resistant crops', characteristics: ['Moderate rainfall', 'Drought-resistant', 'Mixed farming'] }
   ];
 
   // Enhanced seasons
   const seasons = [
-    { value: 'kharif', label: 'Kharif (Monsoon)', description: 'June-October, rice, maize, cotton', characteristics: ['Monsoon season', 'High rainfall', 'Rice, maize, cotton'] },
-    { value: 'rabi', label: 'Rabi (Winter)', description: 'October-March, wheat, barley, mustard', characteristics: ['Winter season', 'Moderate rainfall', 'Wheat, barley, mustard'] },
-    { value: 'zaid', label: 'Zaid (Summer)', description: 'March-June, vegetables, fruits', characteristics: ['Summer season', 'Irrigation needed', 'Vegetables, fruits'] }
+    { value: 'kharif', label: t('season_kharif') || 'Kharif (Monsoon)', description: t('season_kharif_desc') || 'June-October, rice, maize, cotton', characteristics: ['Monsoon season', 'High rainfall', 'Rice, maize, cotton'] },
+    { value: 'rabi', label: t('season_rabi') || 'Rabi (Winter)', description: t('season_rabi_desc') || 'October-March, wheat, barley, mustard', characteristics: ['Winter season', 'Moderate rainfall', 'Wheat, barley, mustard'] },
+    { value: 'zaid', label: t('season_zaid') || 'Zaid (Summer)', description: t('season_zaid_desc') || 'March-June, vegetables, fruits', characteristics: ['Summer season', 'Irrigation needed', 'Vegetables, fruits'] }
   ];
 
   // Enhanced water availability
   const waterOptions = [
-    { value: 'high', label: 'High (Irrigation available)', description: 'Can grow water-intensive crops', characteristics: ['Full irrigation', 'Water-intensive crops', 'High yield potential'] },
-    { value: 'moderate', label: 'Moderate', description: 'Balanced water usage crops', characteristics: ['Partial irrigation', 'Balanced crops', 'Moderate yield'] },
-    { value: 'low', label: 'Low (Rainfed)', description: 'Drought-resistant crops recommended', characteristics: ['Rainfed farming', 'Drought-resistant', 'Low water usage'] }
+    { value: 'high', label: t('water_high') || 'High (Irrigation available)', description: t('water_high_desc') || 'Can grow water-intensive crops', characteristics: ['Full irrigation', 'Water-intensive crops', 'High yield potential'] },
+    { value: 'moderate', label: t('water_moderate') || 'Moderate', description: t('water_moderate_desc') || 'Balanced water usage crops', characteristics: ['Partial irrigation', 'Balanced crops', 'Moderate yield'] },
+    { value: 'low', label: t('water_low') || 'Low (Rainfed)', description: t('water_low_desc') || 'Drought-resistant crops recommended', characteristics: ['Rainfed farming', 'Drought-resistant', 'Low water usage'] }
   ];
 
   // Enhanced experience levels
   const experienceLevels = [
-    { value: 'beginner', label: 'Beginner (0-2 years)', description: 'Easy to grow crops', characteristics: ['Simple techniques', 'Low risk', 'Easy maintenance'] },
-    { value: 'intermediate', label: 'Intermediate (3-5 years)', description: 'Moderate complexity crops', characteristics: ['Moderate techniques', 'Medium risk', 'Some expertise needed'] },
-    { value: 'expert', label: 'Expert (5+ years)', description: 'Advanced farming techniques', characteristics: ['Advanced techniques', 'High risk', 'Expert knowledge'] }
+    { value: 'beginner', label: t('exp_beginner') || 'Beginner (0-2 years)', description: t('exp_beginner_desc') || 'Easy to grow crops', characteristics: ['Simple techniques', 'Low risk', 'Easy maintenance'] },
+    { value: 'intermediate', label: t('exp_intermediate') || 'Intermediate (3-5 years)', description: t('exp_intermediate_desc') || 'Moderate complexity crops', characteristics: ['Moderate techniques', 'Medium risk', 'Some expertise needed'] },
+    { value: 'expert', label: t('exp_expert') || 'Expert (5+ years)', description: t('exp_expert_desc') || 'Advanced farming techniques', characteristics: ['Advanced techniques', 'High risk', 'Expert knowledge'] }
   ];
 
   // Enhanced market preferences
   const marketPreferences = [
-    { value: 'local', label: 'Local Market', description: 'Fresh produce for nearby markets', characteristics: ['Nearby markets', 'Fresh produce', 'Quick sales'] },
-    { value: 'export', label: 'Export Market', description: 'High-value crops for international markets', characteristics: ['International markets', 'High value', 'Quality standards'] },
-    { value: 'processing', label: 'Processing Industry', description: 'Crops for food processing', characteristics: ['Bulk supply', 'Processing units', 'Contract farming'] },
-    { value: 'organic', label: 'Organic Market', description: 'Certified organic produce', characteristics: ['Certified organic', 'Premium pricing', 'Natural methods'] }
+    { value: 'local', label: t('market_local') || 'Local Market', description: t('market_local_desc') || 'Fresh produce for nearby markets', characteristics: ['Nearby markets', 'Fresh produce', 'Quick sales'] },
+    { value: 'export', label: t('market_export') || 'Export Market', description: t('market_export_desc') || 'High-value crops for international markets', characteristics: ['International markets', 'High value', 'Quality standards'] },
+    { value: 'processing', label: t('market_processing') || 'Processing Industry', description: t('market_processing_desc') || 'Crops for food processing', characteristics: ['Bulk supply', 'Processing units', 'Contract farming'] },
+    { value: 'organic', label: t('market_organic') || 'Organic Market', description: t('market_organic_desc') || 'Certified organic produce', characteristics: ['Certified organic', 'Premium pricing', 'Natural methods'] }
   ];
+
 
   // Enhanced AI-based crop recommendation algorithm
   const generateRecommendations = (data) => {

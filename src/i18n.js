@@ -6,7 +6,6 @@ const resources = {
   en: {
     translation: {
       welcome: 'Welcome to Farm2Home',
-      login: 'Login',
       signup: 'Sign Up',
       home: 'Home',
       about: 'About',
@@ -77,6 +76,67 @@ const resources = {
       enter_location: 'Enter your location for better recommendations',
       get_ai_recommendations: 'Get AI Recommendations',
       saved_recommendations: 'Saved Recommendations',
+      
+      // Soil Types
+      soil_clay: 'Clay Soil',
+      soil_clay_desc: 'Heavy, retains water well, good for rice and wheat',
+      soil_sandy: 'Sandy Soil',
+      soil_sandy_desc: 'Light, well-draining, good for root vegetables',
+      soil_loamy: 'Loamy Soil',
+      soil_loamy_desc: 'Balanced, ideal for most crops',
+      soil_silt: 'Silt Soil',
+      soil_silt_desc: 'Fine particles, good for vegetables and fruits',
+      soil_red: 'Red Soil',
+      soil_red_desc: 'Rich in iron, good for pulses and oilseeds',
+      soil_black: 'Black Soil',
+      soil_black_desc: 'High fertility, excellent for cotton and sugarcane',
+      
+      // Climate Types
+      climate_tropical: 'Tropical',
+      climate_tropical_desc: 'Hot and humid, year-round growing',
+      climate_subtropical: 'Subtropical',
+      climate_subtropical_desc: 'Warm with distinct seasons',
+      climate_temperate: 'Temperate',
+      climate_temperate_desc: 'Moderate temperatures, seasonal changes',
+      climate_arid: 'Arid',
+      climate_arid_desc: 'Hot and dry, limited rainfall',
+      climate_semi_arid: 'Semi-Arid',
+      climate_semi_arid_desc: 'Moderate rainfall, drought-resistant crops',
+      
+      // Seasons
+      season_kharif: 'Kharif (Monsoon)',
+      season_kharif_desc: 'June-October, rice, maize, cotton',
+      season_rabi: 'Rabi (Winter)',
+      season_rabi_desc: 'October-March, wheat, barley, mustard',
+      season_zaid: 'Zaid (Summer)',
+      season_zaid_desc: 'March-June, vegetables, fruits',
+      
+      // Water Availability
+      water_high: 'High (Irrigation available)',
+      water_high_desc: 'Can grow water-intensive crops',
+      water_moderate: 'Moderate',
+      water_moderate_desc: 'Balanced water usage crops',
+      water_low: 'Low (Rainfed)',
+      water_low_desc: 'Drought-resistant crops recommended',
+      
+      // Experience Levels
+      exp_beginner: 'Beginner (0-2 years)',
+      exp_beginner_desc: 'Easy to grow crops',
+      exp_intermediate: 'Intermediate (3-5 years)',
+      exp_intermediate_desc: 'Moderate complexity crops',
+      exp_expert: 'Expert (5+ years)',
+      exp_expert_desc: 'Advanced farming techniques',
+      
+      // Market Preferences
+      market_local: 'Local Market',
+      market_local_desc: 'Fresh produce for nearby markets',
+      market_export: 'Export Market',
+      market_export_desc: 'High-value crops for international markets',
+      market_processing: 'Processing Industry',
+      market_processing_desc: 'Crops for food processing',
+      market_organic: 'Organic Market',
+      market_organic_desc: 'Certified organic produce',
+      
       // Homepage key translations
       typewriter_message_1: 'Empowering local farmers to connect directly with consumers. Fresh produce, fair prices, sustainable agriculture.',
       typewriter_message_2: 'Supporting sustainable farming practices that benefit both farmers and the environment.',
@@ -147,13 +207,35 @@ const resources = {
       
       back: 'Back',
       forward: 'Forward',
+      
+      // Farmer Dashboard
+      add_new_crop: 'Add New Crop',
+      analytics: 'Analytics',
+      available: 'Available',
+      sold: 'Sold',
+      reserved: 'Reserved',
+      crop_name: 'Crop Name',
+      harvest_date: 'Harvest Date',
+      notes: 'Notes',
+      saving: 'Saving...',
+      add_row: 'Add Row',
+      your_crops: 'Your Crops',
+      location: 'Location',
+      farm_analytics: 'Farm Analytics',
+      total_crops: 'Total Crops',
+      total_value: 'Total Value',
+      available_crops: 'Available Crops',
+      sold_crops: 'Sold Crops',
+      quantity_kg: 'Quantity (kg)',
+      price_inr: 'Price (₹)',
+      status: 'Status',
+      
       ...geoData.en,
     },
   },
   hi: {
     translation: {
       welcome: 'फार्म2होम में आपका स्वागत है',
-      login: 'लॉगिन',
       signup: 'साइन अप',
       home: 'होम',
       about: 'परिचय',
@@ -224,6 +306,67 @@ const resources = {
       enter_location: 'बेहतर सिफारिशों के लिए अपना स्थान दर्ज करें',
       get_ai_recommendations: 'एआई सिफारिशें प्राप्त करें',
       saved_recommendations: 'सहेजी गई सिफारिशें',
+      
+      // Soil Types
+      soil_clay: 'चिकनी मिट्टी',
+      soil_clay_desc: 'भारी, पानी अच्छी तरह रखती है, चावल और गेहूं के लिए अच्छी',
+      soil_sandy: 'रेतीली मिट्टी',
+      soil_sandy_desc: 'हल्की, अच्छी जल निकासी, जड़ वाली सब्जियों के लिए अच्छी',
+      soil_loamy: 'दोमट मिट्टी',
+      soil_loamy_desc: 'संतुलित, अधिकांश फसलों के लिए आदर्श',
+      soil_silt: 'गाद मिट्टी',
+      soil_silt_desc: 'बारीक कण, सब्जियों और फलों के लिए अच्छी',
+      soil_red: 'लाल मिट्टी',
+      soil_red_desc: 'लोहे से भरपूर, दालों और तिलहन के लिए अच्छी',
+      soil_black: 'काली मिट्टी',
+      soil_black_desc: 'उच्च उर्वरता, कपास और गन्ने के लिए उत्कृष्ट',
+      
+      // Climate Types
+      climate_tropical: 'उष्णकटिबंधीय',
+      climate_tropical_desc: 'गर्म और आर्द्र, साल भर खेती',
+      climate_subtropical: 'उपोष्णकटिबंधीय',
+      climate_subtropical_desc: 'गर्म और विशिष्ट मौसम',
+      climate_temperate: 'समशीतोष्ण',
+      climate_temperate_desc: 'मध्यम तापमान, मौसमी परिवर्तन',
+      climate_arid: 'शुष्क',
+      climate_arid_desc: 'गर्म और शुष्क, सीमित वर्षा',
+      climate_semi_arid: 'अर्ध-शुष्क',
+      climate_semi_arid_desc: 'मध्यम वर्षा, सूखा प्रतिरोधी फसलें',
+      
+      // Seasons
+      season_kharif: 'खरीफ (मानसून)',
+      season_kharif_desc: 'जून-अक्टूबर, चावल, मक्का, कपास',
+      season_rabi: 'रबी (सर्दी)',
+      season_rabi_desc: 'अक्टूबर-मार्च, गेहूं, जौ, सरसों',
+      season_zaid: 'जायद (गर्मी)',
+      season_zaid_desc: 'मार्च-जून, सब्जियां, फल',
+      
+      // Water Availability
+      water_high: 'उच्च (सिंचाई उपलब्ध)',
+      water_high_desc: 'पानी गहन फसलें उगा सकते हैं',
+      water_moderate: 'मध्यम',
+      water_moderate_desc: 'संतुलित पानी उपयोग फसलें',
+      water_low: 'कम (वर्षा आधारित)',
+      water_low_desc: 'सूखा प्रतिरोधी फसलें अनुशंसित',
+      
+      // Experience Levels
+      exp_beginner: 'शुरुआती (0-2 वर्ष)',
+      exp_beginner_desc: 'उगाने में आसान फसलें',
+      exp_intermediate: 'मध्यवर्ती (3-5 वर्ष)',
+      exp_intermediate_desc: 'मध्यम जटिलता फसलें',
+      exp_expert: 'विशेषज्ञ (5+ वर्ष)',
+      exp_expert_desc: 'उन्नत कृषि तकनीक',
+      
+      // Market Preferences
+      market_local: 'स्थानीय बाजार',
+      market_local_desc: 'आसपास के बाजारों के लिए ताजा उपज',
+      market_export: 'निर्यात बाजार',
+      market_export_desc: 'अंतर्राष्ट्रीय बाजारों के लिए उच्च मूल्य फसलें',
+      market_processing: 'प्रसंस्करण उद्योग',
+      market_processing_desc: 'खाद्य प्रसंस्करण के लिए फसलें',
+      market_organic: 'जैविक बाजार',
+      market_organic_desc: 'प्रमाणित जैविक उपज',
+      
       // Homepage key translations
       typewriter_message_1: 'स्थानीय किसानों को सीधे उपभोक्ताओं से जोड़कर सशक्त बनाना। ताज़ा उपज, उचित मूल्य, स्थायी कृषि।',
       typewriter_message_2: 'किसानों और पर्यावरण दोनों को लाभ पहुंचाने वाली स्थायी कृषि पद्धतियों का समर्थन करना।',
@@ -294,13 +437,35 @@ const resources = {
 
       back: 'वापस',
       forward: 'आगे',
+      
+      // Farmer Dashboard
+      add_new_crop: 'नई फसल जोड़ें',
+      analytics: 'विश्लेषण',
+      available: 'उपलब्ध',
+      sold: 'बेचा गया',
+      reserved: 'आरक्षित',
+      crop_name: 'फसल का नाम',
+      harvest_date: 'कटाई की तारीख',
+      notes: 'नोट्स',
+      saving: 'सहेजा जा रहा है...',
+      add_row: 'पंक्ति जोड़ें',
+      your_crops: 'आपकी फसलें',
+      location: 'स्थान',
+      farm_analytics: 'खेत विश्लेषण',
+      total_crops: 'कुल फसलें',
+      total_value: 'कुल मूल्य',
+      available_crops: 'उपलब्ध फसलें',
+      sold_crops: 'बेची गई फसलें',
+      quantity_kg: 'मात्रा (किलो)',
+      price_inr: 'कीमत (₹)',
+      status: 'स्थिति',
+      
       ...geoData.hi,
     },
   },
   te: {
     translation: {
       welcome: 'ఫార్మ్2హోమ్‌కు స్వాగతం',
-      login: 'లాగిన్',
       signup: 'సైన్ అప్',
       home: 'హోమ్',
       about: 'గురించి',
@@ -325,6 +490,8 @@ const resources = {
       add_to_cart: 'కార్ట్‌లో జోడించండి',
       buy_now: 'ఇప్పుడు కొనండి',
       select_district: 'జిల్లాను ఎంచుకోండి',
+      // AI Crop Recommendations
+      crop_recommendation_description: 'మీ నేల రకం, వాతావరణం, కాలం మరియు వ్యవసాయ అనుభవం ఆధారంగా వ్యక్తిగత పంట సిఫార్సులను పొందండి. మా AI మీ పొలానికి అత్యంత లాభదాయకమైన మరియు అనువైన పంటలను సూచించడానికి అనేక అంశాలను విశ్లేషిస్తుంది.',
       // Form field translations
       soil_type: 'నేల రకం',
       select_soil_type: 'నేల రకాన్ని ఎంచుకోండి',
@@ -347,6 +514,67 @@ const resources = {
       get_ai_recommendations: 'AI సిఫార్సులను పొందండి',
       new_analysis: 'కొత్త విశ్లేషణ',
       saved_recommendations: 'సేవ్ చేసిన సిఫార్సులు',
+      
+      // Soil Types
+      soil_clay: 'బంకమట్టి',
+      soil_clay_desc: 'బరువైనది, నీటిని బాగా ఉంచుతుంది, వరి మరియు గోధుమలకు మంచిది',
+      soil_sandy: 'ఇసుక నేల',
+      soil_sandy_desc: 'తేలికైనది, బాగా నీరు పారుతుంది, వేరు కూరగాయలకు మంచిది',
+      soil_loamy: 'మట్టి నేల',
+      soil_loamy_desc: 'సమతుల్యత, చాలా పంటలకు అనువైనది',
+      soil_silt: 'సిల్ట్ నేల',
+      soil_silt_desc: 'చిన్న కణాలు, కూరగాయలు మరియు పండ్లకు మంచిది',
+      soil_red: 'ఎరుపు నేల',
+      soil_red_desc: 'ఇనుము సమృద్ధిగా, పప్పుధాన్యాలు మరియు నూనెగింజల పంటలకు మంచిది',
+      soil_black: 'నల్ల నేల',
+      soil_black_desc: 'అధిక సారవంతం, పత్తి మరియు చెరకుకు అద్భుతమైనది',
+      
+      // Climate Types
+      climate_tropical: 'ఉష్ణమండల',
+      climate_tropical_desc: 'వేడి మరియు తేమ, ఏడాది పొడవునా పంట పండించడం',
+      climate_subtropical: 'ఉపఉష్ణమండల',
+      climate_subtropical_desc: 'వెచ్చగా ఉంటుంది మరియు విభిన్న కాలాలు',
+      climate_temperate: 'సమశీతోష్ణ',
+      climate_temperate_desc: 'మోస్తరు ఉష్ణోగ్రతలు, కాలానుగుణ మార్పులు',
+      climate_arid: 'శుష్క',
+      climate_arid_desc: 'వేడి మరియు పొడిగా, పరిమిత వర్షపాతం',
+      climate_semi_arid: 'అర్ధ-శుష్క',
+      climate_semi_arid_desc: 'మోస్తరు వర్షపాతం, కరువు నిరోధక పంటలు',
+      
+      // Seasons
+      season_kharif: 'ఖరీఫ్ (వర్షాకాలం)',
+      season_kharif_desc: 'జూన్-అక్టోబర్, వరి, మొక్కజొన్న, పత్తి',
+      season_rabi: 'రబీ (చలికాలం)',
+      season_rabi_desc: 'అక్టోబర్-మార్చి, గోధుమ, బార్లీ, ఆవాలు',
+      season_zaid: 'జయద్ (వేసవి)',
+      season_zaid_desc: 'మార్చి-జూన్, కూరగాయలు, పండ్లు',
+      
+      // Water Availability
+      water_high: 'అధికం (నీటిపారుదల అందుబాటులో ఉంది)',
+      water_high_desc: 'నీటితో అధిక పంటలను పండించవచ్చు',
+      water_moderate: 'మోస్తరు',
+      water_moderate_desc: 'సమతుల్య నీటి వినియోగ పంటలు',
+      water_low: 'తక్కువ (వర్షపాతం ఆధారిత)',
+      water_low_desc: 'కరువు నిరోధక పంటలు సిఫార్సు చేయబడ్డాయి',
+      
+      // Experience Levels
+      exp_beginner: 'ప్రారంభకుడు (0-2 సంవత్సరాలు)',
+      exp_beginner_desc: 'పండించడం సులభమైన పంటలు',
+      exp_intermediate: 'మధ్యస్థ (3-5 సంవత్సరాలు)',
+      exp_intermediate_desc: 'మోస్తరు సంక్లిష్టత పంటలు',
+      exp_expert: 'నిపుణుడు (5+ సంవత్సరాలు)',
+      exp_expert_desc: 'అధునాతన వ్యవసాయ పద్ధతులు',
+      
+      // Market Preferences
+      market_local: 'స్థానిక మార్కెట్',
+      market_local_desc: 'సమీప మార్కెట్ల కోసం తాజా పంట',
+      market_export: 'ఎగుమతి మార్కెట్',
+      market_export_desc: 'అంతర్జాతీయ మార్కెట్ల కోసం అధిక విలువ పంటలు',
+      market_processing: 'ప్రాసెసింగ్ పరిశ్రమ',
+      market_processing_desc: 'ఆహార ప్రాసెసింగ్ కోసం పంటలు',
+      market_organic: 'సేంద్రీయ మార్కెట్',
+      market_organic_desc: 'ధృవీకరించబడిన సేంద్రీయ పంట',
+      
       // Homepage key translations
       typewriter_message_1: 'స్థానిక రైతులను నేరుగా వినియోగదారులతో అనుసంధానించడం ద్వారా వారికి సాధికారత కల్పించడం. తాజా పంట, సరసమైన ధరలు, స్థిరమైన వ్యవసాయం.',
       typewriter_message_2: 'రైతులు మరియు పర్యావరణం రెండింటికీ ప్రయోజనం చేకూర్చే స్థిరమైన వ్యవసాయ పద్ధతులకు మద్దతు ఇవ్వడం.',
@@ -417,13 +645,35 @@ const resources = {
 
       back: 'వెనుకకు',
       forward: 'ముందుకు',
+      
+      // Farmer Dashboard
+      add_new_crop: 'కొత్త పంట జోడించండి',
+      analytics: 'విశ్లేషణలు',
+      available: 'అందుబాటులో ఉంది',
+      sold: 'అమ్మబడింది',
+      reserved: 'రిజర్వ్ చేయబడింది',
+      crop_name: 'పంట పేరు',
+      harvest_date: 'పంట కోత తేదీ',
+      notes: 'గమనికలు',
+      saving: 'సేవ్ చేస్తోంది...',
+      add_row: 'వరుస జోడించండి',
+      your_crops: 'మీ పంటలు',
+      location: 'స్థానం',
+      farm_analytics: 'వ్యవసాయ విశ్లేషణలు',
+      total_crops: 'మొత్తం పంటలు',
+      total_value: 'మొత్తం విలువ',
+      available_crops: 'అందుబాటులో ఉన్న పంటలు',
+      sold_crops: 'అమ్మిన పంటలు',
+      quantity_kg: 'పరిమాణం (కిలో)',
+      price_inr: 'ధర (₹)',
+      status: 'స్థితి',
+      
       ...geoData.te,
     },
   },
   ta: {
     translation: {
       welcome: 'ஃபார்ம்2ஹோம்-க்கு வரவேற்கிறோம்',
-      login: 'உள்நுழை',
       signup: 'பதிவு செய்',
       home: 'முகப்பு',
       about: 'பற்றி',
@@ -448,6 +698,8 @@ const resources = {
       add_to_cart: 'வண்டியில் சேர்',
       buy_now: 'இப்போது வாங்கு',
       select_district: 'மாவட்டத்தைத் தேர்ந்தெடுக்கவும்',
+      // AI Crop Recommendations
+      crop_recommendation_description: 'உங்கள் மண் வகை, காலநிலை, பருவம் மற்றும் விவசாய அனுபவத்தின் அடிப்படையில் தனிப்பயனாக்கப்பட்ட பயிர் பரிந்துரைகளைப் பெறுங்கள். உங்கள் பண்ணைக்கு மிகவும் லாபகரமான மற்றும் பொருத்தமான பயிர்களை பரிந்துரைக்க எங்கள் AI பல காரணிகளை பகுப்பாய்வு செய்கிறது.',
       // Form field translations
       soil_type: 'மண் வகை',
       select_soil_type: 'மண் வகையைத் தேர்ந்தெடுக்கவும்',
@@ -470,6 +722,67 @@ const resources = {
       get_ai_recommendations: 'AI பரிந்துரைகளைப் பெறவும்',
       new_analysis: 'புதிய பகுப்பாய்வு',
       saved_recommendations: 'சேமிக்கப்பட்ட பரிந்துரைகள்',
+      
+      // Soil Types
+      soil_clay: 'களிமண் மண்',
+      soil_clay_desc: 'கனமானது, நீரை நன்றாக தக்கவைக்கிறது, நெல் மற்றும் கோதுமைக்கு நல்லது',
+      soil_sandy: 'மணல் மண்',
+      soil_sandy_desc: 'இலகுவானது, நன்றாக வடிகட்டுகிறது, வேர் காய்கறிகளுக்கு நல்லது',
+      soil_loamy: 'களிமண் மணல் கலவை மண்',
+      soil_loamy_desc: 'சமநிலையானது, பெரும்பாலான பயிர்களுக்கு சிறந்தது',
+      soil_silt: 'வண்டல் மண்',
+      soil_silt_desc: 'நுண்ணிய துகள்கள், காய்கறிகள் மற்றும் பழங்களுக்கு நல்லது',
+      soil_red: 'சிவப்பு மண்',
+      soil_red_desc: 'இரும்புச்சத்து நிறைந்தது, பருப்பு மற்றும் எண்ணெய் விதைகளுக்கு நல்லது',
+      soil_black: 'கருப்பு மண்',
+      soil_black_desc: 'அதிக வளம், பருத்தி மற்றும் கரும்புக்கு சிறந்தது',
+      
+      // Climate Types
+      climate_tropical: 'வெப்பமண்டல',
+      climate_tropical_desc: 'வெப்பமும் ஈரமும், ஆண்டு முழுவதும் பயிரிடல்',
+      climate_subtropical: 'துணை வெப்பமண்டல',
+      climate_subtropical_desc: 'வெப்பமானது மற்றும் வேறுபட்ட பருவங்கள்',
+      climate_temperate: 'மிதவெப்ப',
+      climate_temperate_desc: 'மிதமான வெப்பநிலை, பருவகால மாற்றங்கள்',
+      climate_arid: 'வறண்ட',
+      climate_arid_desc: 'வெப்பமும் வறண்டதும், குறைந்த மழை',
+      climate_semi_arid: 'அரை-வறண்ட',
+      climate_semi_arid_desc: 'மிதமான மழை, வறட்சி எதிர்ப்பு பயிர்கள்',
+      
+      // Seasons
+      season_kharif: 'கரீஃப் (பருவமழை)',
+      season_kharif_desc: 'ஜூன்-அக்டோபர், நெல், சோளம், பருத்தி',
+      season_rabi: 'ரபி (குளிர்காலம்)',
+      season_rabi_desc: 'அக்டோபர்-மார்ச், கோதுமை, பார்லி, கடுகு',
+      season_zaid: 'சயத் (கோடைக்காலம்)',
+      season_zaid_desc: 'மார்ச்-ஜூன், காய்கறிகள், பழங்கள்',
+      
+      // Water Availability
+      water_high: 'அதிகம் (நீர்ப்பாசனம் கிடைக்கும்)',
+      water_high_desc: 'நீர் தேவை அதிகமுள்ள பயிர்களை பயிரிடலாம்',
+      water_moderate: 'மிதமான',
+      water_moderate_desc: 'சமநிலையான நீர் பயன்பாட்டு பயிர்கள்',
+      water_low: 'குறைவு (மழை சார்ந்த)',
+      water_low_desc: 'வறட்சி எதிர்ப்பு பயிர்கள் பரிந்துரைக்கப்படுகின்றன',
+      
+      // Experience Levels
+      exp_beginner: 'ஆரம்பநிலை (0-2 ஆண்டுகள்)',
+      exp_beginner_desc: 'எளிதாக பயிரிடக்கூடிய பயிர்கள்',
+      exp_intermediate: 'இடைநிலை (3-5 ஆண்டுகள்)',
+      exp_intermediate_desc: 'மிதமான சிக்கலான பயிர்கள்',
+      exp_expert: 'நிபுணர் (5+ ஆண்டுகள்)',
+      exp_expert_desc: 'மேம்பட்ட விவசாய நுட்பங்கள்',
+      
+      // Market Preferences
+      market_local: 'உள்ளூர் சந்தை',
+      market_local_desc: 'அருகிலுள்ள சந்தைகளுக்கு புதிய விளைபொருள்',
+      market_export: 'ஏற்றுமதி சந்தை',
+      market_export_desc: 'சர்வதேச சந்தைகளுக்கான உயர் மதிப்பு பயிர்கள்',
+      market_processing: 'செயலாக்க தொழில்',
+      market_processing_desc: 'உணவு செயலாக்கத்திற்கான பயிர்கள்',
+      market_organic: 'இயற்கை சந்தை',
+      market_organic_desc: 'சான்றளிக்கப்பட்ட இயற்கை விளைபொருள்',
+      
       // Homepage key translations
       typewriter_message_1: 'உள்ளூர் விவசாயிகளை நேரடியாக நுகர்வோருடன் இணைப்பதன் மூலம் அவர்களுக்கு அதிகாரம் அளித்தல். புதிய விளைபொருட்கள், நியாயமான விலை, நிலையான விவசாயம்.',
       typewriter_message_2: 'விவசாயிகள் மற்றும் சுற்றுச்சூழல் ஆகிய இருவருக்கும் பயனளிக்கும் நிலையான விவசாய முறைகளை ஆதரித்தல்.',
@@ -538,15 +851,37 @@ const resources = {
       footer_social: 'మమ్మల్ని అనుసరించండి',
       footer_rights: '© 2024 ఫార్మ్ 2 హోమ్. అన్ని హక్కులు ప్రత్యేకించబడ్డాయి.',
 
-      back: 'వెనుకకు',
-      forward: 'ముందుకు',
+      back: 'பின்னால்',
+      forward: 'முன்னால்',
+      
+      // Farmer Dashboard
+      add_new_crop: 'புதிய பயிர் சேர்க்கவும்',
+      analytics: 'பகுப்பாய்வு',
+      available: 'கிடைக்கிறது',
+      sold: 'விற்கப்பட்டது',
+      reserved: 'ஒதுக்கப்பட்டது',
+      crop_name: 'பயிர் பெயர்',
+      harvest_date: 'அறுவடை தேதி',
+      notes: 'குறிப்புகள்',
+      saving: 'சேமிக்கிறது...',
+      add_row: 'வரிசை சேர்க்கவும்',
+      your_crops: 'உங்கள் பயிர்கள்',
+      location: 'இடம்',
+      farm_analytics: 'பண்ணை பகுப்பாய்வு',
+      total_crops: 'மொத்த பயிர்கள்',
+      total_value: 'மொத்த மதிப்பு',
+      available_crops: 'கிடைக்கும் பயிர்கள்',
+      sold_crops: 'விற்கப்பட்ட பயிர்கள்',
+      quantity_kg: 'அளவு (கிலோ)',
+      price_inr: 'விலை (₹)',
+      status: 'நிலை',
+      
       ...geoData.ta,
     },
   },
   ml: {
     translation: {
       welcome: 'ഫാം2ഹോമിലേക്ക് സ്വാഗതം',
-      login: 'ലോഗിൻ',
       signup: 'സൈൻ അപ്പ്',
       home: 'ഹോം',
       about: 'കുറിച്ച്',
@@ -571,6 +906,8 @@ const resources = {
       add_to_cart: 'കാർട്ടിൽ ചേർക്കുക',
       buy_now: 'ഇപ്പോൾ വാങ്ങുക',
       select_district: 'ജില്ല തിരഞ്ഞെടുക്കുക',
+      // AI Crop Recommendations
+      crop_recommendation_description: 'നിങ്ങളുടെ മണ്ണിന്റെ തരം, കാലാവസ്ഥ, സീസൺ, കാർഷിക അനുഭവം എന്നിവയെ അടിസ്ഥാനമാക്കി വ്യക്തിഗത വിള ശുപാർശകൾ നേടുക. നിങ്ങളുടെ ഫാമിന് ഏറ്റവും ലാഭകരവും അനുയോജ്യവുമായ വിളകൾ നിർദ്ദേശിക്കാൻ ഞങ്ങളുടെ AI ഒന്നിലധികം ഘടകങ്ങൾ വിശകലനം ചെയ്യുന്നു.',
       // Form field translations
       soil_type: 'മണ്ണിന്റെ തരം',
       select_soil_type: 'മണ്ണിന്റെ തരം തിരഞ്ഞെടുക്കുക',
@@ -593,6 +930,67 @@ const resources = {
       get_ai_recommendations: 'AI ശുപാർശകൾ നേടുക',
       new_analysis: 'പുതിയ വിശകലനം',
       saved_recommendations: 'സേവ് ചെയ്ത ശുപാർശകൾ',
+      
+      // Soil Types
+      soil_clay: 'കളിമൺ മണ്ണ്',
+      soil_clay_desc: 'ഭാരമുള്ളത്, വെള്ളം നന്നായി നിലനിർത്തുന്നു, നെല്ല്, ഗോതമ്പ് എന്നിവയ്ക്ക് നല്ലത്',
+      soil_sandy: 'മണൽ മണ്ണ്',
+      soil_sandy_desc: 'കനംകുറഞ്ഞത്, നന്നായി ഊറിപ്പോകുന്നു, റൂട്ട് പച്ചക്കറികൾക്ക് നല്ലത്',
+      soil_loamy: 'കളിമണ്ണും മണലും കലർന്ന മണ്ണ്',
+      soil_loamy_desc: 'സമതുലിതം, മിക്ക വിളകൾക്കും അനുയോജ്യം',
+      soil_silt: 'ചെളി മണ്ണ്',
+      soil_silt_desc: 'സൂക്ഷ്മ കണികകൾ, പച്ചക്കറികൾക്കും പഴങ്ങൾക്കും നല്ലത്',
+      soil_red: 'ചുവന്ന മണ്ണ്',
+      soil_red_desc: 'ഇരുമ്പ് സമൃദ്ധം, പയർ, എണ്ണവിത്തുകൾ എന്നിവയ്ക്ക് നല്ലത്',
+      soil_black: 'കറുത്ത മണ്ണ്',
+      soil_black_desc: 'ഉയർന്ന ഫലഭൂയിഷ്ഠത, പരുത്തിക്കും കരിമ്പിനും മികച്ചത്',
+      
+      // Climate Types
+      climate_tropical: 'ഉഷ്ണമേഖലാ',
+      climate_tropical_desc: 'ചൂടും ഈർപ്പവും, വർഷം മുഴുവൻ കൃഷി',
+      climate_subtropical: 'ഉപോഷ്ണമേഖലാ',
+      climate_subtropical_desc: 'ചൂടും വ്യത്യസ്ത സീസണുകളും',
+      climate_temperate: 'മിതശീതോഷ്ണ',
+      climate_temperate_desc: 'മിതമായ താപനില, സീസണൽ മാറ്റങ്ങൾ',
+      climate_arid: 'വരണ്ട',
+      climate_arid_desc: 'ചൂടും വരണ്ടതും, പരിമിത മഴ',
+      climate_semi_arid: 'അർദ്ധ-വരണ്ട',
+      climate_semi_arid_desc: 'മിതമായ മഴ, വരൾച്ച പ്രതിരോധ വിളകൾ',
+      
+      // Seasons
+      season_kharif: 'ഖരീഫ് (മൺസൂൺ)',
+      season_kharif_desc: 'ജൂൺ-ഒക്ടോബർ, നെല്ല്, ചോളം, പരുത്തി',
+      season_rabi: 'റാബി (ശൈത്യകാലം)',
+      season_rabi_desc: 'ഒക്ടോബർ-മാർച്ച്, ഗോതമ്പ്, ബാർലി, കടുക്',
+      season_zaid: 'സായിദ് (വേനൽക്കാലം)',
+      season_zaid_desc: 'മാർച്ച്-ജൂൺ, പച്ചക്കറികൾ, പഴങ്ങൾ',
+      
+      // Water Availability
+      water_high: 'ഉയർന്നത് (ജലസേചനം ലഭ്യം)',
+      water_high_desc: 'ജലം കൂടുതൽ ആവശ്യമുള്ള വിളകൾ കൃഷി ചെയ്യാം',
+      water_moderate: 'മിതമായ',
+      water_moderate_desc: 'സമതുലിത ജല ഉപയോഗ വിളകൾ',
+      water_low: 'കുറവ് (മഴ ആശ്രിത)',
+      water_low_desc: 'വരൾച്ച പ്രതിരോധ വിളകൾ ശുപാർശ ചെയ്യുന്നു',
+      
+      // Experience Levels
+      exp_beginner: 'തുടക്കക്കാരൻ (0-2 വർഷം)',
+      exp_beginner_desc: 'എളുപ്പത്തിൽ വളർത്താൻ കഴിയുന്ന വിളകൾ',
+      exp_intermediate: 'ഇടത്തരം (3-5 വർഷം)',
+      exp_intermediate_desc: 'മിതമായ സങ്കീർണ്ണത വിളകൾ',
+      exp_expert: 'വിദഗ്ദ്ധൻ (5+ വർഷം)',
+      exp_expert_desc: 'വിപുലമായ കാർഷിക സാങ്കേതികവിദ്യകൾ',
+      
+      // Market Preferences
+      market_local: 'പ്രാദേശിക വിപണി',
+      market_local_desc: 'സമീപ വിപണികൾക്കായി പുതിയ ഉൽപ്പന്നം',
+      market_export: 'കയറ്റുമതി വിപണി',
+      market_export_desc: 'അന്തർദേശീയ വിപണികൾക്കുള്ള ഉയർന്ന മൂല്യ വിളകൾ',
+      market_processing: 'സംസ്കരണ വ്യവസായം',
+      market_processing_desc: 'ഭക്ഷ്യ സംസ്കരണത്തിനുള്ള വിളകൾ',
+      market_organic: 'ഓർഗാനിക് വിപണി',
+      market_organic_desc: 'സാക്ഷ്യപ്പെടുത്തിയ ഓർഗാനിക് ഉൽപ്പന്നം',
+      
       // Homepage key translations
       typewriter_message_1: 'പ്രാദേശിക കർഷകരെ ഉപഭോക്താക്കളുമായി നേരിട്ട് ബന്ധിപ്പിച്ച് അവരെ ശാക്തീകരിക്കുന്നു. പുതിയ ഉൽപ്പന്നങ്ങൾ, ന്യായമായ വില, സുസ്ഥിരമായ കൃഷി.',
       typewriter_message_2: 'കർഷകർക്കും പരിസ്ഥിതിക്കും ഒരുപോലെ പ്രയോജനകരമായ സുസ്ഥിര കാർഷിക രീതികളെ പിന്തുണയ്ക്കുന്നു.',
@@ -663,13 +1061,35 @@ const resources = {
 
       back: 'തിരികെ',
       forward: 'മുന്നോട്ട്',
+      
+      // Farmer Dashboard
+      add_new_crop: 'പുതിയ വിള ചേർക്കുക',
+      analytics: 'വിശകലനം',
+      available: 'ലഭ്യമാണ്',
+      sold: 'വിറ്റു',
+      reserved: 'സംവരണം ചെയ്തു',
+      crop_name: 'വിളയുടെ പേര്',
+      harvest_date: 'വിളവെടുപ്പ് തീയതി',
+      notes: 'കുറിപ്പുകൾ',
+      saving: 'സേവ് ചെയ്യുന്നു...',
+      add_row: 'വരി ചേർക്കുക',
+      your_crops: 'നിങ്ങളുടെ വിളകൾ',
+      location: 'സ്ഥലം',
+      farm_analytics: 'ഫാം വിശകലനം',
+      total_crops: 'മൊത്തം വിളകൾ',
+      total_value: 'മൊത്തം മൂല്യം',
+      available_crops: 'ലഭ്യമായ വിളകൾ',
+      sold_crops: 'വിറ്റ വിളകൾ',
+      quantity_kg: 'അളവ് (കിലോ)',
+      price_inr: 'വില (₹)',
+      status: 'നില',
+      
       ...geoData.ml,
     },
   },
   kn: {
     translation: {
       welcome: 'ಫಾರ್ಮ್2ಹೋಮ್‌ಗೆ ಸ್ವಾಗತ',
-      login: 'ಲಾಗಿನ್',
       signup: 'ಸೈನ್ ಅಪ್',
       home: 'ಮುಖಪುಟ',
       about: 'ಬಗ್ಗೆ',
@@ -694,6 +1114,8 @@ const resources = {
       add_to_cart: 'ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಿ',
       buy_now: 'ಈಗ ಖರೀದಿಸಿ',
       select_district: 'ಜಿಲ್ಲೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+      // AI Crop Recommendations
+      crop_recommendation_description: 'ನಿಮ್ಮ ಮಣ್ಣಿನ ಪ್ರಕಾರ, ಹವಾಮಾನ, ಋತು ಮತ್ತು ಕೃಷಿ ಅನುಭವದ ಆಧಾರದ ಮೇಲೆ ವೈಯಕ್ತಿಕ ಬೆಳೆ ಶಿಫಾರಸುಗಳನ್ನು ಪಡೆಯಿರಿ. ನಿಮ್ಮ ಫಾರ್ಮ್‌ಗೆ ಅತ್ಯಂತ ಲಾಭದಾಯಕ ಮತ್ತು ಸೂಕ್ತವಾದ ಬೆಳೆಗಳನ್ನು ಸೂಚಿಸಲು ನಮ್ಮ AI ಹಲವಾರು ಅಂಶಗಳನ್ನು ವಿಶ್ಲೇಷಿಸುತ್ತದೆ.',
       // Form field translations
       soil_type: 'ಮಣ್ಣಿನ ಪ್ರಕಾರ',
       select_soil_type: 'ಮಣ್ಣಿನ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
@@ -716,6 +1138,67 @@ const resources = {
       get_ai_recommendations: 'AI ಶಿಫಾರಸುಗಳನ್ನು ಪಡೆಯಿರಿ',
       new_analysis: 'ಹೊಸ ವಿಶ್ಲೇಷಣೆ',
       saved_recommendations: 'ಉಳಿಸಲಾದ ಶಿಫಾರಸುಗಳು',
+      
+      // Soil Types
+      soil_clay: 'ಜೇಡಿಮಣ್ಣು',
+      soil_clay_desc: 'ಭಾರವಾದ, ನೀರನ್ನು ಚೆನ್ನಾಗಿ ಉಳಿಸಿಕೊಳ್ಳುತ್ತದೆ, ಅಕ್ಕಿ ಮತ್ತು ಗೋಧಿಗೆ ಉತ್ತಮ',
+      soil_sandy: 'ಮರಳು ಮಣ್ಣು',
+      soil_sandy_desc: 'ಹಗುರವಾದ, ಚೆನ್ನಾಗಿ ಬರಿದಾಗುತ್ತದೆ, ಬೇರು ತರಕಾರಿಗಳಿಗೆ ಉತ್ತಮ',
+      soil_loamy: 'ಜೇಡಿಮಣ್ಣು ಮರಳು ಮಿಶ್ರಣ',
+      soil_loamy_desc: 'ಸಮತೋಲಿತ, ಹೆಚ್ಚಿನ ಬೆಳೆಗಳಿಗೆ ಸೂಕ್ತ',
+      soil_silt: 'ಕೆಸರು ಮಣ್ಣು',
+      soil_silt_desc: 'ಸೂಕ್ಷ್ಮ ಕಣಗಳು, ತರಕಾರಿಗಳು ಮತ್ತು ಹಣ್ಣುಗಳಿಗೆ ಉತ್ತಮ',
+      soil_red: 'ಕೆಂಪು ಮಣ್ಣು',
+      soil_red_desc: 'ಕಬ್ಬಿಣ ಸಮೃದ್ಧ, ಕಾಳು ಮತ್ತು ಎಣ್ಣೆ ಬೀಜಗಳಿಗೆ ಉತ್ತಮ',
+      soil_black: 'ಕಪ್ಪು ಮಣ್ಣು',
+      soil_black_desc: 'ಹೆಚ್ಚಿನ ಫಲವತ್ತತೆ, ಹತ್ತಿ ಮತ್ತು ಕಬ್ಬಿಗೆ ಅತ್ಯುತ್ತಮ',
+      
+      // Climate Types
+      climate_tropical: 'ಉಷ್ಣವಲಯ',
+      climate_tropical_desc: 'ಬಿಸಿ ಮತ್ತು ತೇವ, ವರ್ಷದುದ್ದಕ್ಕೂ ಬೆಳೆಯುವುದು',
+      climate_subtropical: 'ಉಪೋಷ್ಣವಲಯ',
+      climate_subtropical_desc: 'ಬೆಚ್ಚಗಿರುವ ಮತ್ತು ವಿಭಿನ್ನ ಋತುಗಳು',
+      climate_temperate: 'ಸಮಶೀತೋಷ್ಣ',
+      climate_temperate_desc: 'ಮಧ್ಯಮ ತಾಪಮಾನ, ಋತುಮಾನ ಬದಲಾವಣೆಗಳು',
+      climate_arid: 'ಶುಷ್ಕ',
+      climate_arid_desc: 'ಬಿಸಿ ಮತ್ತು ಒಣ, ಸೀಮಿತ ಮಳೆ',
+      climate_semi_arid: 'ಅರೆ-ಶುಷ್ಕ',
+      climate_semi_arid_desc: 'ಮಧ್ಯಮ ಮಳೆ, ಬರ ನಿರೋಧಕ ಬೆಳೆಗಳು',
+      
+      // Seasons
+      season_kharif: 'ಖರೀಫ್ (ಮಾನ್ಸೂನ್)',
+      season_kharif_desc: 'ಜೂನ್-ಅಕ್ಟೋಬರ್, ಅಕ್ಕಿ, ಜೋಳ, ಹತ್ತಿ',
+      season_rabi: 'ರಬಿ (ಚಳಿಗಾಲ)',
+      season_rabi_desc: 'ಅಕ್ಟೋಬರ್-ಮಾರ್ಚ್, ಗೋಧಿ, ಬಾರ್ಲಿ, ಸಾಸಿವೆ',
+      season_zaid: 'ಝಾಯಿದ್ (ಬೇಸಿಗೆ)',
+      season_zaid_desc: 'ಮಾರ್ಚ್-ಜೂನ್, ತರಕಾರಿಗಳು, ಹಣ್ಣುಗಳು',
+      
+      // Water Availability
+      water_high: 'ಹೆಚ್ಚು (ನೀರಾವರಿ ಲಭ್ಯ)',
+      water_high_desc: 'ನೀರು ಹೆಚ್ಚು ಬೇಕಾಗುವ ಬೆಳೆಗಳನ್ನು ಬೆಳೆಯಬಹುದು',
+      water_moderate: 'ಮಧ್ಯಮ',
+      water_moderate_desc: 'ಸಮತೋಲಿತ ನೀರಿನ ಬಳಕೆ ಬೆಳೆಗಳು',
+      water_low: 'ಕಡಿಮೆ (ಮಳೆ ಆಧಾರಿತ)',
+      water_low_desc: 'ಬರ ನಿರೋಧಕ ಬೆಳೆಗಳು ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ',
+      
+      // Experience Levels
+      exp_beginner: 'ಆರಂಭಿಕ (0-2 ವರ್ಷಗಳು)',
+      exp_beginner_desc: 'ಬೆಳೆಯಲು ಸುಲಭವಾದ ಬೆಳೆಗಳು',
+      exp_intermediate: 'ಮಧ್ಯಮ (3-5 ವರ್ಷಗಳು)',
+      exp_intermediate_desc: 'ಮಧ್ಯಮ ಸಂಕೀರ್ಣತೆ ಬೆಳೆಗಳು',
+      exp_expert: 'ತಜ್ಞ (5+ ವರ್ಷಗಳು)',
+      exp_expert_desc: 'ಮುಂದುವರಿದ ಕೃಷಿ ತಂತ್ರಗಳು',
+      
+      // Market Preferences
+      market_local: 'ಸ್ಥಳೀಯ ಮಾರುಕಟ್ಟೆ',
+      market_local_desc: 'ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆಗಳಿಗೆ ತಾಜಾ ಉತ್ಪನ್ನ',
+      market_export: 'ರಫ್ತು ಮಾರುಕಟ್ಟೆ',
+      market_export_desc: 'ಅಂತರರಾಷ್ಟ್ರೀಯ ಮಾರುಕಟ್ಟೆಗಳಿಗಾಗಿ ಹೆಚ್ಚಿನ ಮೌಲ್ಯದ ಬೆಳೆಗಳು',
+      market_processing: 'ಸಂಸ್ಕರಣಾ ಉದ್ಯಮ',
+      market_processing_desc: 'ಆಹಾರ ಸಂಸ್ಕರಣೆಗಾಗಿ ಬೆಳೆಗಳು',
+      market_organic: 'ಸಾವಯವ ಮಾರುಕಟ್ಟೆ',
+      market_organic_desc: 'ಪ್ರಮಾಣೀಕೃತ ಸಾವಯವ ಉತ್ಪನ್ನ',
+      
       // Homepage key translations
       typewriter_message_1: 'ಸ್ಥಳೀಯ ರೈತರನ್ನು ನೇರವಾಗಿ ಗ್ರಾಹಕರೊಂದಿಗೆ ಸಂಪರ್ಕಿಸುವ ಮೂಲಕ ಅವರಿಗೆ ಸಬಲೀಕರಣಗೊಳಿಸುವುದು. ತಾಜಾ ಉತ್ಪನ್ನ, ನ್ಯಾಯಯುತ ಬೆಲೆ, ಸುಸ್ಥಿರ ಕೃಷಿ.',
       typewriter_message_2: 'ರೈತರು ಮತ್ತು ಪರಿಸರ ಎರಡಕ್ಕೂ ಅನುಕೂಲವಾಗುವ ಸುಸ್ಥಿರ ಕೃಷಿ ಪದ್ಧತಿಗಳನ್ನು ಬೆಂಬಲಿಸುವುದು.',
@@ -786,13 +1269,35 @@ const resources = {
 
       back: 'ಹಿಂದೆ',
       forward: 'ಮುಂದೆ',
+      
+      // Farmer Dashboard
+      add_new_crop: 'ಹೊಸ ಬೆಳೆ ಸೇರಿಸಿ',
+      analytics: 'ವಿಶ್ಲೇಷಣೆ',
+      available: 'ಲಭ್ಯವಿದೆ',
+      sold: 'ಮಾರಾಟವಾಗಿದೆ',
+      reserved: 'ಕಾಯ್ದಿರಿಸಲಾಗಿದೆ',
+      crop_name: 'ಬೆಳೆ ಹೆಸರು',
+      harvest_date: 'ಕೊಯ್ಲು ದಿನಾಂಕ',
+      notes: 'ಟಿಪ್ಪಣಿಗಳು',
+      saving: 'ಉಳಿಸಲಾಗುತ್ತಿದೆ...',
+      add_row: 'ಸಾಲು ಸೇರಿಸಿ',
+      your_crops: 'ನಿಮ್ಮ ಬೆಳೆಗಳು',
+      location: 'ಸ್ಥಳ',
+      farm_analytics: 'ಫಾರ್ಮ್ ವಿಶ್ಲೇಷಣೆ',
+      total_crops: 'ಒಟ್ಟು ಬೆಳೆಗಳು',
+      total_value: 'ಒಟ್ಟು ಮೌಲ್ಯ',
+      available_crops: 'ಲಭ್ಯವಿರುವ ಬೆಳೆಗಳು',
+      sold_crops: 'ಮಾರಾಟವಾದ ಬೆಳೆಗಳು',
+      quantity_kg: 'ಪ್ರಮಾಣ (ಕಿಲೋ)',
+      price_inr: 'ಬೆಲೆ (₹)',
+      status: 'ಸ್ಥಿತಿ',
+      
       ...geoData.kn,
     },
   },
   mr: {
     translation: {
       welcome: 'Farm2Home मध्ये आपले स्वागत आहे',
-      login: 'लॉगिन',
       signup: 'नोंदणी',
       home: 'मुख्यपृष्ठ',
       about: 'विषयी',
@@ -817,6 +1322,8 @@ const resources = {
       add_to_cart: 'कार्टमध्ये जोडा',
       buy_now: 'आता खरेदी करा',
       select_district: 'जिल्हा निवडा',
+      // AI Crop Recommendations
+      crop_recommendation_description: 'तुमच्या मातीचा प्रकार, हवामान, ऋतू आणि शेतीचा अनुभव यावर आधारित वैयक्तिक पीक सूचना मिळवा. तुमच्या शेतासाठी सर्वात फायदेशीर आणि योग्य पिकांचा सल्ला देण्यासाठी आमचे AI अनेक घटकांचे विश्लेषण करते.',
       // Form field translations
       soil_type: 'मातीचा प्रकार',
       select_soil_type: 'मातीचा प्रकार निवडा',
@@ -839,6 +1346,67 @@ const resources = {
       get_ai_recommendations: 'AI सूचना मिळवा',
       new_analysis: 'नवीन विश्लेषण',
       saved_recommendations: 'जतन केलेल्या सूचना',
+      
+      // Soil Types
+      soil_clay: 'चिकणमाती',
+      soil_clay_desc: 'जड, पाणी चांगले धरते, तांदूळ आणि गहूसाठी चांगले',
+      soil_sandy: 'वाळूची माती',
+      soil_sandy_desc: 'हलकी, चांगला निचरा, मूळ भाज्यांसाठी चांगली',
+      soil_loamy: 'सुपीक माती',
+      soil_loamy_desc: 'संतुलित, बहुतेक पिकांसाठी आदर्श',
+      soil_silt: 'गाळाची माती',
+      soil_silt_desc: 'बारीक कण, भाज्या आणि फळांसाठी चांगली',
+      soil_red: 'लाल माती',
+      soil_red_desc: 'लोहाने समृद्ध, डाळी आणि तेलबियांसाठी चांगली',
+      soil_black: 'काळी माती',
+      soil_black_desc: 'उच्च सुपीकता, कापूस आणि ऊससाठी उत्तम',
+      
+      // Climate Types
+      climate_tropical: 'उष्णकटिबंधीय',
+      climate_tropical_desc: 'गरम आणि दमट, वर्षभर शेती',
+      climate_subtropical: 'उपोष्णकटिबंधीय',
+      climate_subtropical_desc: 'उबदार आणि वेगळे हंगाम',
+      climate_temperate: 'समशीतोष्ण',
+      climate_temperate_desc: 'मध्यम तापमान, हंगामी बदल',
+      climate_arid: 'रखरखीत',
+      climate_arid_desc: 'गरम आणि कोरडे, मर्यादित पाऊस',
+      climate_semi_arid: 'अर्ध-रखरखीत',
+      climate_semi_arid_desc: 'मध्यम पाऊस, दुष्काळ प्रतिरोधक पिके',
+      
+      // Seasons
+      season_kharif: 'खरीप (पावसाळा)',
+      season_kharif_desc: 'जून-ऑक्टोबर, तांदूळ, मका, कापूस',
+      season_rabi: 'रब्बी (हिवाळा)',
+      season_rabi_desc: 'ऑक्टोबर-मार्च, गहू, जव, मोहरी',
+      season_zaid: 'जायद (उन्हाळा)',
+      season_zaid_desc: 'मार्च-जून, भाज्या, फळे',
+      
+      // Water Availability
+      water_high: 'उच्च (सिंचन उपलब्ध)',
+      water_high_desc: 'पाणी आवश्यक असणारी पिके घेऊ शकतात',
+      water_moderate: 'मध्यम',
+      water_moderate_desc: 'संतुलित पाणी वापर पिके',
+      water_low: 'कमी (पावसावर अवलंबून)',
+      water_low_desc: 'दुष्काळ प्रतिरोधक पिके शिफारस केली',
+      
+      // Experience Levels
+      exp_beginner: 'नवशिक्या (0-2 वर्षे)',
+      exp_beginner_desc: 'वाढण्यास सोपी पिके',
+      exp_intermediate: 'मध्यम (3-5 वर्षे)',
+      exp_intermediate_desc: 'मध्यम जटिलता पिके',
+      exp_expert: 'तज्ञ (5+ वर्षे)',
+      exp_expert_desc: 'प्रगत शेती तंत्र',
+      
+      // Market Preferences
+      market_local: 'स्थानिक बाजार',
+      market_local_desc: 'जवळच्या बाजारांसाठी ताजी उत्पादने',
+      market_export: 'निर्यात बाजार',
+      market_export_desc: 'आंतरराष्ट्रीय बाजारांसाठी उच्च मूल्य पिके',
+      market_processing: 'प्रक्रिया उद्योग',
+      market_processing_desc: 'अन्न प्रक्रियेसाठी पिके',
+      market_organic: 'सेंद्रिय बाजार',
+      market_organic_desc: 'प्रमाणित सेंद्रिय उत्पादने',
+      
       // Homepage key translations
       typewriter_message_1: 'स्थानिक शेतकऱ्यांना थेट ग्राहकांशी जोडून सक्षम करणे. ताजी उत्पादने, योग्य दर, शाश्वत शेती.',
       typewriter_message_2: 'शेतकरी आणि पर्यावरण दोघांनाही फायदेशीर ठरणाऱ्या शाश्वत शेती पद्धतींना पाठिंबा देणे.',
@@ -909,6 +1477,29 @@ const resources = {
 
       back: 'मागे',
       forward: 'पुढे',
+      
+      // Farmer Dashboard
+      add_new_crop: 'नवीन पीक जोडा',
+      analytics: 'विश्लेषण',
+      available: 'उपलब्ध',
+      sold: 'विकले',
+      reserved: 'राखीव',
+      crop_name: 'पिकाचे नाव',
+      harvest_date: 'कापणी तारीख',
+      notes: 'टिपा',
+      saving: 'जतन करत आहे...',
+      add_row: 'ओळ जोडा',
+      your_crops: 'तुमची पिके',
+      location: 'स्थान',
+      farm_analytics: 'शेत विश्लेषण',
+      total_crops: 'एकूण पिके',
+      total_value: 'एकूण मूल्य',
+      available_crops: 'उपलब्ध पिके',
+      sold_crops: 'विकलेली पिके',
+      quantity_kg: 'प्रमाण (किलो)',
+      price_inr: 'किंमत (₹)',
+      status: 'स्थिती',
+      
       ...geoData.mr,
     },
   },

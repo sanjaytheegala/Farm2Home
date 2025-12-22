@@ -299,10 +299,16 @@
   display: flex;
   gap: 20px;
   overflow-x: auto;
-  scroll-behavior: smooth;
   padding: 8px 0;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* Smooth scrolling for modern browsers */
+@supports (scroll-behavior: smooth) {
+  .carousel-container {
+    scroll-behavior: smooth;
+  }
 }
 
 .carousel-container::-webkit-scrollbar {

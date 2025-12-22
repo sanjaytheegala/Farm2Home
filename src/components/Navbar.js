@@ -202,6 +202,7 @@ const Navbar = React.memo(({
               title="Change Language"
             >
               <option value="en">🇺🇸 EN</option>
+              <option value="hi">🇮🇳 हिंदी</option>
               <option value="te">🇮🇳 తెలుగు</option>
               <option value="ta">🇮🇳 தமிழ்</option>
               <option value="ml">🇮🇳 മലയാളം</option>

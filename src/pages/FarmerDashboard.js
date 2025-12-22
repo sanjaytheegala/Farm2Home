@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import CropRecommendation from '../components/CropRecommendation';
 import './FarmerDashboard.css'
 
-import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaEye, FaTruck, FaMoneyBillWave, FaCalendarAlt, FaMapMarkerAlt, FaHome, FaSeedling, FaUserCircle, FaBox } from 'react-icons/fa'
+import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaTruck, FaMoneyBillWave, FaCalendarAlt } from 'react-icons/fa'
 
 // State/districts for dropdowns
 const stateDistricts = {
@@ -38,8 +38,6 @@ const FarmerDashboard = () => {
   const [rows, setRows] = useState([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
   const [savedCrops, setSavedCrops] = useState([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [editingIndex, setEditingIndex] = useState(null)
   const { t } = useTranslation();
   const [selectedState, setSelectedState] = useState('telangana');
   const [selectedDistrict, setSelectedDistrict] = useState('');
@@ -185,10 +183,6 @@ const FarmerDashboard = () => {
     }
   }
 
-  const goBack = () => {
-    navigate(-1)
-  }
-
   return (
     <div className="farmer-dashboard-container">
       <Navbar />
@@ -208,7 +202,7 @@ const FarmerDashboard = () => {
             onClick={() => setActiveTab('analytics')}
           >
             <FaChartLine />
-            Analytics
+            {t('analytics') || 'Analytics'}
           </button>
         </div>
         
@@ -238,40 +232,40 @@ const FarmerDashboard = () => {
               className="farmer-add-crop-button"
             >
               <FaPlus style={{ marginRight: '8px' }} />
-              Add New Crop
+              {t('add_new_crop') || 'Add New Crop'}
             </button>
           </div>
 
           {/* Add Crop Form */}
           {showAddForm && (
             <div className="farmer-add-form-container">
-              <h3 className="farmer-section-title">Add New Crop</h3>
+              <h3 className="farmer-section-title">{t('add_new_crop') || 'Add New Crop'}</h3>
               {rows.map((row, index) => (
                 <div key={index} className="farmer-form-row">
                   <input
                     type="text"
-                    placeholder="Crop Name"
+                    placeholder={t('crop_name') || 'Crop Name'}
                     value={row.crop}
                     onChange={(e) => handleChange(index, 'crop', e.target.value)}
                     className="farmer-form-input"
                   />
                   <input
                     type="text"
-                    placeholder="Quantity (kg)"
+                    placeholder={t('quantity_kg') || 'Quantity (kg)'}
                     value={row.quantity}
                     onChange={(e) => handleChange(index, 'quantity', e.target.value)}
                     className="farmer-form-input"
                   />
                   <input
                     type="number"
-                    placeholder="Price (₹)"
+                    placeholder={t('price_inr') || 'Price (₹)'}
                     value={row.price}
                     onChange={(e) => handleChange(index, 'price', e.target.value)}
                     className="farmer-form-input"
                   />
                   <input
                     type="date"
-                    placeholder="Harvest Date"
+                    placeholder={t('harvest_date') || 'Harvest Date'}
                     value={row.harvestDate}
                     onChange={(e) => handleChange(index, 'harvestDate', e.target.value)}
                     className="farmer-form-input"
@@ -281,22 +275,22 @@ const FarmerDashboard = () => {
                     onChange={(e) => handleChange(index, 'status', e.target.value)}
                     className="farmer-form-input"
                   >
-                    <option value="available">Available</option>
-                    <option value="sold">Sold</option>
-                    <option value="reserved">Reserved</option>
+                    <option value="available">{t('available') || 'Available'}</option>
+                    <option value="sold">{t('sold') || 'Sold'}</option>
+                    <option value="reserved">{t('reserved') || 'Reserved'}</option>
                   </select>
                   <textarea
-                    placeholder="Notes"
+                    placeholder={t('notes') || 'Notes'}
                     value={row.notes}
                     onChange={(e) => handleChange(index, 'notes', e.target.value)}
                     className="farmer-form-textarea"
                   />
                   <div className="farmer-form-actions">
                     <button onClick={() => handleSave(index)} className="farmer-submit-button" disabled={loading}>
-                      {loading ? 'Saving...' : <><FaSave style={{ marginRight: '4px' }} />Save</>}
+                      {loading ? t('saving') || 'Saving...' : <><FaSave style={{ marginRight: '4px' }} />{t('save') || 'Save'}</>}
                     </button>
                     <button onClick={() => handleAddRow()} className="farmer-submit-button">
-                      <FaPlus style={{ marginRight: '4px' }} />Add Row
+                      <FaPlus style={{ marginRight: '4px' }} />{t('add_row') || 'Add Row'}
                     </button>
                   </div>
                 </div>
@@ -306,27 +300,27 @@ const FarmerDashboard = () => {
 
           {/* Saved Crops Display */}
           <div>
-            <h3 className="farmer-section-title">Your Crops</h3>
+            <h3 className="farmer-section-title">{t('your_crops') || 'Your Crops'}</h3>
             <div className="farmer-crops-grid">
               {savedCrops.map((crop, index) => (
                 <div key={crop.id} className="farmer-crop-card">
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
                     <h4 style={{margin: 0, fontSize: '20px', color: '#28a745'}}>{crop.crop}</h4>
-                    <div style={{padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', backgroundColor: crop.status === 'available' ? '#d4edda' : crop.status === 'sold' ? '#f8d7da' : '#fff3cd', color: crop.status === 'available' ? '#155724' : crop.status === 'sold' ? '#721c24' : '#856404'}}>{crop.status}</div>
+                    <div style={{padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', backgroundColor: crop.status === 'available' ? '#d4edda' : crop.status === 'sold' ? '#f8d7da' : '#fff3cd', color: crop.status === 'available' ? '#155724' : crop.status === 'sold' ? '#721c24' : '#856404'}}>{t(crop.status) || crop.status}</div>
                   </div>
                   <div style={{marginBottom: '15px'}}>
-                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Quantity:</strong> {crop.quantity} kg</p>
-                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Price:</strong> ₹{crop.price}</p>
-                    {crop.harvestDate && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Harvest Date:</strong> {crop.harvestDate}</p>}
-                    {crop.notes && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Notes:</strong> {crop.notes}</p>}
-                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>Location:</strong> {crop.district}, {crop.state}</p>
+                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('quantity') || 'Quantity'}:</strong> {crop.quantity} kg</p>
+                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('price') || 'Price'}:</strong> ₹{crop.price}</p>
+                    {crop.harvestDate && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('harvest_date') || 'Harvest Date'}:</strong> {crop.harvestDate}</p>}
+                    {crop.notes && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('notes') || 'Notes'}:</strong> {crop.notes}</p>}
+                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('location') || 'Location'}:</strong> {crop.district}, {crop.state}</p>
                   </div>
                   <div className="farmer-crop-actions">
                     <button onClick={() => handleEdit(index)} className="farmer-edit-button">
-                      <FaEdit style={{ marginRight: '4px' }} />Edit
+                      <FaEdit style={{ marginRight: '4px' }} />{t('edit') || 'Edit'}
                     </button>
                     <button onClick={() => handleDelete(crop.id)} className="farmer-delete-button">
-                      <FaTrash style={{ marginRight: '4px' }} />Delete
+                      <FaTrash style={{ marginRight: '4px' }} />{t('delete') || 'Delete'}
                     </button>
                     <select 
                       value={crop.status} 
@@ -334,9 +328,9 @@ const FarmerDashboard = () => {
                       className="farmer-form-input"
                       style={{maxWidth: '150px'}}
                     >
-                      <option value="available">Available</option>
-                      <option value="sold">Sold</option>
-                      <option value="reserved">Reserved</option>
+                      <option value="available">{t('available') || 'Available'}</option>
+                      <option value="sold">{t('sold') || 'Sold'}</option>
+                      <option value="reserved">{t('reserved') || 'Reserved'}</option>
                     </select>
                   </div>
                 </div>
@@ -346,26 +340,26 @@ const FarmerDashboard = () => {
         </div>
       ) : activeTab === 'analytics' ? (
         <div style={analyticsContainer}>
-          <h2 style={sectionTitle}>Farm Analytics</h2>
+          <h2 style={sectionTitle}>{t('farm_analytics') || 'Farm Analytics'}</h2>
           <div style={analyticsGrid}>
             <div style={analyticsCard}>
               <FaLeaf style={analyticsIcon} />
-              <h3>Total Crops</h3>
+              <h3>{t('total_crops') || 'Total Crops'}</h3>
               <p style={analyticsValue}>{analytics.totalCrops}</p>
             </div>
             <div style={analyticsCard}>
               <FaMoneyBillWave style={analyticsIcon} />
-              <h3>Total Value</h3>
+              <h3>{t('total_value') || 'Total Value'}</h3>
               <p style={analyticsValue}>₹{analytics.totalValue.toLocaleString()}</p>
             </div>
             <div style={analyticsCard}>
               <FaTruck style={analyticsIcon} />
-              <h3>Available</h3>
+              <h3>{t('available') || 'Available'}</h3>
               <p style={analyticsValue}>{analytics.availableCrops}</p>
             </div>
             <div style={analyticsCard}>
               <FaCalendarAlt style={analyticsIcon} />
-              <h3>Sold</h3>
+              <h3>{t('sold') || 'Sold'}</h3>
               <p style={analyticsValue}>{analytics.soldCrops}</p>
             </div>
           </div>
@@ -376,280 +370,5 @@ const FarmerDashboard = () => {
     </div>
   )
 }
-
-// Enhanced Styles
-const container = {
-  paddingTop: '100px',
-  backgroundColor: '#f8f9fa',
-  minHeight: '100vh'
-}
-
-const tabContainer = {
-  display: 'flex',
-  justifyContent: 'center',
-  gap: '10px',
-  marginBottom: '20px',
-  padding: '20px',
-  flexWrap: 'wrap'
-}
-
-const tabStyle = {
-  padding: '12px 24px',
-  border: '2px solid #28a745',
-  backgroundColor: 'transparent',
-  color: '#28a745',
-  borderRadius: '8px',
-  cursor: 'pointer',
-  fontSize: '16px',
-  fontWeight: '600',
-  transition: 'all 0.3s',
-  display: 'flex',
-  alignItems: 'center'
-}
-
-const activeTabStyle = {
-  ...tabStyle,
-  backgroundColor: '#28a745',
-  color: '#fff'
-}
-
-const contentContainer = {
-  maxWidth: '1200px',
-  margin: '0 auto',
-  padding: '20px'
-}
-
-const locationSelector = {
-  backgroundColor: 'white',
-  padding: '20px',
-  borderRadius: '12px',
-  marginBottom: '20px',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-}
-
-const sectionTitle = {
-  fontSize: '24px',
-  fontWeight: 'bold',
-  marginBottom: '20px',
-  color: '#333'
-}
-
-const locationForm = {
-  display: 'flex',
-  gap: '15px',
-  flexWrap: 'wrap'
-}
-
-const locationSelect = {
-  padding: '10px',
-  borderRadius: '6px',
-  border: '1px solid #ddd',
-  fontSize: '16px',
-  minWidth: '200px'
-}
-
-const addCropSection = {
-  marginBottom: '20px'
-}
-
-const addCropButton = {
-  backgroundColor: '#28a745',
-  color: 'white',
-  border: 'none',
-  padding: '12px 24px',
-  borderRadius: '8px',
-  fontSize: '16px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  transition: 'all 0.3s'
-}
-
-const addFormContainer = {
-  backgroundColor: 'white',
-  padding: '20px',
-  borderRadius: '12px',
-  marginBottom: '20px',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-}
-
-const formRow = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '15px',
-  marginBottom: '20px'
-}
-
-const formInput = {
-  padding: '10px',
-  borderRadius: '6px',
-  border: '1px solid #ddd',
-  fontSize: '16px'
-}
-
-const formTextarea = {
-  padding: '10px',
-  borderRadius: '6px',
-  border: '1px solid #ddd',
-  fontSize: '16px',
-  resize: 'vertical',
-  minHeight: '80px'
-}
-
-const formActions = {
-  display: 'flex',
-  gap: '10px',
-  gridColumn: '1 / -1'
-}
-
-const saveButton = {
-  backgroundColor: '#28a745',
-  color: 'white',
-  border: 'none',
-  padding: '10px 20px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center'
-}
-
-const addRowButton = {
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: 'none',
-  padding: '10px 20px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center'
-}
-
-const savedCropsSection = {
-  backgroundColor: 'white',
-  padding: '20px',
-  borderRadius: '12px',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-}
-
-const cropsGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-  gap: '20px'
-}
-
-const cropCard = {
-  border: '1px solid #e0e0e0',
-  borderRadius: '12px',
-  padding: '20px',
-  backgroundColor: 'white',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-  transition: 'transform 0.2s'
-}
-
-const cropHeader = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '15px'
-}
-
-const cropName = {
-  margin: 0,
-  fontSize: '18px',
-  fontWeight: 'bold',
-  color: '#333'
-}
-
-const statusBadge = (status) => ({
-  padding: '4px 12px',
-  borderRadius: '20px',
-  fontSize: '12px',
-  fontWeight: '600',
-  backgroundColor: status === 'available' ? '#d4edda' : status === 'sold' ? '#f8d7da' : '#fff3cd',
-  color: status === 'available' ? '#155724' : status === 'sold' ? '#721c24' : '#856404'
-})
-
-const cropDetails = {
-  marginBottom: '15px'
-}
-
-const cropDetailsParagraph = {
-  margin: '5px 0',
-  fontSize: '14px'
-}
-
-const cropActions = {
-  display: 'flex',
-  gap: '10px',
-  flexWrap: 'wrap'
-}
-
-const editButton = {
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: 'none',
-  padding: '8px 16px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  fontSize: '14px'
-}
-
-const deleteButton = {
-  backgroundColor: '#dc3545',
-  color: 'white',
-  border: 'none',
-  padding: '8px 16px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  fontSize: '14px'
-}
-
-const statusSelect = {
-  padding: '8px',
-  borderRadius: '6px',
-  border: '1px solid #ddd',
-  fontSize: '14px'
-}
-
-const analyticsContainer = {
-  maxWidth: '1200px',
-  margin: '0 auto',
-  padding: '20px'
-}
-
-const analyticsGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-  gap: '20px'
-}
-
-const analyticsCard = {
-  backgroundColor: 'white',
-  padding: '30px',
-  borderRadius: '12px',
-  textAlign: 'center',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-  transition: 'transform 0.2s'
-}
-
-const analyticsIcon = {
-  fontSize: '3rem',
-  color: '#28a745',
-  marginBottom: '15px'
-}
-
-const analyticsValue = {
-  fontSize: '2rem',
-  fontWeight: 'bold',
-  color: '#333',
-  margin: '10px 0'
-}
-
-
 
 export default FarmerDashboard
