@@ -61,7 +61,6 @@ const ConsumerDashboard = () => {
   }, [lastScrollY]);
   const [sortBy, setSortBy] = useState('featured'); // 'featured', 'price_low', 'price_high', 'rating', 'newest'
   const [showFilters, setShowFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 1000]);
   const [selectedStates, setSelectedStates] = useState([]);
   const [organicOnly, setOrganicOnly] = useState(false);
   const [quickOrderMode, setQuickOrderMode] = useState(false);
@@ -1773,13 +1772,11 @@ const ConsumerDashboard = () => {
       
       const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
       
-      const matchesPrice = product.pricePerKg >= priceRange[0] && product.pricePerKg <= priceRange[1];
-      
       const matchesState = selectedStates.length === 0 || selectedStates.includes(product.state);
       
       const matchesOrganic = !organicOnly || product.organic;
       
-      return matchesSearch && matchesCategory && matchesPrice && matchesState && matchesOrganic;
+      return matchesSearch && matchesCategory && matchesState && matchesOrganic;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -1944,22 +1941,6 @@ const ConsumerDashboard = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              {/* Price Range Filter */}
-              <div style={styles.filterSection}>
-                <h4 style={styles.filterLabel}>Price Range</h4>
-                <div style={styles.priceRangeDisplay}>
-                  ₹{priceRange[0]} - ₹{priceRange[1]}
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1000"
-                  value={priceRange[1]}
-                  onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-                  style={styles.rangeSlider}
-                />
               </div>
 
               {/* Sort By */}
@@ -2552,19 +2533,6 @@ const styles = {
     backgroundPosition: 'right 8px center',
     backgroundSize: '16px',
     paddingRight: '32px'
-  },
-  priceRangeDisplay: {
-    fontSize: '14px',
-    fontWeight: 'bold',
-    color: '#28a745',
-    marginBottom: '8px'
-  },
-  rangeSlider: {
-    width: '100%',
-    height: '5px',
-    borderRadius: '5px',
-    outline: 'none',
-    cursor: 'pointer'
   },
   checkboxLabel: {
     display: 'flex',
