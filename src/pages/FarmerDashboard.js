@@ -117,14 +117,13 @@ const FarmerDashboard = () => {
   }
 
   const handleEdit = (index) => {
-    setEditingIndex(index)
     setShowAddForm(true)
   }
 
   const handleSave = async (index) => {
     const row = rows[index]
     if (!row.crop || !row.quantity || !row.price) {
-      setError('Please fill in all required fields')
+      alert('Please fill in all required fields')
       return
     }
 
@@ -154,14 +153,12 @@ const FarmerDashboard = () => {
       
       alert('✅ Crop saved successfully!')  // User-friendly alert
       console.log('Crop saved successfully!')
-      setError('')
       setRows([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
       setShowAddForm(false)
       
       // Reload crops to show new data
       loadSavedCrops()
     } catch (error) {
-      setError('Failed to save crop')
       alert('❌ Failed to save crop: ' + error.message)
       console.error(error)
     } finally {
@@ -339,28 +336,28 @@ const FarmerDashboard = () => {
           </div>
         </div>
       ) : activeTab === 'analytics' ? (
-        <div style={analyticsContainer}>
-          <h2 style={sectionTitle}>{t('farm_analytics') || 'Farm Analytics'}</h2>
-          <div style={analyticsGrid}>
-            <div style={analyticsCard}>
-              <FaLeaf style={analyticsIcon} />
+        <div className="analytics-container">
+          <h2 className="section-title">{t('farm_analytics') || 'Farm Analytics'}</h2>
+          <div className="analytics-grid">
+            <div className="analytics-card">
+              <FaLeaf className="analytics-icon" />
               <h3>{t('total_crops') || 'Total Crops'}</h3>
-              <p style={analyticsValue}>{analytics.totalCrops}</p>
+              <p className="analytics-value">{analytics.totalCrops}</p>
             </div>
-            <div style={analyticsCard}>
-              <FaMoneyBillWave style={analyticsIcon} />
+            <div className="analytics-card">
+              <FaMoneyBillWave className="analytics-icon" />
               <h3>{t('total_value') || 'Total Value'}</h3>
-              <p style={analyticsValue}>₹{analytics.totalValue.toLocaleString()}</p>
+              <p className="analytics-value">₹{analytics.totalValue.toLocaleString()}</p>
             </div>
-            <div style={analyticsCard}>
-              <FaTruck style={analyticsIcon} />
+            <div className="analytics-card">
+              <FaTruck className="analytics-icon" />
               <h3>{t('available') || 'Available'}</h3>
-              <p style={analyticsValue}>{analytics.availableCrops}</p>
+              <p className="analytics-value">{analytics.availableCrops}</p>
             </div>
-            <div style={analyticsCard}>
-              <FaCalendarAlt style={analyticsIcon} />
+            <div className="analytics-card">
+              <FaCalendarAlt className="analytics-icon" />
               <h3>{t('sold') || 'Sold'}</h3>
-              <p style={analyticsValue}>{analytics.soldCrops}</p>
+              <p className="analytics-value">{analytics.soldCrops}</p>
             </div>
           </div>
         </div>
