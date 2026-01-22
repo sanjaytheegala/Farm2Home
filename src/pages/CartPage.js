@@ -752,20 +752,6 @@ const viewOrdersBtn = {
   backgroundColor: '#007bff'
 }
 
-
-const centerBox = {
-  textAlign: 'center'
-}
-
-const btn = {
-  backgroundColor: '#28a745',
-  color: '#fff',
-  border: 'none',
-  padding: '12px 28px',
-  fontSize: '16px',
-  borderRadius: '8px',
-  cursor: 'pointer',
-  transition: 'background 0.3s'
-}
+// Removed unused styles: centerBox and btn
 
 export default CartPage

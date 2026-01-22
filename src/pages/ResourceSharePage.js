@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { FaTools, FaPlus, FaSearch, FaMapMarkerAlt, FaRupeeSign, FaUser, FaPhone, FaTractor, FaCog, FaWrench, FaSeedling, FaTint, FaStar, FaHeart, FaShareAlt, FaCalendarAlt, FaShieldAlt, FaClock } from 'react-icons/fa';
+import { 
+  FaTools, FaPlus, FaSearch, FaMapMarkerAlt, FaRupeeSign, FaUser, FaPhone, 
+  FaTractor, FaCog, FaWrench, FaSeedling, FaTint, FaStar, FaHeart, FaShareAlt, 
+  FaCalendarAlt, FaShieldAlt, FaClock, FaFilter, FaImage, FaCheckCircle, FaTimesCircle 
+} from 'react-icons/fa';
+import './ResourceSharePage.css';
 
 const ResourceSharePage = () => {
-  const [activeTab, setActiveTab] = useState('browse'); // 'browse' or 'add'
+  const [activeTab, setActiveTab] = useState('browse');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [hoveredCard, setHoveredCard] = useState(null);
+  const [selectedState, setSelectedState] = useState('all');
 
   // Sample tools data - in real app this would come from backend
   const [tools, setTools] = useState([
@@ -253,33 +258,38 @@ const ResourceSharePage = () => {
   });
 
   const categories = ['all', 'Heavy Machinery', 'Tillage Equipment', 'Irrigation', 'Planting Equipment', 'Harvesting', 'Hand Tools', 'Modern Technology'];
+  const states = ['all', 'Telangana', 'Maharashtra', 'Karnataka', 'Punjab', 'Haryana', 'Rajasthan', 'Gujarat', 'Uttar Pradesh', 'Madhya Pradesh'];
 
   // Function to get icon based on tool category
   const getToolIcon = (category) => {
     switch (category) {
       case 'Heavy Machinery':
-        return <FaTractor size={40} color="#28a745" />;
+        return <FaTractor size={60} />;
       case 'Tillage Equipment':
-        return <FaCog size={40} color="#007bff" />;
+        return <FaCog size={60} />;
       case 'Irrigation':
-        return <FaTint size={40} color="#17a2b8" />;
+        return <FaTint size={60} />;
       case 'Planting Equipment':
-        return <FaSeedling size={40} color="#28a745" />;
+        return <FaSeedling size={60} />;
       case 'Harvesting':
-        return <FaCog size={40} color="#ffc107" />;
+        return <FaCog size={60} />;
       case 'Hand Tools':
-        return <FaWrench size={40} color="#dc3545" />;
+        return <FaWrench size={60} />;
+      case 'Modern Technology':
+        return <FaTools size={60} />;
       default:
-        return <FaTools size={40} color="#666" />;
+        return <FaTools size={60} />;
     }
   };
 
   const filteredTools = tools.filter(tool => {
     const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          tool.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tool.district.toLowerCase().includes(searchTerm.toLowerCase());
+                         tool.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tool.state.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || tool.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesState = selectedState === 'all' || tool.state === selectedState;
+    return matchesSearch && matchesCategory && matchesState;
   });
 
   const handleAddTool = () => {
@@ -287,7 +297,12 @@ const ResourceSharePage = () => {
       const tool = {
         ...newTool,
         id: tools.length + 1,
-        costPerHour: parseInt(newTool.costPerHour)
+        costPerHour: parseInt(newTool.costPerHour),
+        rating: 4.5,
+        totalBookings: 0,
+        yearMade: new Date().getFullYear(),
+        featured: false,
+        tags: []
       };
       setTools([...tools, tool]);
       setNewTool({
@@ -307,320 +322,383 @@ const ResourceSharePage = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', marginTop: '100px' }}>
-        {/* Header Section */}
-        <div style={headerSection}>
-          <h1 style={pageTitle}>
-            <FaTools style={{ marginRight: '15px', color: '#28a745' }} />
+    <div className="resource-share-page">
+      <div className="resource-container">
+        {/* Header */}
+        <div className="resource-header">
+          <h1>
+            <FaTools />
             Resource Share Hub
           </h1>
-          <p style={pageSubtitle}>Share and rent agricultural tools with fellow farmers</p>
+          <p className="resource-subtitle">
+            Connect, Share, and Rent Premium Agricultural Equipment
+          </p>
         </div>
 
         {/* Tab Navigation */}
-        <div style={tabContainer}>
+        <div className="tab-navigation">
           <button 
+            className={`tab-btn ${activeTab === 'browse' ? 'active' : ''}`}
             onClick={() => setActiveTab('browse')}
-            style={{...tabButton, ...(activeTab === 'browse' ? activeTabButton : {})}}
           >
-            <FaSearch style={{ marginRight: '8px' }} />
+            <FaSearch />
             Browse Tools
           </button>
           <button 
+            className={`tab-btn ${activeTab === 'add' ? 'active' : ''}`}
             onClick={() => setActiveTab('add')}
-            style={{...tabButton, ...(activeTab === 'add' ? activeTabButton : {})}}
           >
-            <FaPlus style={{ marginRight: '8px' }} />
-            Add Tool
+            <FaPlus />
+            List Your Tool
           </button>
         </div>
 
         {activeTab === 'browse' ? (
-          <div>
-            {/* Search and Filter Section */}
-            <div style={filterSection}>
-              <div style={searchContainer}>
-                <FaSearch style={searchIcon} />
-                <input
-                  type="text"
-                  placeholder="Search tools, owners, or locations..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={searchInput}
-                />
+          <>
+            {/* Filter Section */}
+            <div className="filter-section">
+              <div className="filter-row">
+                <div className="filter-group">
+                  <label className="filter-label">
+                    <FaSearch />
+                    Search Tools
+                  </label>
+                  <div className="search-wrapper">
+                    <FaSearch className="search-icon" />
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="Search by name, owner, location..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="filter-group">
+                  <label className="filter-label">
+                    <FaFilter />
+                    Category
+                  </label>
+                  <select
+                    className="filter-select"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>
+                        {cat === 'all' ? 'All Categories' : cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="filter-group">
+                  <label className="filter-label">
+                    <FaMapMarkerAlt />
+                    State
+                  </label>
+                  <select
+                    className="filter-select"
+                    value={selectedState}
+                    onChange={(e) => setSelectedState(e.target.value)}
+                  >
+                    {states.map(state => (
+                      <option key={state} value={state}>
+                        {state === 'all' ? 'All States' : state}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                style={categorySelect}
-              >
-                {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
-                  </option>
-                ))}
-              </select>
             </div>
 
             {/* Tools Grid */}
-            <div style={toolsGrid}>
-              {filteredTools.map(tool => (
-                <div 
-                  key={tool.id} 
-                  style={{
-                    ...toolCard, 
-                    ...(tool.featured ? featuredCard : {}),
-                    transform: hoveredCard === tool.id ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
-                    boxShadow: hoveredCard === tool.id ? '0 20px 40px rgba(0,0,0,0.15)' : (tool.featured ? '0 8px 25px rgba(255, 215, 0, 0.2)' : '0 8px 25px rgba(0,0,0,0.1)')
-                  }}
-                  onMouseEnter={() => setHoveredCard(tool.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                >
-                  {tool.featured && (
-                    <div style={featuredBadge}>
-                      <FaStar style={{ marginRight: '5px' }} />
-                      Featured
-                    </div>
-                  )}
-                  
-                  <div style={toolImageContainer}>
-                    {tool.image ? (
-                      <img 
-                        src={tool.image} 
-                        alt={tool.name}
-                        style={toolImage}
-                        onError={(e) => {
-                          console.log('Image failed to load:', tool.image);
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                        onLoad={(e) => {
-                          console.log('Image loaded successfully:', tool.image);
-                        }}
-                      />
-                    ) : null}
-                    <div style={{...toolImagePlaceholder, display: tool.image ? 'none' : 'flex'}}>
-                      {getToolIcon(tool.category)}
-                      <div style={{ marginTop: '10px', textAlign: 'center', color: '#666' }}>
-                        <small>{tool.name}</small>
+            {filteredTools.length > 0 ? (
+              <div className="tools-grid">
+                {filteredTools.map(tool => (
+                  <div 
+                    key={tool.id}
+                    className={`tool-card ${tool.featured ? 'featured' : ''}`}
+                  >
+                    {tool.featured && (
+                      <div className="featured-badge">
+                        <FaStar />
+                        Featured
                       </div>
-                    </div>
-                    <div style={{...availabilityBadge, 
-                      backgroundColor: tool.availability === 'Available' ? '#28a745' : '#dc3545'
-                    }}>
-                      {tool.availability}
-                    </div>
-                    
-                    {/* Image overlay with actions */}
-                    <div style={{
-                      ...imageOverlay,
-                      opacity: hoveredCard === tool.id ? 1 : 0
-                    }}>
-                      <button style={overlayButton} title="Add to Favorites">
-                        <FaHeart />
-                      </button>
-                      <button style={overlayButton} title="Share">
-                        <FaShareAlt />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div style={toolInfo}>
-                    <div style={toolHeader}>
-                      <h3 style={toolName}>{tool.name}</h3>
-                      <div style={ratingContainer}>
-                        <FaStar style={{ color: '#ffc107', fontSize: '14px' }} />
-                        <span style={ratingText}>{tool.rating}</span>
+                    )}
+
+                    <div className="tool-image-container">
+                      {tool.image ? (
+                        <img 
+                          src={tool.image}
+                          alt={tool.name}
+                          className="tool-image"
+                        />
+                      ) : (
+                        <div className="tool-image-placeholder">
+                          {getToolIcon(tool.category)}
+                          <span>{tool.name}</span>
+                        </div>
+                      )}
+                      
+                      <div className={`availability-badge ${tool.availability === 'Available' ? 'available' : 'unavailable'}`}>
+                        {tool.availability === 'Available' ? <FaCheckCircle /> : <FaTimesCircle />}
+                        {tool.availability}
                       </div>
-                    </div>
-                    
-                    <div style={toolMeta}>
-                      <span style={toolCategory}>{tool.category}</span>
-                      <span style={yearBadge}>{tool.yearMade}</span>
-                    </div>
-                    
-                    <p style={toolDescription}>{tool.description}</p>
-                    
-                    {/* Tags */}
-                    <div style={tagsContainer}>
-                      {tool.tags.map((tag, index) => (
-                        <span key={index} style={tagBadge}>{tag}</span>
-                      ))}
-                    </div>
-                    
-                    <div style={toolDetails}>
-                      <div style={detailRow}>
-                        <FaRupeeSign style={detailIcon} />
-                        <span style={priceText}>₹{tool.costPerHour}/hour</span>
-                      </div>
-                      <div style={detailRow}>
-                        <FaMapMarkerAlt style={detailIcon} />
-                        <span>{tool.village}, {tool.district}, {tool.state}</span>
-                      </div>
-                      <div style={detailRow}>
-                        <FaUser style={detailIcon} />
-                        <span>{tool.owner}</span>
-                      </div>
-                      <div style={detailRow}>
-                        <FaPhone style={detailIcon} />
-                        <span>{tool.phone}</span>
-                      </div>
-                      <div style={detailRow}>
-                        <FaCalendarAlt style={detailIcon} />
-                        <span>{tool.totalBookings} bookings</span>
+
+                      <div className="tool-actions-overlay">
+                        <button className="action-btn" title="Add to Favorites">
+                          <FaHeart />
+                        </button>
+                        <button className="action-btn" title="Share">
+                          <FaShareAlt />
+                        </button>
                       </div>
                     </div>
 
-                    <div style={toolActions}>
-                      <button 
-                        style={{...primaryActionButton, 
-                          backgroundColor: tool.availability === 'Available' ? '#28a745' : '#6c757d',
-                          cursor: tool.availability === 'Available' ? 'pointer' : 'not-allowed'
-                        }}
-                        disabled={tool.availability !== 'Available'}
-                      >
-                        {tool.availability === 'Available' ? (
-                          <>
-                            <FaShieldAlt style={{ marginRight: '8px' }} />
-                            Book Now
-                          </>
-                        ) : (
-                          <>
-                            <FaClock style={{ marginRight: '8px' }} />
-                            Not Available
-                          </>
-                        )}
-                      </button>
-                      <button style={secondaryActionButton}>
-                        <FaPhone style={{ marginRight: '8px' }} />
-                        Contact
-                      </button>
+                    <div className="tool-info">
+                      <div className="tool-header">
+                        <h3 className="tool-name">{tool.name}</h3>
+                        <div className="rating-badge">
+                          <FaStar />
+                          {tool.rating}
+                        </div>
+                      </div>
+
+                      <div className="tool-meta">
+                        <span className="category-badge">{tool.category}</span>
+                        <span className="year-badge">{tool.yearMade}</span>
+                      </div>
+
+                      <p className="tool-description">{tool.description}</p>
+
+                      <div className="tool-tags">
+                        {tool.tags && tool.tags.map((tag, idx) => (
+                          <span key={idx} className="tag">{tag}</span>
+                        ))}
+                      </div>
+
+                      <div className="tool-details">
+                        <div className="detail-item">
+                          <div className="detail-icon">
+                            <FaRupeeSign />
+                          </div>
+                          <span className="detail-text price">₹{tool.costPerHour}/hour</span>
+                        </div>
+                        <div className="detail-item">
+                          <div className="detail-icon">
+                            <FaMapMarkerAlt />
+                          </div>
+                          <span className="detail-text">{tool.village}, {tool.district}, {tool.state}</span>
+                        </div>
+                        <div className="detail-item">
+                          <div className="detail-icon">
+                            <FaUser />
+                          </div>
+                          <span className="detail-text">{tool.owner}</span>
+                        </div>
+                        <div className="detail-item">
+                          <div className="detail-icon">
+                            <FaPhone />
+                          </div>
+                          <span className="detail-text">{tool.phone}</span>
+                        </div>
+                        <div className="detail-item">
+                          <div className="detail-icon">
+                            <FaCalendarAlt />
+                          </div>
+                          <span className="detail-text">{tool.totalBookings} Bookings</span>
+                        </div>
+                      </div>
+
+                      <div className="tool-buttons">
+                        <button 
+                          className="btn-primary"
+                          disabled={tool.availability !== 'Available'}
+                        >
+                          {tool.availability === 'Available' ? (
+                            <>
+                              <FaShieldAlt />
+                              Book Now
+                            </>
+                          ) : (
+                            <>
+                              <FaClock />
+                              Not Available
+                            </>
+                          )}
+                        </button>
+                        <button className="btn-secondary">
+                          <FaPhone />
+                          Call
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-results">
+                <FaTools />
+                <h3>No Tools Found</h3>
+                <p>Try adjusting your search or filter criteria</p>
+              </div>
+            )}
+          </>
         ) : (
-          <div style={addToolSection}>
-            <h2 style={sectionTitle}>Add Your Tool for Rent</h2>
-            
-            <div style={addToolForm}>
-              <div style={formRow}>
-                <div style={formGroup}>
-                  <label style={formLabel}>Tool Name</label>
+          <div className="add-tool-section">
+            <h2 className="section-title">List Your Tool for Rent</h2>
+            <form className="add-tool-form" onSubmit={(e) => { e.preventDefault(); handleAddTool(); }}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">
+                    <FaTools />
+                    Tool Name
+                  </label>
                   <input
                     type="text"
+                    className="form-input"
+                    placeholder="e.g., Tractor (John Deere)"
                     value={newTool.name}
                     onChange={(e) => setNewTool({...newTool, name: e.target.value})}
-                    style={formInput}
-                    placeholder="e.g., Tractor (John Deere)"
+                    required
                   />
                 </div>
-                <div style={formGroup}>
-                  <label style={formLabel}>Category</label>
+                <div className="form-group">
+                  <label className="form-label">
+                    <FaFilter />
+                    Category
+                  </label>
                   <select
+                    className="form-select"
                     value={newTool.category}
                     onChange={(e) => setNewTool({...newTool, category: e.target.value})}
-                    style={formInput}
+                    required
                   >
                     <option value="">Select Category</option>
-                    {categories.slice(1).map(category => (
-                      <option key={category} value={category}>{category}</option>
+                    {categories.slice(1).map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <div style={formRow}>
-                <div style={formGroup}>
-                  <label style={formLabel}>Cost per Hour (₹)</label>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">
+                    <FaRupeeSign />
+                    Cost per Hour (₹)
+                  </label>
                   <input
                     type="number"
+                    className="form-input"
+                    placeholder="Enter hourly rate"
                     value={newTool.costPerHour}
                     onChange={(e) => setNewTool({...newTool, costPerHour: e.target.value})}
-                    style={formInput}
-                    placeholder="Enter hourly rate"
+                    required
                   />
                 </div>
-                <div style={formGroup}>
-                  <label style={formLabel}>State</label>
+                <div className="form-group">
+                  <label className="form-label">
+                    <FaMapMarkerAlt />
+                    State
+                  </label>
                   <input
                     type="text"
+                    className="form-input"
+                    placeholder="e.g., Telangana"
                     value={newTool.state}
                     onChange={(e) => setNewTool({...newTool, state: e.target.value})}
-                    style={formInput}
-                    placeholder="e.g., Telangana"
+                    required
                   />
                 </div>
               </div>
 
-              <div style={formRow}>
-                <div style={formGroup}>
-                  <label style={formLabel}>District</label>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">
+                    <FaMapMarkerAlt />
+                    District
+                  </label>
                   <input
                     type="text"
+                    className="form-input"
+                    placeholder="e.g., Hyderabad"
                     value={newTool.district}
                     onChange={(e) => setNewTool({...newTool, district: e.target.value})}
-                    style={formInput}
-                    placeholder="e.g., Hyderabad"
+                    required
                   />
                 </div>
-                <div style={formGroup}>
-                  <label style={formLabel}>Village/Area</label>
+                <div className="form-group">
+                  <label className="form-label">
+                    <FaMapMarkerAlt />
+                    Village/Area
+                  </label>
                   <input
                     type="text"
+                    className="form-input"
+                    placeholder="e.g., Gachibowli"
                     value={newTool.village}
                     onChange={(e) => setNewTool({...newTool, village: e.target.value})}
-                    style={formInput}
-                    placeholder="e.g., Gachibowli"
+                    required
                   />
                 </div>
               </div>
 
-              <div style={formRow}>
-                <div style={formGroup}>
-                  <label style={formLabel}>Owner Name</label>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">
+                    <FaUser />
+                    Owner Name
+                  </label>
                   <input
                     type="text"
+                    className="form-input"
+                    placeholder="Your name"
                     value={newTool.owner}
                     onChange={(e) => setNewTool({...newTool, owner: e.target.value})}
-                    style={formInput}
-                    placeholder="Your name"
+                    required
                   />
                 </div>
-                <div style={formGroup}>
-                  <label style={formLabel}>Phone Number</label>
+                <div className="form-group">
+                  <label className="form-label">
+                    <FaPhone />
+                    Phone Number
+                  </label>
                   <input
                     type="tel"
+                    className="form-input"
+                    placeholder="+91 9876543210"
                     value={newTool.phone}
                     onChange={(e) => setNewTool({...newTool, phone: e.target.value})}
-                    style={formInput}
-                    placeholder="+91 9876543210"
+                    required
                   />
                 </div>
               </div>
 
-              <div style={formGroup}>
-                <label style={formLabel}>Description</label>
+              <div className="form-group full-width">
+                <label className="form-label">
+                  <FaImage />
+                  Description
+                </label>
                 <textarea
+                  className="form-textarea"
+                  placeholder="Describe your tool, its condition, features, and any special instructions..."
                   value={newTool.description}
                   onChange={(e) => setNewTool({...newTool, description: e.target.value})}
-                  style={{...formInput, height: '100px', resize: 'vertical'}}
-                  placeholder="Describe your tool, its condition, and any special instructions..."
+                  required
                 />
               </div>
 
-              <div style={formActions}>
-                <button 
-                  onClick={handleAddTool}
-                  style={submitButton}
-                >
+              <div className="form-actions">
+                <button type="submit" className="btn-submit">
+                  <FaCheckCircle />
                   Add Tool
                 </button>
                 <button 
+                  type="button" 
+                  className="btn-cancel"
                   onClick={() => setNewTool({
                     name: '',
                     category: '',
@@ -633,464 +711,17 @@ const ResourceSharePage = () => {
                     description: '',
                     availability: 'Available'
                   })}
-                  style={cancelButton}
                 >
+                  <FaTimesCircle />
                   Clear Form
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         )}
       </div>
     </div>
   );
-};
-
-// Styles
-const headerSection = {
-  textAlign: 'center',
-  padding: '50px 20px',
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  borderRadius: '16px',
-  boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-  marginBottom: '40px',
-  color: 'white'
-};
-
-const pageTitle = {
-  fontSize: '3rem',
-  fontWeight: 'bold',
-  marginBottom: '15px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-};
-
-const pageSubtitle = {
-  fontSize: '1.3rem',
-  margin: 0,
-  opacity: 0.9,
-  fontWeight: '300'
-};
-
-const tabContainer = {
-  display: 'flex',
-  backgroundColor: 'white',
-  borderRadius: '16px',
-  padding: '8px',
-  marginBottom: '40px',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-  border: '1px solid #e0e0e0'
-};
-
-const tabButton = {
-  flex: 1,
-  padding: '16px 24px',
-  border: 'none',
-  backgroundColor: 'transparent',
-  borderRadius: '12px',
-  fontSize: '16px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'all 0.3s ease',
-  color: '#666'
-};
-
-const activeTabButton = {
-  backgroundColor: '#28a745',
-  color: 'white',
-  boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)'
-};
-
-const filterSection = {
-  display: 'flex',
-  gap: '20px',
-  marginBottom: '40px',
-  flexWrap: 'wrap',
-  alignItems: 'center'
-};
-
-const searchContainer = {
-  position: 'relative',
-  flex: 1,
-  minWidth: '320px'
-};
-
-const searchIcon = {
-  position: 'absolute',
-  left: '18px',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  color: '#666',
-  fontSize: '16px'
-};
-
-const searchInput = {
-  width: '100%',
-  padding: '16px 16px 16px 50px',
-  border: '2px solid #e0e0e0',
-  borderRadius: '12px',
-  fontSize: '16px',
-  outline: 'none',
-  transition: 'all 0.3s ease',
-  backgroundColor: 'white',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-};
-
-const categorySelect = {
-  padding: '16px 20px',
-  border: '2px solid #e0e0e0',
-  borderRadius: '12px',
-  fontSize: '16px',
-  backgroundColor: 'white',
-  outline: 'none',
-  minWidth: '200px',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-};
-
-const toolsGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-  gap: '30px',
-  marginTop: '20px'
-};
-
-const toolCard = {
-  backgroundColor: 'white',
-  borderRadius: '20px',
-  overflow: 'hidden',
-  boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-  transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-  cursor: 'pointer',
-  border: '1px solid #f0f0f0',
-  position: 'relative',
-  height: 'fit-content',
-  minHeight: '600px'
-};
-
-const featuredCard = {
-  border: '2px solid #ffd700',
-  boxShadow: '0 8px 25px rgba(255, 215, 0, 0.2)'
-};
-
-const featuredBadge = {
-  position: 'absolute',
-  top: '15px',
-  left: '15px',
-  backgroundColor: '#ffd700',
-  color: '#333',
-  padding: '6px 12px',
-  borderRadius: '20px',
-  fontSize: '12px',
-  fontWeight: 'bold',
-  zIndex: 10,
-  display: 'flex',
-  alignItems: 'center',
-  boxShadow: '0 2px 8px rgba(255, 215, 0, 0.3)'
-};
-
-const toolImageContainer = {
-  position: 'relative',
-  height: '220px',
-  overflow: 'hidden',
-  background: 'linear-gradient(45deg, #f8f9fa, #e9ecef)',
-  borderRadius: '12px 12px 0 0',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center'
-};
-
-const toolImage = {
-  width: '100%',
-  height: '100%',
-  objectFit: 'contain',
-  objectPosition: 'center',
-  transition: 'transform 0.5s ease',
-  backgroundColor: '#f8f9fa'
-};
-
-const toolImagePlaceholder = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  height: '100%',
-  backgroundColor: '#f8f9fa',
-  color: '#666'
-};
-
-const imageOverlay = {
-  position: 'absolute',
-  top: '15px',
-  right: '15px',
-  display: 'flex',
-  gap: '8px',
-  opacity: 0,
-  transition: 'opacity 0.3s ease'
-};
-
-const overlayButton = {
-  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-  border: 'none',
-  borderRadius: '50%',
-  width: '40px',
-  height: '40px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  color: '#333',
-  backdropFilter: 'blur(10px)'
-};
-
-const availabilityBadge = {
-  position: 'absolute',
-  bottom: '15px',
-  right: '15px',
-  padding: '6px 16px',
-  borderRadius: '25px',
-  color: 'white',
-  fontSize: '12px',
-  fontWeight: '600',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-};
-
-const toolInfo = {
-  padding: '25px'
-};
-
-const toolHeader = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  marginBottom: '12px'
-};
-
-const toolName = {
-  fontSize: '1.4rem',
-  fontWeight: 'bold',
-  color: '#2c3e50',
-  margin: 0,
-  lineHeight: '1.3'
-};
-
-const ratingContainer = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '4px',
-  backgroundColor: '#f8f9fa',
-  padding: '4px 8px',
-  borderRadius: '12px'
-};
-
-const ratingText = {
-  fontSize: '14px',
-  fontWeight: '600',
-  color: '#333'
-};
-
-const toolMeta = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '15px'
-};
-
-const toolCategory = {
-  fontSize: '14px',
-  color: '#28a745',
-  fontWeight: '600',
-  backgroundColor: '#e8f5e8',
-  padding: '4px 12px',
-  borderRadius: '12px'
-};
-
-const yearBadge = {
-  fontSize: '12px',
-  color: '#666',
-  backgroundColor: '#f0f0f0',
-  padding: '4px 8px',
-  borderRadius: '8px',
-  fontWeight: '500'
-};
-
-const toolDescription = {
-  fontSize: '14px',
-  color: '#666',
-  marginBottom: '15px',
-  lineHeight: '1.5'
-};
-
-const tagsContainer = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '6px',
-  marginBottom: '20px'
-};
-
-const tagBadge = {
-  fontSize: '11px',
-  color: '#007bff',
-  backgroundColor: '#e3f2fd',
-  padding: '3px 8px',
-  borderRadius: '8px',
-  fontWeight: '500',
-  border: '1px solid #bbdefb'
-};
-
-const toolDetails = {
-  marginBottom: '25px'
-};
-
-const detailRow = {
-  display: 'flex',
-  alignItems: 'center',
-  marginBottom: '10px',
-  fontSize: '14px',
-  color: '#555'
-};
-
-const detailIcon = {
-  marginRight: '10px',
-  color: '#28a745',
-  minWidth: '16px',
-  fontSize: '14px'
-};
-
-const priceText = {
-  fontWeight: '700',
-  color: '#28a745',
-  fontSize: '16px'
-};
-
-const toolActions = {
-  display: 'flex',
-  gap: '12px'
-};
-
-const primaryActionButton = {
-  flex: 2,
-  padding: '14px 20px',
-  border: 'none',
-  borderRadius: '12px',
-  fontSize: '14px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  color: 'white',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-};
-
-const secondaryActionButton = {
-  flex: 1,
-  padding: '14px 16px',
-  border: '2px solid #007bff',
-  borderRadius: '12px',
-  fontSize: '14px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  color: '#007bff',
-  backgroundColor: 'transparent',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center'
-};
-
-// Add Tool Section Styles
-const addToolSection = {
-  backgroundColor: 'white',
-  borderRadius: '16px',
-  padding: '40px',
-  boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-  marginTop: '20px'
-};
-
-const sectionTitle = {
-  fontSize: '2.5rem',
-  fontWeight: 'bold',
-  color: '#2c3e50',
-  marginBottom: '30px',
-  textAlign: 'center'
-};
-
-const addToolForm = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '25px'
-};
-
-const formRow = {
-  display: 'flex',
-  gap: '20px',
-  flexWrap: 'wrap'
-};
-
-const formGroup = {
-  flex: 1,
-  minWidth: '250px',
-  display: 'flex',
-  flexDirection: 'column'
-};
-
-const formLabel = {
-  fontSize: '16px',
-  fontWeight: '600',
-  color: '#333',
-  marginBottom: '8px'
-};
-
-const formInput = {
-  padding: '16px',
-  border: '2px solid #e0e0e0',
-  borderRadius: '12px',
-  fontSize: '16px',
-  outline: 'none',
-  transition: 'all 0.3s ease',
-  backgroundColor: 'white'
-};
-
-const formActions = {
-  display: 'flex',
-  gap: '20px',
-  justifyContent: 'center',
-  marginTop: '30px'
-};
-
-const submitButton = {
-  padding: '16px 40px',
-  backgroundColor: '#28a745',
-  color: 'white',
-  border: 'none',
-  borderRadius: '12px',
-  fontSize: '16px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
-};
-
-const cancelButton = {
-  padding: '16px 40px',
-  backgroundColor: '#6c757d',
-  color: 'white',
-  border: 'none',
-  borderRadius: '12px',
-  fontSize: '16px',
-  fontWeight: '600',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  boxShadow: '0 4px 15px rgba(108, 117, 125, 0.3)'
 };
 
 export default ResourceSharePage;

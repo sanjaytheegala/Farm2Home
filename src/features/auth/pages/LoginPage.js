@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
-import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword } from '../firebase';
+import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword } from '../../../firebase';
 
 const LoginPage = () => {
   const [isFarmer, setIsFarmer] = useState(true);

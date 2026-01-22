@@ -9,8 +9,8 @@ import {
   FaQuoteLeft, FaTimes, FaPhone, FaEnvelope, FaEye, FaEyeSlash,
   FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaApple, FaGooglePlay, FaUserTie
 } from 'react-icons/fa'
-import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword, doc, setDoc, db } from '../firebase'
-import { logger } from '../utils/logger'
+import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword, doc, setDoc, db } from '../../../firebase'
+import { logger } from '../../../utils/logger'
 
 const HomePage = () => {
   const { t } = useTranslation()
@@ -822,15 +822,6 @@ const HomePage = () => {
 
       {/* Footer - Farm2Home Design */}
       <div className="footer-wrapper">
-        {/* Floating Logo */}
-        <div className="footer-logo">
-          <img 
-            src="/images/logo.png" 
-            alt="Farm2Home Logo" 
-            style={{width: '120%', height: '120%', objectFit: 'cover', marginTop: '20px'}}
-          />
-        </div>
-
         {/* Curved Top SVG */}
         <div className="footer-curve">
           <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style={{display: 'block', width: '100%', height: '120px', fill: '#157F3D'}}>
@@ -841,7 +832,7 @@ const HomePage = () => {
         {/* Main Footer Content */}
         <div className="footer-content">
           <div className="footer-columns">
-            
+
             {/* Menu Column */}
             <div className="footer-col">
               <h3 className="footer-col-header">MENU</h3>
@@ -988,12 +979,14 @@ const heroTitle = {
 
 const heroTitleHighlight = {
   color: '#1e40af',
+  fontFamily: '"Bell MT", serif',
 };
 
 const heroTitleNumber = {
   color: '#1e40af',
   fontWeight: 'bold',
   textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+  fontFamily: '"Bell MT", serif',
 };
 
 const heroSubtitle = {

@@ -10,12 +10,13 @@ import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 import './styles/responsive.css';
 
-// Lazy load pages for better performance
-const HomePage = React.lazy(() => import('./pages/HomePage'));
-const FarmerDashboard = React.lazy(() => import('./pages/FarmerDashboard'));
-const ConsumerDashboard = React.lazy(() => import('./pages/ConsumerDashboard'));
-const SignupPage = React.lazy(() => import('./pages/SignupPage'));
-const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+// Lazy load pages for better performance - Using feature-based structure
+const HomePage = React.lazy(() => import('./features/home/pages/HomePage'));
+const FarmerDashboard = React.lazy(() => import('./features/farmer/pages/FarmerDashboard'));
+// Using new modular ConsumerDashboard
+const ConsumerDashboard = React.lazy(() => import('./features/consumer/pages/ConsumerDashboard'));
+const SignupPage = React.lazy(() => import('./features/auth/pages/SignupPage'));
+const LoginPage = React.lazy(() => import('./features/auth/pages/LoginPage'));
 const AboutPage = React.lazy(() => import('./pages/AboutPage'));
 const CartPage = React.lazy(() => import('./pages/CartPage'));
 const OrdersPage = React.lazy(() => import('./pages/OrdersPage'));
@@ -47,12 +48,13 @@ const App = () => {
               <Route path="/crop-recommendations" element={<CropRecommendationPage />} />
               
               {/* Resource Share - Protected route for farmers */}
+              {/* Temporarily disabled authentication - will be added later */}
               <Route
                 path="/resource-share"
                 element={
-                  <ProtectedRoute allowedRoles={['farmer']}>
+                  // <ProtectedRoute allowedRoles={['farmer']}>
                     <ResourceSharePage />
-                  </ProtectedRoute>
+                  // </ProtectedRoute>
                 }
               />
 

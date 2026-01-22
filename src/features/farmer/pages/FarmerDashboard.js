@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
-import { db, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from '../firebase'
-import Navbar from '../components/Navbar'
-import { useTranslation } from 'react-i18next';
-import CropRecommendation from '../components/CropRecommendation';
+import { useState } from 'react'
+import Navbar from '../../../components/Navbar'
+import { useTranslation } from 'react-i18next'
+import CropRecommendation from '../../../components/CropRecommendation'
+import { useCrops } from '../hooks/useCrops'
+import { useCropForm } from '../hooks/useCropForm'
 import './FarmerDashboard.css'
 
 import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaTruck, FaMoneyBillWave, FaCalendarAlt } from 'react-icons/fa'
@@ -33,149 +34,68 @@ const stateDistricts = {
 };
 
 const FarmerDashboard = () => {
-  const [rows, setRows] = useState([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
-  const [savedCrops, setSavedCrops] = useState([])
-  const [loading, setLoading] = useState(false)
-  const { t } = useTranslation();
-  const [selectedState, setSelectedState] = useState('telangana');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [activeTab, setActiveTab] = useState('crops'); // 'crops', 'recommendations', 'analytics'
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [analytics, setAnalytics] = useState({
-    totalCrops: 0,
-    totalValue: 0,
-    availableCrops: 0,
-    soldCrops: 0
-  })
+  const { t } = useTranslation()
+  const [activeTab, setActiveTab] = useState('crops')
+  
+  // Custom hooks for crop management
+  const { savedCrops, loading, analytics, addCrop, deleteCrop, updateCropStatus } = useCrops()
+  const {
+    rows,
+    showAddForm,
+    selectedState,
+    selectedDistrict,
+    setShowAddForm,
+    setSelectedState,
+    setSelectedDistrict,
+    addRow,
+    updateField,
+    resetForm,
+    validateRow,
+    getRowData
+  } = useCropForm()
 
-  const calculateAnalytics = useCallback(() => {
-    const totalCrops = savedCrops.length
-    const totalValue = savedCrops.reduce((sum, crop) => sum + (parseFloat(crop.price) || 0), 0)
-    const availableCrops = savedCrops.filter(crop => crop.status === 'available').length
-    const soldCrops = savedCrops.filter(crop => crop.status === 'sold').length
-
-    setAnalytics({
-      totalCrops,
-      totalValue,
-      availableCrops,
-      soldCrops
-    })
-  }, [savedCrops])
-
-  useEffect(() => {
-    loadSavedCrops()
-    calculateAnalytics()
-  }, [calculateAnalytics])
-
-  const loadSavedCrops = async () => {
-    try {
-      const cropsSnapshot = await getDocs(collection(db, 'crops'))
-      const cropsData = []
-      cropsSnapshot.forEach((docSnapshot) => {
-        cropsData.push({
-          id: docSnapshot.id,
-          ...docSnapshot.data()
-        })
-      })
-      setSavedCrops(cropsData)
-    } catch (error) {
-      console.error('Error loading crops:', error)
-    }
-  }
-
+  // Handle state change
   const handleStateChange = (e) => {
-    setSelectedState(e.target.value);
-    setSelectedDistrict('');
-  };
-
-  const handleDistrictChange = (e) => {
-    setSelectedDistrict(e.target.value);
-  };
-
-  const handleAddRow = () => {
-    setRows([...rows, { crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
+    setSelectedState(e.target.value)
+    setSelectedDistrict('')
   }
 
-  const handleChange = (index, field, value) => {
-    const updatedRows = [...rows]
-    updatedRows[index][field] = value
-    setRows(updatedRows)
-  }
-
-  const handleDelete = async (cropId) => {
-    if (window.confirm('Are you sure you want to delete this crop?')) {
-      try {
-        await deleteDoc(doc(db, 'crops', cropId))
-        setSavedCrops(savedCrops.filter(crop => crop.id !== cropId))
-        console.log('Crop deleted successfully!')
-      } catch (error) {
-        console.error('Failed to delete crop:', error)
-      }
-    }
-  }
-
-  const handleEdit = (index) => {
-    setShowAddForm(true)
-  }
-
+  // Handle save crop
   const handleSave = async (index) => {
     const row = rows[index]
-    if (!row.crop || !row.quantity || !row.price) {
-      alert('Please fill in all required fields')
+    const validation = validateRow(row)
+    
+    if (!validation.valid) {
+      alert(validation.message)
       return
     }
 
-    setLoading(true)
-    try {
-      const cropData = {
-        cropName: row.crop,  // Changed from 'crop' to 'cropName' for Firestore consistency
-        quantity: row.quantity,
-        price: parseFloat(row.price),
-        status: row.status,
-        harvestDate: row.harvestDate,
-        notes: row.notes,
-        state: selectedState,
-        district: selectedDistrict,
-        createdAt: new Date(),
-        farmerId: 'farmer_' + Date.now()  // Generate unique farmer ID
-      }
-      
-      const docRef = await addDoc(collection(db, 'crops'), cropData)
-      
-      // Add to saved crops
-      const savedCrop = {
-        id: docRef.id,
-        ...cropData
-      }
-      setSavedCrops([...savedCrops, savedCrop])
-      
-      alert('✅ Crop saved successfully!')  // User-friendly alert
-      console.log('Crop saved successfully!')
-      setRows([{ crop: '', quantity: '', price: '', status: 'available', harvestDate: '', notes: '' }])
-      setShowAddForm(false)
-      
-      // Reload crops to show new data
-      loadSavedCrops()
-    } catch (error) {
-      alert('❌ Failed to save crop: ' + error.message)
-      console.error(error)
-    } finally {
-      setLoading(false)
+    const cropData = getRowData(index)
+    const result = await addCrop(cropData)
+    
+    if (result.success) {
+      alert('✅ Crop saved successfully!')
+      resetForm()
+    } else {
+      alert('❌ Failed to save crop: ' + result.error)
     }
   }
 
-  const updateCropStatus = async (cropId, newStatus) => {
-    try {
-      await updateDoc(doc(db, 'crops', cropId), {
-        status: newStatus
-      })
-      setSavedCrops(savedCrops.map(crop => 
-        crop.id === cropId ? { ...crop, status: newStatus } : crop
-      ))
-      console.log('Status updated successfully!')
-    } catch (error) {
-      console.error('Failed to update status:', error)
+  // Handle delete crop
+  const handleDelete = async (cropId) => {
+    if (window.confirm('Are you sure you want to delete this crop?')) {
+      const result = await deleteCrop(cropId)
+      if (result.success) {
+        console.log('Crop deleted successfully!')
+      } else {
+        console.error('Failed to delete crop:', result.error)
+      }
     }
+  }
+
+  // Handle edit (just show form)
+  const handleEdit = () => {
+    setShowAddForm(true)
   }
 
   return (
@@ -208,7 +128,7 @@ const FarmerDashboard = () => {
               <option key={stateKey} value={stateKey}>{t(`states.${stateKey}`)}</option>
             ))}
           </select>
-          <select value={selectedDistrict} onChange={handleDistrictChange} className="farmer-location-select">
+          <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} className="farmer-location-select">
             <option value="">{t('select_district') || "Select District"}</option>
             {stateDistricts[selectedState]?.map((districtKey) => (
               <option key={districtKey} value={districtKey}>{t(`districts.${selectedState}.${districtKey}`)}</option>
@@ -241,33 +161,33 @@ const FarmerDashboard = () => {
                     type="text"
                     placeholder={t('crop_name') || 'Crop Name'}
                     value={row.crop}
-                    onChange={(e) => handleChange(index, 'crop', e.target.value)}
+                    onChange={(e) => updateField(index, 'crop', e.target.value)}
                     className="farmer-form-input"
                   />
                   <input
                     type="text"
                     placeholder={t('quantity_kg') || 'Quantity (kg)'}
                     value={row.quantity}
-                    onChange={(e) => handleChange(index, 'quantity', e.target.value)}
+                    onChange={(e) => updateField(index, 'quantity', e.target.value)}
                     className="farmer-form-input"
                   />
                   <input
                     type="number"
                     placeholder={t('price_inr') || 'Price (₹)'}
                     value={row.price}
-                    onChange={(e) => handleChange(index, 'price', e.target.value)}
+                    onChange={(e) => updateField(index, 'price', e.target.value)}
                     className="farmer-form-input"
                   />
                   <input
                     type="date"
                     placeholder={t('harvest_date') || 'Harvest Date'}
                     value={row.harvestDate}
-                    onChange={(e) => handleChange(index, 'harvestDate', e.target.value)}
+                    onChange={(e) => updateField(index, 'harvestDate', e.target.value)}
                     className="farmer-form-input"
                   />
                   <select
                     value={row.status}
-                    onChange={(e) => handleChange(index, 'status', e.target.value)}
+                    onChange={(e) => updateField(index, 'status', e.target.value)}
                     className="farmer-form-input"
                   >
                     <option value="available">{t('available') || 'Available'}</option>
@@ -277,14 +197,14 @@ const FarmerDashboard = () => {
                   <textarea
                     placeholder={t('notes') || 'Notes'}
                     value={row.notes}
-                    onChange={(e) => handleChange(index, 'notes', e.target.value)}
+                    onChange={(e) => updateField(index, 'notes', e.target.value)}
                     className="farmer-form-textarea"
                   />
                   <div className="farmer-form-actions">
                     <button onClick={() => handleSave(index)} className="farmer-submit-button" disabled={loading}>
                       {loading ? t('saving') || 'Saving...' : <><FaSave style={{ marginRight: '4px' }} />{t('save') || 'Save'}</>}
                     </button>
-                    <button onClick={() => handleAddRow()} className="farmer-submit-button">
+                    <button onClick={addRow} className="farmer-submit-button">
                       <FaPlus style={{ marginRight: '4px' }} />{t('add_row') || 'Add Row'}
                     </button>
                   </div>
@@ -311,7 +231,7 @@ const FarmerDashboard = () => {
                     <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('location') || 'Location'}:</strong> {crop.district}, {crop.state}</p>
                   </div>
                   <div className="farmer-crop-actions">
-                    <button onClick={() => handleEdit(index)} className="farmer-edit-button">
+                    <button onClick={() => handleEdit()} className="farmer-edit-button">
                       <FaEdit style={{ marginRight: '4px' }} />{t('edit') || 'Edit'}
                     </button>
                     <button onClick={() => handleDelete(crop.id)} className="farmer-delete-button">

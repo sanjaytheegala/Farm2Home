@@ -377,7 +377,6 @@ Generated on: ${new Date().toLocaleDateString()}
 
   return (
     <div style={container}>
-      <div style={{maxWidth: '1200px', margin: '0 auto'}}>
       {/* Navigation Header */}
       <div style={navHeader}>
         <button onClick={() => navigate(-1)} style={navButton}>
@@ -385,7 +384,7 @@ Generated on: ${new Date().toLocaleDateString()}
           {t('back') || 'Back'}
         </button>
         <div style={header}>
-          <FaSeedling style={{ fontSize: 32, color: '#fff', marginRight: 12, filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.5))' }} />
+          <FaSeedling style={{ fontSize: 32, color: '#28a745', marginRight: 12 }} />
           <h1 style={title}>{t('ai_crop_recommendations') || 'AI Crop Recommendations'}</h1>
         </div>
         <button onClick={() => navigate(1)} style={navButton}>
@@ -623,7 +622,7 @@ Generated on: ${new Date().toLocaleDateString()}
           </div>
 
           <button type="submit" style={submitButton}>
-            Get Crop Recommendations
+            {t('get_crop_recommendations') || 'Get Crop Recommendations'}
           </button>
         </form>
       ) : (
@@ -794,22 +793,16 @@ Generated on: ${new Date().toLocaleDateString()}
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 };
 
 // Enhanced Styles
 const container = {
-  width: '100%',
-  minHeight: '100vh',
+  maxWidth: '1200px',
+  margin: '0 auto',
   padding: '20px',
-  fontFamily: 'Arial, sans-serif',
-  backgroundImage: 'url(https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1920)',
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  backgroundAttachment: 'fixed',
-  position: 'relative'
+  fontFamily: 'Arial, sans-serif'
 };
 
 const navHeader = {
@@ -844,20 +837,16 @@ const header = {
 
 const title = {
   fontSize: '2.5em',
-  color: '#fff',
-  margin: 0,
-  textShadow: '2px 2px 4px rgba(0,0,0,0.7)'
+  color: '#22543d',
+  margin: 0
 };
 
 const description = {
   textAlign: 'center',
   fontSize: '16px',
-  color: '#fff',
+  color: '#666',
   marginBottom: '30px',
-  lineHeight: '1.6',
-  textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
-  maxWidth: '1200px',
-  margin: '0 auto 30px'
+  lineHeight: '1.6'
 };
 
 const tabContainer = {
@@ -886,12 +875,11 @@ const activeTabStyle = {
 };
 
 const formStyle = {
-  background: 'transparent',
+  background: '#fff',
   padding: '30px',
   borderRadius: '12px',
-  marginBottom: '30px',
-  maxWidth: '1200px',
-  margin: '0 auto'
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+  marginBottom: '30px'
 };
 
 const formGrid = {
@@ -909,11 +897,9 @@ const inputGroup = {
 const label = {
   fontWeight: '600',
   marginBottom: '8px',
-  color: '#fff',
+  color: '#333',
   display: 'flex',
-  alignItems: 'center',
-  textShadow: '1px 1px 3px rgba(0,0,0,0.5)',
-  fontSize: '14px'
+  alignItems: 'center'
 };
 
 const input = {

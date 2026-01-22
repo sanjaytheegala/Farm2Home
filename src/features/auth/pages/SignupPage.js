@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
-import { auth, db, createUserWithEmailAndPassword, doc, setDoc } from '../firebase';
+import { auth, db, createUserWithEmailAndPassword, doc, setDoc } from '../../../firebase';
 
 const SignupPage = () => {
   const [userType, setUserType] = useState('consumer'); // 'consumer' or 'farmer'
