@@ -16,6 +16,8 @@ export const useCart = () => {
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
+    // Dispatch custom event to notify other components (like Navbar) about cart updates
+    window.dispatchEvent(new Event('cartUpdated'));
   }, [cartItems]);
 
   // Add item to cart
