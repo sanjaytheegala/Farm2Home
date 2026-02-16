@@ -57,16 +57,32 @@ const ConsumerDashboard = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [showSidebar, setShowSidebar] = useState(false);
   
-  // Ref for category section
+  // Ref for category section and footer
   const categorySectionRef = useRef(null);
+  const footerRef = useRef(null);
 
-  // Scroll detection for sidebar
+  // Scroll detection for sidebar - hide when touching footer
   useEffect(() => {
     const handleScroll = () => {
       if (categorySectionRef.current) {
         const categoryBottom = categorySectionRef.current.getBoundingClientRect().bottom;
-        // Show sidebar when category section is scrolled past
-        setShowSidebar(categoryBottom <= 100);
+        
+        // Check if footer is in view
+        const footer = document.querySelector('.footer-modern');
+        if (footer) {
+          const footerTop = footer.getBoundingClientRect().top;
+          const windowHeight = window.innerHeight;
+          
+          // Hide sidebar if footer is approaching (within 200px of sidebar bottom)
+          const sidebarBottomThreshold = windowHeight - 120; // 120px is approximate sidebar bottom margin
+          const shouldHideSidebar = footerTop <= sidebarBottomThreshold;
+          
+          // Show sidebar when category section is scrolled past AND footer is not near
+          setShowSidebar(categoryBottom <= 100 && !shouldHideSidebar);
+        } else {
+          // Fallback if footer not found
+          setShowSidebar(categoryBottom <= 100);
+        }
       }
     };
 

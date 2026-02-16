@@ -2,7 +2,7 @@
 // Production Firebase configuration
 import { initializeApp } from 'firebase/app';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { logger } from './utils/logger';
 
@@ -43,7 +43,9 @@ export {
   query,
   where,
   orderBy,
-  limit
+  limit,
+  serverTimestamp,
+  onSnapshot
 };
 
 logger.log('Firebase.js loaded - using Cloud Firestore configuration');

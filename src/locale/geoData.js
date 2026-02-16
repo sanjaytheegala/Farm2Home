@@ -6,8 +6,7 @@ export const geoData = {
       karnataka: "Karnataka",
       tamil_nadu: "Tamil Nadu",
       kerala: "Kerala",
-      goa: "Goa",
-      maharashtra: "Maharashtra"
+      goa: "Goa"
     },
     districts: {
       andhra_pradesh: {
@@ -70,8 +69,7 @@ export const geoData = {
       karnataka: "कर्नाटक",
       tamil_nadu: "तमिलनाडु",
       kerala: "केरल",
-      goa: "गोवा",
-      maharashtra: "महाराष्ट्र"
+      goa: "गोवा"
     },
     districts: {
       andhra_pradesh: {
@@ -134,8 +132,7 @@ export const geoData = {
       karnataka: "కర్ణాటక",
       tamil_nadu: "తమిళనాడు",
       kerala: "కేరళ",
-      goa: "గోవా",
-      maharashtra: "మహారాష్ట్ర"
+      goa: "గోవా"
     },
     districts: {
       andhra_pradesh: {
@@ -280,40 +277,6 @@ export const geoData = {
       goa: {
         north_goa: "ఉత్తర గోవా",
         south_goa: "దక్షిణ గోవా"
-      },
-      maharashtra: {
-        mumbai: "ముంబై",
-        pune: "పుణె",
-        nagpur: "నాగ్‌పూర్",
-        nashik: "నాసిక్",
-        thane: "థానే",
-        aurangabad: "ఔరంగాబాద్",
-        solapur: "సోలాపూర్",
-        kolhapur: "కొల్హాపూర్",
-        sangli: "సాఙ్లి",
-        jalgaon: "జల్గావ్",
-        satara: "సతారా",
-        amravati: "అమ్రావతి",
-        nanded: "నాందేడ్",
-        akola: "అకోలా",
-        latur: "లాతూర్",
-        dhule: "ధులే",
-        ahmednagar: "అహ్మద్‌నగర్",
-        chandrapur: "చంద్రపూర్",
-        parbhani: "పర్భణి",
-        yavatmal: "యవత్మాల్",
-        beed: "బీడ్",
-        osmanabad: "ఉస్మానాబాద్",
-        bhandara: "భండారా",
-        buldhana: "బుల్ధానా",
-        gondia: "గోండియా",
-        hingoli: "హింగోలి",
-        palghar: "పాల్ఘర్",
-        raigad: "రాయగడ్",
-        ratnagiri: "రత్నకిరి",
-        sindhudurg: "సింధుదుర్గ్",
-        wardha: "వర్ధా",
-        washim: "వాషిమ్"
       }
     }
   },
@@ -324,8 +287,7 @@ export const geoData = {
       karnataka: "கர்நாடகா",
       tamil_nadu: "தமிழ்நாடு",
       kerala: "கேரளா",
-      goa: "கோவா",
-      maharashtra: "மகாராஷ்டிரா"
+      goa: "கோவா"
     },
     districts: {
       andhra_pradesh: {
@@ -470,40 +432,6 @@ export const geoData = {
       goa: {
         north_goa: "வடக்கு கோவா",
         south_goa: "தெற்கு கோவா"
-      },
-      maharashtra: {
-        mumbai: "மும்பை",
-        pune: "புனே",
-        nagpur: "நாக்பூர்",
-        nashik: "நாசிக்",
-        thane: "தானே",
-        aurangabad: "ஔரங்காபாத்",
-        solapur: "சோலாபூர்",
-        kolhapur: "கொல்ஹாபூர்",
-        sangli: "சாங்லி",
-        jalgaon: "ஜல்கான்",
-        satara: "சதாரா",
-        amravati: "அம்ராவதி",
-        nanded: "நாண்டெட்",
-        akola: "அகோலா",
-        latur: "லத்தூர்",
-        dhule: "துலே",
-        ahmednagar: "அஹமத்நகர்",
-        chandrapur: "சந்திரபூர்",
-        parbhani: "பர்பானி",
-        yavatmal: "யவத்மால்",
-        beed: "பீட்",
-        osmanabad: "உஸ்மாநாபாத்",
-        bhandara: "பண்டாரா",
-        buldhana: "புல்தானா",
-        gondia: "கோண்டியா",
-        hingoli: "ஹிங்கோலி",
-        palghar: "பால்கர்",
-        raigad: "ரை஗஡்",
-        ratnagiri: "ரத்நகிரி",
-        sindhudurg: "சிந்துதுர்க்",
-        wardha: "வர்தா",
-        washim: "வாசிம்"
       }
     }
   },
@@ -514,8 +442,7 @@ export const geoData = {
       karnataka: "കർനാടക",
       tamil_nadu: "തമിഴ്നാട്",
       kerala: "കേരളം",
-      goa: "ഗോവ",
-      maharashtra: "മഹാരാഷ്ട്ര"
+      goa: "ഗോവ"
     },
     districts: {
       andhra_pradesh: {
@@ -660,52 +587,17 @@ export const geoData = {
       goa: {
         north_goa: "വടക്കൻ ഗോവ",
         south_goa: "തെക്കൻ ഗോവ"
-      },
-      maharashtra: {
-        mumbai: "മുംബൈ",
-        pune: "പൂനെ",
-        nagpur: "നാഗ്പൂർ",
-        nashik: "നാസിക്",
-        thane: "താനെ",
-        aurangabad: "ഔറംഗാബാദ്",
-        solapur: "സോളാപൂർ",
-        kolhapur: "കൊൽഹാപൂർ",
-        sangli: "സാങ്ലി",
-        jalgaon: "ജൽഗാവ്",
-        satara: "സതാര",
-        amravati: "അമ്രാവതി",
-        nanded: "നാന്ദേഡ്",
-        akola: "അക്കോള",
-        latur: "ലത്തൂർ",
-        dhule: "ധുലെ",
-        ahmednagar: "അഹമ്മദ്നഗർ",
-        chandrapur: "ചന്ദ്രപൂർ",
-        parbhani: "പർഭാനി",
-        yavatmal: "യവത്മാൽ",
-        beed: "ബീഡ്",
-        osmanabad: "ഉസ്മാനാബാദ്",
-        bhandara: "ഭണ്ഡാര",
-        buldhana: "ബുൾധാന",
-        gondia: "ഗോണ്ടിയ",
-        hingoli: "ഹിംഗോളി",
-        palghar: "പാൽഘർ",
-        raigad: "റായ്ഗഡ്",
-        ratnagiri: "രത്നഗിരി",
-        sindhudurg: "സിന്ധുദുർഗ്",
-        wardha: "വർധ",
-        washim: "വാഷിം"
       }
     }
   },
   kn: {
     states: {
       andhra_pradesh: "ಆಂಧ್ರ ಪ್ರದೇಶ",
-      telangana: "ತೆಲಂಗಾಣ",
+      telangana: "ತೆಲಂగಾಣ",
       karnataka: "ಕರ್ನಾಟಕ",
       tamil_nadu: "ತಮಿಳುನಾಡು",
       kerala: "ಕೇರಳ",
-      goa: "ಗೋವಾ",
-      maharashtra: "ಮಹಾರಾಷ್ಟ್ರ"
+      goa: "ಗೋವಾ"
     },
     districts: {
       andhra_pradesh: {
@@ -850,40 +742,6 @@ export const geoData = {
       goa: {
         north_goa: "வடக்கு கோவா",
         south_goa: "தெற்கு கோவா"
-      },
-      maharashtra: {
-        mumbai: "மும்பை",
-        pune: "புனே",
-        nagpur: "நாக்பூர்",
-        nashik: "நாசிக்",
-        thane: "தானே",
-        aurangabad: "ஔரங்காபாத்",
-        solapur: "சோலாபூர்",
-        kolhapur: "கொல்ஹாபூர்",
-        sangli: "சாங்லி",
-        jalgaon: "ஜல்கான்",
-        satara: "சதாரா",
-        amravati: "அம்ராவதி",
-        nanded: "நாண்டெட்",
-        akola: "அகோலா",
-        latur: "லத்தூர்",
-        dhule: "துலே",
-        ahmednagar: "அஹமத்நகர்",
-        chandrapur: "சந்திரபூர்",
-        parbhani: "பர்பானி",
-        yavatmal: "யவத்மால்",
-        beed: "பீட்",
-        osmanabad: "உஸ்மானாபாத்",
-        bhandara: "பண்டாரா",
-        buldhana: "புல்தானா",
-        gondia: "கோண்டியா",
-        hingoli: "ஹிங்கோலி",
-        palghar: "பால்கர்",
-        raigad: "ரை஗஡்",
-        ratnagiri: "ரத்னகிரி",
-        sindhudurg: "சிந்துதுர்க்",
-        wardha: "வர்தா",
-        washim: "வாசிம்"
       }
     }
   },
@@ -894,8 +752,7 @@ export const geoData = {
       karnataka: "कर्नाटक",
       tamil_nadu: "तमिळनाडू",
       kerala: "केरळ",
-      goa: "गोवा",
-      maharashtra: "महाराष्ट्र"
+      goa: "गोवा"
     },
     districts: {
       andhra_pradesh: {
@@ -1040,40 +897,6 @@ export const geoData = {
       goa: {
         north_goa: "उत्तर गोवा",
         south_goa: "दक्षिण गोवा"
-      },
-      maharashtra: {
-        mumbai: "मुंबई",
-        pune: "पुणे",
-        nagpur: "नागपूर",
-        nashik: "नाशिक",
-        thane: "ठाणे",
-        aurangabad: "औरंगाबाद",
-        solapur: "सोलापूर",
-        kolhapur: "कोल्हापूर",
-        sangli: "सांगली",
-        jalgaon: "जळगाव",
-        satara: "सातारा",
-        amravati: "अमरावती",
-        nanded: "नांदेड",
-        akola: "अकोला",
-        latur: "लातूर",
-        dhule: "धुळे",
-        ahmednagar: "अहमदनगर",
-        chandrapur: "चंद्रपूर",
-        parbhani: "परभणी",
-        yavatmal: "यवतमाळ",
-        beed: "बीड",
-        osmanabad: "उस्मानाबाद",
-        bhandara: "भंडारा",
-        buldhana: "बुलढाणा",
-        gondia: "गोंदिया",
-        hingoli: "हिंगोली",
-        palghar: "पालघर",
-        raigad: "रायगड",
-        ratnagiri: "रत्नागिरी",
-        sindhudurg: "सिंधुदुर्ग",
-        wardha: "वर्धा",
-        washim: "वाशीम"
       }
     }
   }

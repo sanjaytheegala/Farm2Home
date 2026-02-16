@@ -1,14 +1,31 @@
-import React, { useState } from 'react';
-import { db } from '../firebase';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { db, serverTimestamp } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { CROP_DICTIONARY } from '../data/cropData';
 
 const AddCrop = () => {
+  const navigate = useNavigate();
   const [cropName, setCropName] = useState('');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [state, setState] = useState('');
   const [district, setDistrict] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Auto-populate location from user profile
+  useEffect(() => {
+    const storedUserData = localStorage.getItem('mockUserData');
+    if (storedUserData) {
+      try {
+        const userData = JSON.parse(storedUserData);
+        if (userData.state) setState(userData.state);
+        if (userData.district) setDistrict(userData.district);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   // Levenshtein Distance Algorithm - Calculates similarity between two strings
   // Returns the minimum number of edits (insertions, deletions, substitutions) needed
@@ -99,15 +116,32 @@ const AddCrop = () => {
     setLoading(true);
 
     try {
+      // Get farmer info from localStorage
+      const storedUserData = localStorage.getItem('mockUserData');
+      let farmerId = 'farmer_' + Date.now();
+      let farmerEmail = '';
+      
+      if (storedUserData) {
+        try {
+          const userData = JSON.parse(storedUserData);
+          farmerId = userData.uid || userData.email || farmerId;
+          farmerEmail = userData.email || '';
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+        }
+      }
+
       // Add document to Firestore
       await addDoc(collection(db, 'crops'), {
         cropName,
         price: Number(price),
         quantity,
+        state,
         district,
         imageURL: getCropImage(cropName),
-        farmerId: 'test_farmer_123',
-        createdAt: new Date()
+        farmerId: farmerId,
+        farmerEmail: farmerEmail,
+        createdAt: serverTimestamp()
       });
 
       // Success message
@@ -117,7 +151,12 @@ const AddCrop = () => {
       setCropName('');
       setPrice('');
       setQuantity('');
-      setDistrict('');
+      // Don't clear location fields as they're from user profile
+      
+      // Navigate to farmer dashboard/my crops
+      setTimeout(() => {
+        navigate('/farmer');
+      }, 500);
     } catch (error) {
       console.error('Error adding crop:', error);
       alert('Failed to add crop. Please try again.');
@@ -198,6 +237,35 @@ const AddCrop = () => {
 
         <div style={{ marginBottom: '30px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
+            State
+          </label>
+          <input
+            type="text"
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+            required
+            placeholder="e.g., Telangana, Karnataka"
+            readOnly={!!state}
+            style={{
+              width: '100%',
+              padding: '10px',
+              fontSize: '14px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              boxSizing: 'border-box',
+              backgroundColor: state ? '#f0f0f0' : 'white',
+              cursor: state ? 'not-allowed' : 'text'
+            }}
+          />
+          {state && (
+            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+              Location auto-filled from your profile
+            </small>
+          )}
+        </div>
+
+        <div style={{ marginBottom: '30px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
             District
           </label>
           <input
@@ -206,15 +274,23 @@ const AddCrop = () => {
             onChange={(e) => setDistrict(e.target.value)}
             required
             placeholder="e.g., Hyderabad, Mumbai"
+            readOnly={!!district}
             style={{
               width: '100%',
               padding: '10px',
               fontSize: '14px',
               border: '1px solid #ccc',
               borderRadius: '4px',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              backgroundColor: district ? '#f0f0f0' : 'white',
+              cursor: district ? 'not-allowed' : 'text'
             }}
           />
+          {district && (
+            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+              Location auto-filled from your profile
+            </small>
+          )}
         </div>
 
         <button

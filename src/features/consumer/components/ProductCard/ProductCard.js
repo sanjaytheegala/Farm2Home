@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FaHeart, FaStar, FaShoppingCart, FaLeaf, FaTruck, FaShieldAlt, FaMapMarkerAlt, FaRupeeSign } from 'react-icons/fa';
 import './ProductCard.css';
 
@@ -9,6 +9,9 @@ const ProductCard = ({
   isFavorite,
   onViewDetails 
 }) => {
+  const [imageError, setImageError] = useState(false);
+  const defaultImage = '/images/default_crop.jpg';
+  
   const handleAddToCart = (e) => {
     e.stopPropagation();
     onAddToCart(product);
@@ -17,6 +20,10 @@ const ProductCard = ({
   const handleToggleFavorite = (e) => {
     e.stopPropagation();
     onToggleFavorite(product.id);
+  };
+  
+  const handleImageError = () => {
+    setImageError(true);
   };
 
   return (
@@ -27,10 +34,11 @@ const ProductCard = ({
       {/* Product Image */}
       <div className="product-image-container">
         <img 
-          src={product.image} 
+          src={imageError ? defaultImage : product.image} 
           alt={product.name}
           className="product-image"
           loading="lazy"
+          onError={handleImageError}
         />
         
         {/* Badges */}

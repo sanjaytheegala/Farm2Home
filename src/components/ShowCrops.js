@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db, collection, getDocs } from '../firebase';
 import './ShowCrops.css';
-import { FaSearch, FaMapMarkerAlt, FaSort, FaLeaf, FaRupeeSign } from 'react-icons/fa';
+import { FaSearch, FaMapMarkerAlt, FaSort, FaLeaf, FaRupeeSign, FaCalendarAlt } from 'react-icons/fa';
 
-const ShowCrops = () => {
+const ShowCrops = ({ showAdminInfo = false }) => {
   const [crops, setCrops] = useState([]);
   const [filteredCrops, setFilteredCrops] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -195,6 +195,14 @@ const ShowCrops = () => {
                   <div className="crop-quantity">
                     <strong>Quantity:</strong> {crop.quantity || 'N/A'}
                   </div>
+
+                  {/* Admin-only: Show creation date */}
+                  {showAdminInfo && crop.createdAt && (
+                    <div className="crop-date" style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                      <FaCalendarAlt style={{ marginRight: '4px' }} />
+                      <strong>Added:</strong> {crop.createdAt?.toDate ? crop.createdAt.toDate().toLocaleDateString() : new Date(crop.createdAt).toLocaleDateString()}
+                    </div>
+                  )}
 
                   {crop.farmerId && (
                     <div className="farmer-info">

@@ -8,7 +8,7 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "@vercel/analytics": "^1.5.0",
-    "firebase": "^11.9.1",
+    "firebase": "^11.10.0",
     "i18next": "^25.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -26,7 +26,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "optimize-images": "echo 'Run image optimization tools here'",
-    "bundle-size": "npm run build && npx bundlesize"
+    "bundle-size": "npm run build && npx bundlesize",
+    "setup:images": "node setup-smart-images.js",
+    "setup:images:create": "node setup-smart-images.js --create-default"
   },
   "eslintConfig": {
     "extends": [

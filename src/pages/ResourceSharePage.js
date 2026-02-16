@@ -95,8 +95,8 @@ const ResourceSharePage = () => {
       name: 'Super Seeder',
       category: 'Planting Equipment',
       costPerHour: 300,
-      state: 'Maharashtra',
-      district: 'Pune',
+      state: 'Karnataka',
+      district: 'Belgaum',
       village: 'Baramati',
       owner: 'Vikram Patil',
       phone: '+91 9876543214',
@@ -467,7 +467,7 @@ const ResourceSharePage = () => {
   });
 
   const categories = ['all', 'Heavy Machinery', 'Tillage Equipment', 'Irrigation', 'Planting Equipment', 'Harvesting', 'Hand Tools', 'Modern Technology'];
-  const states = ['all', 'Telangana', 'Maharashtra', 'Karnataka', 'Punjab', 'Haryana', 'Rajasthan', 'Gujarat', 'Uttar Pradesh', 'Madhya Pradesh', 'Tamil Nadu', 'Andhra Pradesh', 'West Bengal', 'Bihar', 'Kerala', 'Odisha'];
+  const states = ['all', 'Telangana', 'Karnataka', 'Punjab', 'Haryana', 'Rajasthan', 'Gujarat', 'Uttar Pradesh', 'Madhya Pradesh', 'Tamil Nadu', 'Andhra Pradesh', 'West Bengal', 'Bihar', 'Kerala', 'Odisha'];
 
   // Function to get icon based on tool category
   const getToolIcon = (category) => {

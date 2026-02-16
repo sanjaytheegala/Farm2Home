@@ -89,13 +89,6 @@ const Navbar = React.memo(({
           {isConsumerPage && (
             <>
               <button 
-                className={`nav-item ${activeTab === 'browse' ? 'active' : ''}`}
-                onClick={() => onTabChange('browse')}
-              >
-                <FaHome className="nav-icon" />
-                <span className="nav-text">Home</span>
-              </button>
-              <button 
                 className={`nav-item ${activeTab === 'deals' ? 'active' : ''}`}
                 onClick={() => onTabChange('deals')}
               >
@@ -227,10 +220,6 @@ const Navbar = React.memo(({
         <div className="mobile-menu">
           {isConsumerPage && (
             <>
-              <button className="mobile-menu-item" onClick={() => { onTabChange('browse'); setShowMobileMenu(false); }}>
-                <FaHome className="nav-icon" />
-                <span>Home</span>
-              </button>
               <button className="mobile-menu-item" onClick={() => { onTabChange('deals'); setShowMobileMenu(false); }}>
                 <FaGift className="nav-icon" />
                 <span>Deals</span>

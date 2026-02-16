@@ -20,6 +20,7 @@ const LoginPage = React.lazy(() => import('./features/auth/pages/LoginPage'));
 const AboutPage = React.lazy(() => import('./pages/AboutPage'));
 const CartPage = React.lazy(() => import('./pages/CartPage'));
 const OrdersPage = React.lazy(() => import('./pages/OrdersPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ResourceSharePage = React.lazy(() => import('./pages/ResourceSharePage'));
 const CropRecommendationPage = React.lazy(() => import('./pages/CropRecommendationPage'));
 
@@ -121,6 +122,7 @@ const AppContent = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           {/* Removed ecommerce route */}
           <Route path="/crop-recommendations" element={<CropRecommendationPage />} />
           

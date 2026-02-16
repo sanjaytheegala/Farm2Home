@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from '../../../firebase';
+import { db, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, serverTimestamp } from '../../../firebase';
 
 /**
  * Custom hook for managing crop operations
@@ -52,10 +52,26 @@ export const useCrops = () => {
   const addCrop = async (cropData) => {
     setLoading(true);
     try {
+      // Get farmer info from localStorage
+      const storedUserData = localStorage.getItem('mockUserData');
+      let farmerId = 'farmer_' + Date.now();
+      let farmerEmail = '';
+      
+      if (storedUserData) {
+        try {
+          const userData = JSON.parse(storedUserData);
+          farmerId = userData.uid || userData.email || farmerId;
+          farmerEmail = userData.email || '';
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+        }
+      }
+      
       const docRef = await addDoc(collection(db, 'crops'), {
         ...cropData,
-        createdAt: new Date(),
-        farmerId: 'farmer_' + Date.now()
+        createdAt: serverTimestamp(),
+        farmerId: farmerId,
+        farmerEmail: farmerEmail
       });
       
       const newCrop = {
@@ -74,10 +90,34 @@ export const useCrops = () => {
   };
 
   // Delete crop from Firestore
-  const deleteCrop = async (cropId) => {
+  const deleteCrop = async (cropId, isAdminDelete = false, reason = '') => {
     try {
+      // Get the crop data before deleting for notification
+      const cropToDelete = savedCrops.find(crop => crop.id === cropId);
+      
       await deleteDoc(doc(db, 'crops', cropId));
       setSavedCrops(savedCrops.filter(crop => crop.id !== cropId));
+      
+      // If admin delete, create a notification for the farmer
+      if (isAdminDelete && cropToDelete && cropToDelete.farmerId) {
+        try {
+          await addDoc(collection(db, 'notifications'), {
+            farmerId: cropToDelete.farmerId,
+            type: 'crop_removal',
+            status: 'unread',
+            title: 'Crop Removed by Admin',
+            message: 'Your crop was removed by the Admin.',
+            cropName: cropToDelete.cropName || cropToDelete.crop,
+            quantity: cropToDelete.quantity,
+            reason: reason || 'No reason provided',
+            createdAt: serverTimestamp()
+          });
+        } catch (notificationError) {
+          console.error('Failed to create notification:', notificationError);
+          // Don't fail the delete if notification creation fails
+        }
+      }
+      
       return { success: true };
     } catch (error) {
       console.error('Failed to delete crop:', error);

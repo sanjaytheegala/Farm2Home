@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * Custom hook for managing crop form state
  * Handles form inputs, validation, and row management
+ * @param {Object} userLocation - User's location data with state and district
  */
-export const useCropForm = () => {
+export const useCropForm = (userLocation = {}) => {
   const [rows, setRows] = useState([{
     crop: '',
     quantity: '',
@@ -14,8 +15,18 @@ export const useCropForm = () => {
     notes: ''
   }]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedState, setSelectedState] = useState('telangana');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedState, setSelectedState] = useState(userLocation.state || 'telangana');
+  const [selectedDistrict, setSelectedDistrict] = useState(userLocation.district || '');
+
+  // Update location when userLocation changes
+  useEffect(() => {
+    if (userLocation.state) {
+      setSelectedState(userLocation.state);
+    }
+    if (userLocation.district) {
+      setSelectedDistrict(userLocation.district);
+    }
+  }, [userLocation]);
 
   // Add a new empty row to the form
   const addRow = () => {

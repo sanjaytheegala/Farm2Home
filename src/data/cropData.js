@@ -228,7 +228,7 @@ export const CROP_DICTIONARY = [
     image: 'https://cdn-icons-png.flaticon.com/512/590/590779.png',
     keywords: ['pineapple', 'anasa', 'kaitha chakka', 'ananas', 'ananas pandu', 'annachi pazham', 'kayitha', 'ananas']
   },
-  // Karnataka & Maharashtra Market Crops - High Value
+  // Karnataka Market Crops - High Value
   {
     id: 'grapes',
     name: 'Grapes',

@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar'
 import { useTranslation } from 'react-i18next'
 import CropRecommendation from '../../../components/CropRecommendation'
 import { useCrops } from '../hooks/useCrops'
 import { useCropForm } from '../hooks/useCropForm'
+import { useNotifications } from '../hooks/useNotifications'
+import NotificationModal from '../components/NotificationModal'
 import './FarmerDashboard.css'
 
-import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaTruck, FaMoneyBillWave, FaCalendarAlt } from 'react-icons/fa'
+import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaTruck, FaMoneyBillWave, FaCalendarAlt, FaBell } from 'react-icons/fa'
 
 // State/districts for dropdowns
 const stateDistricts = {
@@ -27,18 +30,84 @@ const stateDistricts = {
   ],
   karnataka: [
     'bagalkot', 'ballari', 'belagavi', 'bengaluru_rural', 'bengaluru_urban', 'bidar', 'chamarajanagar', 'chikkaballapur', 'chikkamagaluru', 'chitradurga', 'dakshina_kannada', 'davanagere', 'dharwad', 'gadag', 'hassan', 'haveri', 'kalaburagi', 'kodagu', 'kolar', 'koppal', 'mandya', 'mysuru', 'raichur', 'ramanagara', 'shivamogga', 'tumakuru', 'udupi', 'uttara_kannada', 'vijayapura', 'yadgir', 'vijayanagara'
-  ],
-  maharashtra: [
-    'mumbai', 'pune', 'nagpur', 'nashik', 'thane', 'aurangabad', 'solapur', 'kolhapur', 'sangli', 'jalgaon', 'satara', 'amravati', 'nanded', 'akola', 'latur', 'dhule', 'ahmednagar', 'chandrapur', 'parbhani', 'yavatmal', 'beed', 'osmanabad', 'bhandara', 'buldhana', 'gondia', 'hingoli', 'palghar', 'raigad', 'ratnagiri', 'sindhudurg', 'wardha', 'washim'
   ]
 };
 
 const FarmerDashboard = () => {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('crops')
+  const [currentFarmerId, setCurrentFarmerId] = useState('');
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [currentNotification, setCurrentNotification] = useState(null);
+  
+  // Get user location from localStorage/auth
+  const [userLocation, setUserLocation] = useState({ state: '', district: '' })
+  
+  useEffect(() => {
+    const storedUserData = localStorage.getItem('mockUserData');
+    if (storedUserData) {
+      try {
+        const userData = JSON.parse(storedUserData);
+        if (userData.state && userData.district) {
+          setUserLocation({
+            state: userData.state,
+            district: userData.district
+          });
+        }
+        // Set farmer ID for notifications
+        const farmerId = userData.uid || userData.email || '';
+        setCurrentFarmerId(farmerId);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
   
   // Custom hooks for crop management
   const { savedCrops, loading, analytics, addCrop, deleteCrop, updateCropStatus } = useCrops()
+  
+  // Notifications hook
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    deleteNotification,
+    clearAllNotifications 
+  } = useNotifications(currentFarmerId);
+  
+  // Show modal when new notification arrives
+  useEffect(() => {
+    if (notifications.length > 0 && !showNotificationModal) {
+      setCurrentNotification(notifications[0]);
+      setShowNotificationModal(true);
+    }
+  }, [notifications]);
+  
+  // Handle clear notification
+  const handleClearNotification = async (notificationId) => {
+    const result = await deleteNotification(notificationId);
+    if (result.success) {
+      setShowNotificationModal(false);
+      setCurrentNotification(null);
+      // Show next notification if available
+      if (notifications.length > 1) {
+        setTimeout(() => {
+          setCurrentNotification(notifications[1]);
+          setShowNotificationModal(true);
+        }, 300);
+      }
+    }
+  };
+  
+  // Handle mark as read
+  const handleMarkAsRead = async (notificationId) => {
+    const result = await markAsRead(notificationId);
+    if (result.success) {
+      setShowNotificationModal(false);
+      setCurrentNotification(null);
+    }
+  };
   const {
     rows,
     showAddForm,
@@ -52,7 +121,7 @@ const FarmerDashboard = () => {
     resetForm,
     validateRow,
     getRowData
-  } = useCropForm()
+  } = useCropForm(userLocation)
 
   // Handle state change
   const handleStateChange = (e) => {
@@ -76,6 +145,8 @@ const FarmerDashboard = () => {
     if (result.success) {
       alert('✅ Crop saved successfully!')
       resetForm()
+      // Stay on crops tab to show the updated list
+      setActiveTab('crops')
     } else {
       alert('❌ Failed to save crop: ' + result.error)
     }
@@ -111,6 +182,19 @@ const FarmerDashboard = () => {
           >
             <FaLeaf />
             {t('manage_crops') || 'Manage Crops'}
+            {unreadCount > 0 && (
+              <span style={{
+                marginLeft: '8px',
+                backgroundColor: '#f44336',
+                color: 'white',
+                borderRadius: '50%',
+                padding: '2px 8px',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                {unreadCount}
+              </span>
+            )}
           </button>
           <button 
             className={`farmer-tab ${activeTab === 'analytics' ? 'active' : ''}`}
@@ -229,6 +313,11 @@ const FarmerDashboard = () => {
                     {crop.harvestDate && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('harvest_date') || 'Harvest Date'}:</strong> {crop.harvestDate}</p>}
                     {crop.notes && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('notes') || 'Notes'}:</strong> {crop.notes}</p>}
                     <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('location') || 'Location'}:</strong> {crop.district}, {crop.state}</p>
+                    {crop.createdAt && (
+                      <p style={{margin: '5px 0', fontSize: '12px', color: '#666'}}>
+                        <strong>Added:</strong> {crop.createdAt?.toDate ? crop.createdAt.toDate().toLocaleDateString() : new Date(crop.createdAt).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                   <div className="farmer-crop-actions">
                     <button onClick={() => handleEdit()} className="farmer-edit-button">
@@ -279,8 +368,17 @@ const FarmerDashboard = () => {
             </div>
           </div>
         </div>
-             ) : (
+      ) : (
         <CropRecommendation />
+      )}
+      
+      {/* Notification Modal */}
+      {showNotificationModal && currentNotification && (
+        <NotificationModal
+          notification={currentNotification}
+          onClear={handleClearNotification}
+          onMarkAsRead={handleMarkAsRead}
+        />
       )}
     </div>
   )
