@@ -15,17 +15,46 @@ export const useProducts = (options = {}) => {
   const [error, setError] = useState(null);
 
   /**
-   * Process products with smart image mapping
+   * Process products with smart image mapping and field normalization
    * Handles translation and fuzzy matching for crop names
+   * Maps crop fields to product fields for consistency
    */
   const processProductsWithSmartImages = (productsData) => {
-    return productsData.map(product => ({
-      ...product,
-      // Use smart image mapper if product doesn't have an image or needs translation
-      image: product.image || getSmartCropImage(product.name || product.cropName, product.category),
-      // Store original name for reference
-      originalName: product.name || product.cropName
-    }));
+    return productsData.map(product => {
+      // Normalize cropName to name field
+      const productName = product.name || product.cropName || 'Unknown Product';
+      const productPrice = product.pricePerKg || product.price || 0;
+      
+      return {
+        ...product,
+        // Normalize field names
+        name: productName,
+        pricePerKg: productPrice,
+        price: productPrice,
+        image: product.image || product.imageURL || getSmartCropImage(productName, product.category),
+        originalName: productName,
+        // Set defaults for missing fields
+        category: product.category || 'vegetables',
+        state: product.state || 'Unknown',
+        district: product.district || 'Unknown',
+        village: product.village || product.district || 'Unknown',
+        seller: product.seller || product.farmerEmail || 'Farmer',
+        phone: product.phone || '',
+        description: product.description || `Fresh ${productName} from local farms`,
+        availability: product.availability || (product.quantity > 0 ? 'In Stock' : 'Out of Stock'),
+        rating: product.rating || 4.5,
+        totalSales: product.totalSales || 0,
+        organic: product.organic !== undefined ? product.organic : true,
+        unit: product.unit || 'kg',
+        minOrder: product.minOrder || 1,
+        maxOrder: product.maxOrder || product.quantity || 100,
+        featured: product.featured || false,
+        trending: product.trending || false,
+        discount: product.discount || 0,
+        originalPrice: product.originalPrice || productPrice,
+        quantity: product.quantity || 0
+      };
+    });
   };
 
   useEffect(() => {

@@ -23,7 +23,6 @@ import { useCart } from '../hooks/useCart';
 import { useFavorites } from '../hooks/useFavorites';
 import { useFilters } from '../hooks/useFilters';
 import { useProducts } from '../hooks/useProducts';
-import { sampleProducts } from '../data/productsData';
 import './ConsumerDashboard.css';
 
 /**
@@ -34,8 +33,8 @@ const ConsumerDashboard = () => {
   // Fetch products from Firestore (silently in background)
   const { products: firestoreProducts, loading } = useProducts({ realtime: true });
   
-  // Use Firestore products if available, otherwise use sample data
-  const productsToUse = firestoreProducts.length > 0 ? firestoreProducts : sampleProducts;
+  // Use only Firestore products (farmer-uploaded crops)
+  const productsToUse = firestoreProducts;
   
   // Custom Hooks
   const { addToCart, getTotalItems } = useCart();
@@ -212,11 +211,20 @@ const ConsumerDashboard = () => {
                     <div className="no-products-illustration">
                       <FaBox />
                     </div>
-                    <h3>No Products Found</h3>
-                    <p>Try adjusting your filters or browse different categories</p>
-                    <button className="reset-btn" onClick={resetFilters}>
-                      Reset Filters
-                    </button>
+                    {productsToUse.length === 0 ? (
+                      <>
+                        <h3>No Crops Available Yet</h3>
+                        <p>Farmers haven't added any crops yet. Check back soon for fresh produce!</p>
+                      </>
+                    ) : (
+                      <>
+                        <h3>No Products Found</h3>
+                        <p>Try adjusting your filters or browse different categories</p>
+                        <button className="reset-btn" onClick={resetFilters}>
+                          Reset Filters
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

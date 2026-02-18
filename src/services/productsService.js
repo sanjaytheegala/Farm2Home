@@ -8,7 +8,7 @@ import { db } from '../firebase';
 // Get all products
 export const getAllProducts = async () => {
   try {
-    const productsSnapshot = await getDocs(collection(db, 'products'));
+    const productsSnapshot = await getDocs(collection(db, 'crops'));
     const products = [];
     productsSnapshot.forEach((doc) => {
       products.push({
@@ -26,7 +26,7 @@ export const getAllProducts = async () => {
 // Get products by category
 export const getProductsByCategory = async (category) => {
   try {
-    const q = query(collection(db, 'products'), where('category', '==', category));
+    const q = query(collection(db, 'crops'), where('category', '==', category));
     const productsSnapshot = await getDocs(q);
     const products = [];
     productsSnapshot.forEach((doc) => {
@@ -45,7 +45,7 @@ export const getProductsByCategory = async (category) => {
 // Get products by state
 export const getProductsByState = async (state) => {
   try {
-    const q = query(collection(db, 'products'), where('state', '==', state));
+    const q = query(collection(db, 'crops'), where('state', '==', state));
     const productsSnapshot = await getDocs(q);
     const products = [];
     productsSnapshot.forEach((doc) => {
@@ -64,7 +64,7 @@ export const getProductsByState = async (state) => {
 // Add new product
 export const addProduct = async (productData) => {
   try {
-    const docRef = await addDoc(collection(db, 'products'), {
+    const docRef = await addDoc(collection(db, 'crops'), {
       ...productData,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -79,7 +79,7 @@ export const addProduct = async (productData) => {
 // Update product
 export const updateProduct = async (productId, productData) => {
   try {
-    await updateDoc(doc(db, 'products', productId), {
+    await updateDoc(doc(db, 'crops', productId), {
       ...productData,
       updatedAt: new Date()
     });
@@ -93,7 +93,7 @@ export const updateProduct = async (productId, productData) => {
 // Delete product
 export const deleteProduct = async (productId) => {
   try {
-    await deleteDoc(doc(db, 'products', productId));
+    await deleteDoc(doc(db, 'crops', productId));
     return { success: true };
   } catch (error) {
     console.error('Error deleting product:', error);
@@ -103,7 +103,7 @@ export const deleteProduct = async (productId) => {
 
 // Real-time listener for products
 export const subscribeToProducts = (callback) => {
-  const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+  const q = query(collection(db, 'crops'), orderBy('createdAt', 'desc'));
   
   return onSnapshot(q, (snapshot) => {
     const products = [];
@@ -123,7 +123,7 @@ export const subscribeToProducts = (callback) => {
 // Search products
 export const searchProducts = async (searchTerm) => {
   try {
-    const productsSnapshot = await getDocs(collection(db, 'products'));
+    const productsSnapshot = await getDocs(collection(db, 'crops'));
     const products = [];
     productsSnapshot.forEach((doc) => {
       const data = doc.data();
@@ -149,7 +149,7 @@ export const searchProducts = async (searchTerm) => {
 // Get featured products
 export const getFeaturedProducts = async () => {
   try {
-    const q = query(collection(db, 'products'), where('featured', '==', true));
+    const q = query(collection(db, 'crops'), where('featured', '==', true));
     const productsSnapshot = await getDocs(q);
     const products = [];
     productsSnapshot.forEach((doc) => {
@@ -168,7 +168,7 @@ export const getFeaturedProducts = async () => {
 // Get trending products
 export const getTrendingProducts = async () => {
   try {
-    const q = query(collection(db, 'products'), where('trending', '==', true));
+    const q = query(collection(db, 'crops'), where('trending', '==', true));
     const productsSnapshot = await getDocs(q);
     const products = [];
     productsSnapshot.forEach((doc) => {
