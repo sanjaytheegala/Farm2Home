@@ -13,7 +13,7 @@ import {
 import { logger } from '../../../utils/logger'
 import FarmerSignupModal from '../../../components/FarmerSignupModal'
 import { auth, db, functions } from '../../../firebase'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -39,6 +39,12 @@ const HomePage = () => {
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  // Forgot password states
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotMessage, setForgotMessage] = useState('')
+  const [forgotError, setForgotError] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
   const [animatedStats, setAnimatedStats] = useState({
     farmers: 0,
     consumers: 0,
@@ -137,6 +143,30 @@ const HomePage = () => {
     }
     setLoading(false);
   };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault()
+    setForgotMessage('')
+    setForgotError('')
+    if (!forgotEmail.trim()) {
+      setForgotError('Please enter your email address.')
+      return
+    }
+    setForgotLoading(true)
+    try {
+      await sendPasswordResetEmail(auth, forgotEmail.trim())
+      setForgotMessage('Reset link sent to your email! Check your inbox.')
+      setForgotEmail('')
+    } catch (err) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+        setForgotError('No account found with this email address.')
+      } else {
+        setForgotError('Failed to send reset email. Please try again.')
+      }
+    } finally {
+      setForgotLoading(false)
+    }
+  }
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -274,6 +304,10 @@ const HomePage = () => {
     setLoginMethod('email'); // Default to email/password method
     setLoading(false);
     setShowPassword(false);
+    setShowForgotPassword(false);
+    setForgotEmail('');
+    setForgotMessage('');
+    setForgotError('');
   };
 
   const switchToLogin = () => {
@@ -553,34 +587,96 @@ const HomePage = () => {
             </button>
             
             <h2 style={loginCardTitle}>
-              {selectedRole === 'farmer' ? t('join_as_farmer') : t('shop_fresh_products')}
+              {showForgotPassword
+                ? 'Reset Password'
+                : selectedRole === 'farmer' ? t('join_as_farmer') : t('shop_fresh_products')}
             </h2>
             <p style={loginCardSubtitle}>
-              {selectedRole === 'farmer' 
-                ? t('farmer_join_subtitle')
-                : t('consumer_join_subtitle')
-              }
+              {showForgotPassword
+                ? 'Enter your email and we\'ll send you a reset link.'
+                : selectedRole === 'farmer'
+                  ? t('farmer_join_subtitle')
+                  : t('consumer_join_subtitle')}
             </p>
 
-            {/* Form Type Toggle */}
-            <div style={formToggleContainer}>
-              <button 
-                onClick={switchToLogin}
-                style={{...formToggleButton, ...(formType === 'login' ? activeToggleButton : {})}}
-              >
-                {t('login')}
-              </button>
-              <button 
-                onClick={switchToSignup}
-                style={{...formToggleButton, ...(formType === 'signup' ? activeToggleButton : {})}}
-              >
-                {t('register')}
-              </button>
-            </div>
+            {/* Form Type Toggle — hidden when showing forgot password */}
+            {!showForgotPassword && (
+              <div style={formToggleContainer}>
+                <button 
+                  onClick={switchToLogin}
+                  style={{...formToggleButton, ...(formType === 'login' ? activeToggleButton : {})}}
+                >
+                  {t('login')}
+                </button>
+                <button 
+                  onClick={switchToSignup}
+                  style={{...formToggleButton, ...(formType === 'signup' ? activeToggleButton : {})}}
+                >
+                  {t('register')}
+                </button>
+              </div>
+            )}
 
-            {error && <div style={errorMessage}>{error}</div>}
+            {error && !showForgotPassword && <div style={errorMessage}>{error}</div>}
 
-            {formType === 'login' ? (
+            {/* ── Forgot Password View ── */}
+            {showForgotPassword && (
+              <div style={formContainer}>
+                {forgotMessage && (
+                  <div style={{
+                    background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7',
+                    borderRadius: 8, padding: '10px 14px', fontSize: 14, marginBottom: 14
+                  }}>
+                    {forgotMessage}
+                  </div>
+                )}
+                {forgotError && (
+                  <div style={{
+                    background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5',
+                    borderRadius: 8, padding: '10px 14px', fontSize: 14, marginBottom: 14
+                  }}>
+                    {forgotError}
+                  </div>
+                )}
+                <form onSubmit={handleForgotPassword}>
+                  <div style={inputGroup}>
+                    <input
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      style={inputField}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    style={{...submitButton, opacity: forgotLoading ? 0.7 : 1}}
+                  >
+                    {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                  </button>
+                </form>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false)
+                    setForgotEmail('')
+                    setForgotMessage('')
+                    setForgotError('')
+                  }}
+                  style={{
+                    background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer',
+                    fontSize: 14, fontWeight: 600, marginTop: 14, textDecoration: 'underline',
+                    display: 'block', width: '100%', textAlign: 'center'
+                  }}
+                >
+                  ← Back to Login
+                </button>
+              </div>
+            )}
+
+            {!showForgotPassword && formType === 'login' ? (
               <div style={formContainer}>
                 {/* Login Method Toggle */}
                 <div style={methodToggleContainer}>
@@ -681,9 +777,25 @@ const HomePage = () => {
                       {loading ? t('logging_in') : t('login')}
                     </button>
                   </form>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(true)
+                      setError('')
+                      setForgotMessage('')
+                      setForgotError('')
+                    }}
+                    style={{
+                      background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer',
+                      fontSize: 13, marginTop: 10, textDecoration: 'underline',
+                      display: 'block', width: '100%', textAlign: 'right'
+                    }}
+                  >
+                    Forgot Password?
+                  </button>
                 )}
               </div>
-            ) : (
+            ) : !showForgotPassword ? (
               <div style={formContainer}>
                 {/* Register Method Toggle */}
                 <div style={methodToggleContainer}>
