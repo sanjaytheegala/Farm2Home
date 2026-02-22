@@ -1,384 +1,523 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar'
-import { useTranslation } from 'react-i18next'
-import CropRecommendation from '../../../components/CropRecommendation'
 import { useCrops } from '../hooks/useCrops'
 import { useCropForm } from '../hooks/useCropForm'
-import { useNotifications } from '../hooks/useNotifications'
-import NotificationModal from '../components/NotificationModal'
+import { useAuth } from '../../../context/AuthContext'
 import './FarmerDashboard.css'
 
-import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave, FaTruck, FaMoneyBillWave, FaCalendarAlt, FaBell } from 'react-icons/fa'
+import {
+  FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave,
+  FaTruck, FaMoneyBillWave, FaCalendarAlt, FaBell, FaShoppingBag,
+  FaMapMarkerAlt, FaSeedling, FaTimes, FaCheckCircle, FaClock, FaTag, FaSearch
+} from 'react-icons/fa'
+import { findCropByKeyword, CROP_DICTIONARY } from '../../../data/cropData'
+
+// Helper: title-case underscore keys
+const fmt = (key) =>
+  key ? key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '—'
+
+// Get crop image from dictionary
+const getCropImage = (cropName) => {
+  if (!cropName) return null
+  const match = CROP_DICTIONARY.find(c =>
+    c.name.toLowerCase() === cropName.toLowerCase() ||
+    c.keywords.some(k => k.toLowerCase() === cropName.toLowerCase())
+  )
+  return match ? match.image : null
+}
+
+// Status display config
+const statusMeta = {
+  available: { label: 'Available', bg: '#e8f5e9', color: '#2e7d32', icon: <FaCheckCircle /> },
+  sold:      { label: 'Sold',      bg: '#ffebee', color: '#c62828', icon: <FaTimes /> },
+  reserved:  { label: 'Reserved',  bg: '#fff8e1', color: '#f57f17', icon: <FaClock /> },
+  pending:   { label: 'Pending',   bg: '#e3f2fd', color: '#1565c0', icon: <FaClock /> }
+}
 
 // State/districts for dropdowns
 const stateDistricts = {
-  telangana: [
-    'adilabad', 'bhadradri_kothagudem', 'hyderabad', 'jagtial', 'jangaon', 'jayashankar_bhupalpally', 'jogulamba_gadwal', 'kamareddy', 'karimnagar', 'khammam', 'komaram_bheem_asifabad', 'mahabubabad', 'mahabubnagar', 'mancherial', 'medak', 'medchal_malkajgiri', 'mulugu', 'nagarkurnool', 'nalgonda', 'narayanpet', 'nirmal', 'nizamabad', 'peddapalli', 'rajanna_sircilla', 'rangareddy', 'sangareddy', 'siddipet', 'suryapet', 'vikarabad', 'wanaparthy', 'warangal_rural', 'warangal_urban', 'yadadri_bhuvanagiri'
-  ],
-  andhra_pradesh: [
-    'anantapur', 'chittoor', 'east_godavari', 'guntur', 'kadapa', 'krishna', 'kurnool', 'nellore', 'prakasam', 'srikakulam', 'visakhapatnam', 'vizianagaram', 'west_godavari'
-  ],
-  tamil_nadu: [
-    'ariyalur', 'chengalpattu', 'chennai', 'coimbatore', 'cuddalore', 'dharmapuri', 'dindigul', 'erode', 'kallakurichi', 'kanchipuram', 'kanniyakumari', 'karur', 'krishnagiri', 'madurai', 'mayiladuthurai', 'nagapattinam', 'namakkal', 'nilgiris', 'perambalur', 'pudukkottai', 'ramanathapuram', 'ranipet', 'salem', 'sivaganga', 'tenkasi', 'thanjavur', 'theni', 'thoothukudi', 'tiruchirappalli', 'tirunelveli', 'tirupathur', 'tiruppur', 'tiruvallur', 'tiruvannamalai', 'tiruvarur', 'vellore', 'viluppuram', 'virudhunagar'
-  ],
-  kerala: [
-    'thiruvananthapuram', 'kollam', 'pathanamthitta', 'alappuzha', 'kottayam', 'idukki', 'ernakulam', 'thrissur', 'palakkad', 'malappuram', 'kozhikode', 'wayanad', 'kannur', 'kasaragod'
-  ],
-  goa: [
-    'north_goa', 'south_goa'
-  ],
-  karnataka: [
-    'bagalkot', 'ballari', 'belagavi', 'bengaluru_rural', 'bengaluru_urban', 'bidar', 'chamarajanagar', 'chikkaballapur', 'chikkamagaluru', 'chitradurga', 'dakshina_kannada', 'davanagere', 'dharwad', 'gadag', 'hassan', 'haveri', 'kalaburagi', 'kodagu', 'kolar', 'koppal', 'mandya', 'mysuru', 'raichur', 'ramanagara', 'shivamogga', 'tumakuru', 'udupi', 'uttara_kannada', 'vijayapura', 'yadgir', 'vijayanagara'
-  ]
-};
+  telangana: ['adilabad','bhadradri_kothagudem','hyderabad','jagtial','jangaon','jayashankar_bhupalpally','jogulamba_gadwal','kamareddy','karimnagar','khammam','komaram_bheem_asifabad','mahabubabad','mahabubnagar','mancherial','medak','medchal_malkajgiri','mulugu','nagarkurnool','nalgonda','narayanpet','nirmal','nizamabad','peddapalli','rajanna_sircilla','rangareddy','sangareddy','siddipet','suryapet','vikarabad','wanaparthy','warangal_rural','warangal_urban','yadadri_bhuvanagiri'],
+  andhra_pradesh: ['anantapur','chittoor','east_godavari','guntur','kadapa','krishna','kurnool','nellore','prakasam','srikakulam','visakhapatnam','vizianagaram','west_godavari'],
+  tamil_nadu: ['ariyalur','chengalpattu','chennai','coimbatore','cuddalore','dharmapuri','dindigul','erode','kallakurichi','kanchipuram','kanniyakumari','karur','krishnagiri','madurai','mayiladuthurai','nagapattinam','namakkal','nilgiris','perambalur','pudukkottai','ramanathapuram','ranipet','salem','sivaganga','tenkasi','thanjavur','theni','thoothukudi','tiruchirappalli','tirunelveli','tirupathur','tiruppur','tiruvallur','tiruvannamalai','tiruvarur','vellore','viluppuram','virudhunagar'],
+  kerala: ['thiruvananthapuram','kollam','pathanamthitta','alappuzha','kottayam','idukki','ernakulam','thrissur','palakkad','malappuram','kozhikode','wayanad','kannur','kasaragod'],
+  goa: ['north_goa','south_goa'],
+  karnataka: ['bagalkot','ballari','belagavi','bengaluru_rural','bengaluru_urban','bidar','chamarajanagar','chikkaballapur','chikkamagaluru','chitradurga','dakshina_kannada','davanagere','dharwad','gadag','hassan','haveri','kalaburagi','kodagu','kolar','koppal','mandya','mysuru','raichur','ramanagara','shivamogga','tumakuru','udupi','uttara_kannada','vijayapura','yadgir','vijayanagara']
+}
 
 const FarmerDashboard = () => {
-  const { t } = useTranslation()
   const navigate = useNavigate()
+  const { currentUser, userData } = useAuth()
   const [activeTab, setActiveTab] = useState('crops')
-  const [currentFarmerId, setCurrentFarmerId] = useState('');
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [currentNotification, setCurrentNotification] = useState(null);
-  
-  // Get user location from localStorage/auth
+  const [farmerName, setFarmerName] = useState('')
   const [userLocation, setUserLocation] = useState({ state: '', district: '' })
-  
+  const [cropSearch, setCropSearch] = useState('')
+  const [cropPickerStep, setCropPickerStep] = useState('pick') // 'pick' | 'details'
+
   useEffect(() => {
-    const storedUserData = localStorage.getItem('mockUserData');
+    if (!currentUser && !userData) { navigate('/'); return }
+    let storedUserData = userData
+    if (!storedUserData) {
+      const localData = localStorage.getItem('currentUser')
+      if (localData) { try { storedUserData = JSON.parse(localData) } catch (e) {} }
+    }
     if (storedUserData) {
-      try {
-        const userData = JSON.parse(storedUserData);
-        if (userData.state && userData.district) {
-          setUserLocation({
-            state: userData.state,
-            district: userData.district
-          });
-        }
-        // Set farmer ID for notifications
-        const farmerId = userData.uid || userData.email || '';
-        setCurrentFarmerId(farmerId);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
+      setFarmerName(storedUserData.name || storedUserData.displayName || storedUserData.email || 'Farmer')
+      if (storedUserData.state && storedUserData.district) {
+        setUserLocation({ state: storedUserData.state, district: storedUserData.district })
       }
     }
-  }, []);
-  
-  // Custom hooks for crop management
+  }, [currentUser, userData, navigate])
+
   const { savedCrops, loading, analytics, addCrop, deleteCrop, updateCropStatus } = useCrops()
-  
-  // Notifications hook
-  const { 
-    notifications, 
-    unreadCount, 
-    markAsRead, 
-    deleteNotification,
-    clearAllNotifications 
-  } = useNotifications(currentFarmerId);
-  
-  // Show modal when new notification arrives
-  useEffect(() => {
-    if (notifications.length > 0 && !showNotificationModal) {
-      setCurrentNotification(notifications[0]);
-      setShowNotificationModal(true);
-    }
-  }, [notifications]);
-  
-  // Handle clear notification
-  const handleClearNotification = async (notificationId) => {
-    const result = await deleteNotification(notificationId);
-    if (result.success) {
-      setShowNotificationModal(false);
-      setCurrentNotification(null);
-      // Show next notification if available
-      if (notifications.length > 1) {
-        setTimeout(() => {
-          setCurrentNotification(notifications[1]);
-          setShowNotificationModal(true);
-        }, 300);
-      }
-    }
-  };
-  
-  // Handle mark as read
-  const handleMarkAsRead = async (notificationId) => {
-    const result = await markAsRead(notificationId);
-    if (result.success) {
-      setShowNotificationModal(false);
-      setCurrentNotification(null);
-    }
-  };
   const {
-    rows,
-    showAddForm,
-    selectedState,
-    selectedDistrict,
-    setShowAddForm,
-    setSelectedState,
-    setSelectedDistrict,
-    addRow,
-    updateField,
-    resetForm,
-    validateRow,
-    getRowData
+    rows, showAddForm, selectedState, selectedDistrict,
+    setShowAddForm, setSelectedState, setSelectedDistrict,
+    addRow, updateField, resetForm, getRowData
   } = useCropForm(userLocation)
 
-  // Handle state change
-  const handleStateChange = (e) => {
-    setSelectedState(e.target.value)
-    setSelectedDistrict('')
-  }
+  const handleStateChange = (e) => { setSelectedState(e.target.value); setSelectedDistrict('') }
 
-  // Handle save crop
   const handleSave = async (index) => {
     const row = rows[index]
-    const validation = validateRow(row)
-    
-    if (!validation.valid) {
-      alert(validation.message)
+    if (!selectedDistrict) { alert('⚠️ Please select a district before adding a crop.'); return }
+    if (!row.crop || !row.crop.trim()) { alert('⚠️ Please enter a crop name.'); return }
+    const matchedCrop = findCropByKeyword(row.crop.trim())
+    if (!matchedCrop) {
+      alert(`⚠️ "${row.crop}" is not a recognized crop.\nExamples: Rice, Wheat, Tomato, Onion, Potato, Maize, Brinjal, Okra…`)
       return
     }
-
+    if (!row.quantity || isNaN(row.quantity) || parseFloat(row.quantity) <= 0) {
+      alert('⚠️ Quantity must be a valid number greater than 0.'); return
+    }
+    if (!row.price || isNaN(row.price) || parseFloat(row.price) <= 0) {
+      alert('⚠️ Price must be a valid number greater than 0.'); return
+    }
     const cropData = getRowData(index)
+    cropData.cropName = matchedCrop.name
+    cropData.crop = matchedCrop.name
     const result = await addCrop(cropData)
-    
-    if (result.success) {
-      alert('✅ Crop saved successfully!')
-      resetForm()
-      // Stay on crops tab to show the updated list
-      setActiveTab('crops')
-    } else {
-      alert('❌ Failed to save crop: ' + result.error)
-    }
+    if (result.success) { resetForm(); setActiveTab('crops') }
   }
 
-  // Handle delete crop
   const handleDelete = async (cropId) => {
-    if (window.confirm('Are you sure you want to delete this crop?')) {
-      const result = await deleteCrop(cropId)
-      if (result.success) {
-        console.log('Crop deleted successfully!')
-      } else {
-        console.error('Failed to delete crop:', result.error)
-      }
-    }
+    if (window.confirm('Are you sure you want to delete this crop?')) await deleteCrop(cropId)
   }
 
-  // Handle edit (just show form)
-  const handleEdit = () => {
-    setShowAddForm(true)
-  }
+  const availableCount = savedCrops.filter(c => c.status === 'available' || c.status === 'pending').length
+  const soldRevenue = savedCrops.filter(c => c.status === 'sold').reduce((s, c) => s + (parseFloat(c.price) || 0), 0)
 
   return (
-    <div className="farmer-dashboard-container">
-      <Navbar />
-      
-      {/* Enhanced Tab Navigation with Location Selector */}
-      <div className="farmer-tab-container">
-        <div className="farmer-tab-buttons">
-          <button 
-            className={`farmer-tab ${activeTab === 'crops' ? 'active' : ''}`}
-            onClick={() => setActiveTab('crops')}
-          >
-            <FaLeaf />
-            {t('manage_crops') || 'Manage Crops'}
-            {unreadCount > 0 && (
-              <span style={{
-                marginLeft: '8px',
-                backgroundColor: '#f44336',
-                color: 'white',
-                borderRadius: '50%',
-                padding: '2px 8px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>
-                {unreadCount}
-              </span>
-            )}
-          </button>
-          <button 
-            className={`farmer-tab ${activeTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analytics')}
-          >
-            <FaChartLine />
-            {t('analytics') || 'Analytics'}
-          </button>
-        </div>
-        
-        {/* Location Selector */}
-        <div className="farmer-location-selectors">
-          <select value={selectedState} onChange={handleStateChange} className="farmer-location-select">
-            {Object.keys(stateDistricts).map((stateKey) => (
-              <option key={stateKey} value={stateKey}>{t(`states.${stateKey}`)}</option>
-            ))}
-          </select>
-          <select value={selectedDistrict} onChange={(e) => setSelectedDistrict(e.target.value)} className="farmer-location-select">
-            <option value="">{t('select_district') || "Select District"}</option>
-            {stateDistricts[selectedState]?.map((districtKey) => (
-              <option key={districtKey} value={districtKey}>{t(`districts.${selectedState}.${districtKey}`)}</option>
-            ))}
-          </select>
+    <div className="fd-root">
+      <Navbar isFarmerDashboard={true} activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* ─── Welcome Banner ─── */}
+      <div className="fd-banner">
+        <div className="fd-banner-inner">
+          <div className="fd-banner-left">
+            <div className="fd-avatar"><FaSeedling /></div>
+            <div>
+              <p className="fd-greeting">Welcome back,</p>
+              <h1 className="fd-farmer-name">{farmerName}</h1>
+              {(selectedDistrict || selectedState) && (
+                <p className="fd-location">
+                  <FaMapMarkerAlt style={{ marginRight: 5 }} />
+                  {fmt(selectedDistrict)}{selectedDistrict && selectedState ? ', ' : ''}{fmt(selectedState)}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="fd-banner-stats">
+            <div className="fd-stat">
+              <span className="fd-stat-num">{savedCrops.length}</span>
+              <span className="fd-stat-label">Total Crops</span>
+            </div>
+            <div className="fd-stat-divider" />
+            <div className="fd-stat">
+              <span className="fd-stat-num">{availableCount}</span>
+              <span className="fd-stat-label">Active</span>
+            </div>
+            <div className="fd-stat-divider" />
+            <div className="fd-stat">
+              <span className="fd-stat-num">₹{soldRevenue.toLocaleString()}</span>
+              <span className="fd-stat-label">Revenue</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {activeTab === 'crops' ? (
-        <div className="farmer-content-container">
-
-          {/* Add New Crop Button */}
-          <div className="farmer-add-crop-section">
-            <button 
-              onClick={() => setShowAddForm(!showAddForm)} 
-              className="farmer-add-crop-button"
+      {/* ─── Tab Bar + Location Selectors ─── */}
+      <div className="fd-tabbar-wrap">
+        <div className="fd-tabbar">
+          {[
+            { key: 'crops',         icon: <FaLeaf />,        label: 'Manage Crops' },
+            { key: 'analytics',     icon: <FaChartLine />,   label: 'Analytics' },
+            { key: 'orders',        icon: <FaShoppingBag />, label: 'Orders' },
+            { key: 'notifications', icon: <FaBell />,        label: 'Notifications' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              className={`fd-tab ${activeTab === tab.key ? 'fd-tab--active' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
             >
-              <FaPlus style={{ marginRight: '8px' }} />
-              {t('add_new_crop') || 'Add New Crop'}
+              <span className="fd-tab-icon">{tab.icon}</span>
+              <span className="fd-tab-label">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="fd-location-selectors">
+          <div className="fd-location-wrap">
+            <FaMapMarkerAlt className="fd-loc-icon" />
+            <select value={selectedState} onChange={handleStateChange} className="fd-select">
+              {Object.keys(stateDistricts).map(k => (
+                <option key={k} value={k}>{fmt(k)}</option>
+              ))}
+            </select>
+          </div>
+          <div className="fd-location-wrap">
+            <FaMapMarkerAlt className="fd-loc-icon" />
+            <select value={selectedDistrict} onChange={e => setSelectedDistrict(e.target.value)} className="fd-select">
+              <option value="">Select District</option>
+              {stateDistricts[selectedState]?.map(d => (
+                <option key={d} value={d}>{fmt(d)}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── CROPS TAB ─── */}
+      {activeTab === 'crops' && (
+        <div className="fd-content">
+          <div className="fd-content-header">
+            <h2 className="fd-content-title">
+              <FaLeaf style={{ color: '#2e7d32', marginRight: 8 }} />
+              Your Crops
+              {savedCrops.length > 0 && <span className="fd-count-badge">{savedCrops.length}</span>}
+            </h2>
+            <button className="fd-add-btn" onClick={() => {
+              if (!showAddForm) { setCropPickerStep('pick'); setCropSearch('') }
+              setShowAddForm(!showAddForm)
+            }}>
+              {showAddForm
+                ? <><FaTimes style={{ marginRight: 6 }} />Cancel</>
+                : <><FaPlus style={{ marginRight: 6 }} />Add New Crop</>}
             </button>
           </div>
 
-          {/* Add Crop Form */}
-          {showAddForm && (
-            <div className="farmer-add-form-container">
-              <h3 className="farmer-section-title">{t('add_new_crop') || 'Add New Crop'}</h3>
-              {rows.map((row, index) => (
-                <div key={index} className="farmer-form-row">
-                  <input
-                    type="text"
-                    placeholder={t('crop_name') || 'Crop Name'}
-                    value={row.crop}
-                    onChange={(e) => updateField(index, 'crop', e.target.value)}
-                    className="farmer-form-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder={t('quantity_kg') || 'Quantity (kg)'}
-                    value={row.quantity}
-                    onChange={(e) => updateField(index, 'quantity', e.target.value)}
-                    className="farmer-form-input"
-                  />
-                  <input
-                    type="number"
-                    placeholder={t('price_inr') || 'Price (₹)'}
-                    value={row.price}
-                    onChange={(e) => updateField(index, 'price', e.target.value)}
-                    className="farmer-form-input"
-                  />
-                  <input
-                    type="date"
-                    placeholder={t('harvest_date') || 'Harvest Date'}
-                    value={row.harvestDate}
-                    onChange={(e) => updateField(index, 'harvestDate', e.target.value)}
-                    className="farmer-form-input"
-                  />
-                  <select
-                    value={row.status}
-                    onChange={(e) => updateField(index, 'status', e.target.value)}
-                    className="farmer-form-input"
-                  >
-                    <option value="available">{t('available') || 'Available'}</option>
-                    <option value="sold">{t('sold') || 'Sold'}</option>
-                    <option value="reserved">{t('reserved') || 'Reserved'}</option>
-                  </select>
-                  <textarea
-                    placeholder={t('notes') || 'Notes'}
-                    value={row.notes}
-                    onChange={(e) => updateField(index, 'notes', e.target.value)}
-                    className="farmer-form-textarea"
-                  />
-                  <div className="farmer-form-actions">
-                    <button onClick={() => handleSave(index)} className="farmer-submit-button" disabled={loading}>
-                      {loading ? t('saving') || 'Saving...' : <><FaSave style={{ marginRight: '4px' }} />{t('save') || 'Save'}</>}
+          {/* ── STEP 1: Crop Picker ── */}
+          {showAddForm && cropPickerStep === 'pick' && (
+            <div className="fd-form-card">
+              <h3 className="fd-form-title">
+                <FaSeedling style={{ marginRight: 8, color: '#2e7d32' }} />
+                Choose a Crop
+              </h3>
+              <p className="fd-picker-hint">Tap any crop below, or type to search by name or local name</p>
+              <div className="fd-picker-search-wrap">
+                <FaSearch className="fd-picker-search-icon" />
+                <input
+                  type="text"
+                  className="fd-picker-search"
+                  placeholder="Search: Rice, Tamatar, Biyyam, Tomato…"
+                  value={cropSearch}
+                  onChange={e => setCropSearch(e.target.value)}
+                  autoFocus
+                />
+                {cropSearch && (
+                  <button className="fd-picker-search-clear" onClick={() => setCropSearch('')}>
+                    <FaTimes />
+                  </button>
+                )}
+              </div>
+              <div className="fd-picker-grid">
+                {CROP_DICTIONARY
+                  .filter(c =>
+                    !cropSearch ||
+                    c.name.toLowerCase().includes(cropSearch.toLowerCase()) ||
+                    c.keywords.some(k => k.toLowerCase().includes(cropSearch.toLowerCase()))
+                  )
+                  .map(c => (
+                    <button
+                      key={c.id}
+                      className="fd-picker-card"
+                      onClick={() => { updateField(0, 'crop', c.name); setCropPickerStep('details') }}
+                    >
+                      <img src={c.image} alt={c.name} className="fd-picker-img" />
+                      <span className="fd-picker-name">{c.name}</span>
                     </button>
-                    <button onClick={addRow} className="farmer-submit-button">
-                      <FaPlus style={{ marginRight: '4px' }} />{t('add_row') || 'Add Row'}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                  ))
+                }
+              </div>
+              <div style={{ marginTop: 18, textAlign: 'center' }}>
+                <button onClick={() => { resetForm(); setCropPickerStep('pick'); setCropSearch('') }} className="fd-cancel-btn">
+                  <FaTimes style={{ marginRight: 4 }} />Cancel
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Saved Crops Display */}
-          <div>
-            <h3 className="farmer-section-title">{t('your_crops') || 'Your Crops'}</h3>
-            <div className="farmer-crops-grid">
-              {savedCrops.map((crop, index) => (
-                <div key={crop.id} className="farmer-crop-card">
-                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                    <h4 style={{margin: 0, fontSize: '20px', color: '#28a745'}}>{crop.crop}</h4>
-                    <div style={{padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', backgroundColor: crop.status === 'available' ? '#d4edda' : crop.status === 'sold' ? '#f8d7da' : '#fff3cd', color: crop.status === 'available' ? '#155724' : crop.status === 'sold' ? '#721c24' : '#856404'}}>{t(crop.status) || crop.status}</div>
+          {/* ── STEP 2: Crop Details ── */}
+          {showAddForm && cropPickerStep === 'details' && rows.map((row, index) => {
+            const pickedImg = getCropImage(row.crop)
+            return (
+              <div key={index} className="fd-form-card">
+                <h3 className="fd-form-title">
+                  <FaSeedling style={{ marginRight: 8, color: '#2e7d32' }} />
+                  Add Crop Details
+                </h3>
+                <div className="fd-selected-crop-bar">
+                  {pickedImg
+                    ? <img src={pickedImg} alt={row.crop} className="fd-selected-crop-img" />
+                    : <FaLeaf style={{ fontSize: 32, color: '#2e7d32' }} />
+                  }
+                  <span className="fd-selected-crop-name">{row.crop}</span>
+                  <button
+                    className="fd-change-crop-btn"
+                    onClick={() => { updateField(index, 'crop', ''); setCropPickerStep('pick'); setCropSearch('') }}
+                  >
+                    ✎ Change
+                  </button>
+                </div>
+                <div className="fd-form-grid">
+                  <div className="fd-field">
+                    <label className="fd-label">Quantity (kg) *</label>
+                    <input
+                      type="number" min="0" step="any"
+                      placeholder="e.g. 100"
+                      value={row.quantity}
+                      onChange={e => updateField(index, 'quantity', e.target.value)}
+                      onKeyDown={e => ['e','E','+','-'].includes(e.key) && e.preventDefault()}
+                      className="fd-input"
+                    />
                   </div>
-                  <div style={{marginBottom: '15px'}}>
-                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('quantity') || 'Quantity'}:</strong> {crop.quantity} kg</p>
-                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('price') || 'Price'}:</strong> ₹{crop.price}</p>
-                    {crop.harvestDate && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('harvest_date') || 'Harvest Date'}:</strong> {crop.harvestDate}</p>}
-                    {crop.notes && <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('notes') || 'Notes'}:</strong> {crop.notes}</p>}
-                    <p style={{margin: '5px 0', fontSize: '14px'}}><strong>{t('location') || 'Location'}:</strong> {crop.district}, {crop.state}</p>
-                    {crop.createdAt && (
-                      <p style={{margin: '5px 0', fontSize: '12px', color: '#666'}}>
-                        <strong>Added:</strong> {crop.createdAt?.toDate ? crop.createdAt.toDate().toLocaleDateString() : new Date(crop.createdAt).toLocaleDateString()}
-                      </p>
-                    )}
+                  <div className="fd-field">
+                    <label className="fd-label">Price per kg (₹) *</label>
+                    <input
+                      type="number" min="0" step="any"
+                      placeholder="e.g. 25"
+                      value={row.price}
+                      onChange={e => updateField(index, 'price', e.target.value)}
+                      onKeyDown={e => ['e','E','+','-'].includes(e.key) && e.preventDefault()}
+                      className="fd-input"
+                    />
                   </div>
-                  <div className="farmer-crop-actions">
-                    <button onClick={() => handleEdit()} className="farmer-edit-button">
-                      <FaEdit style={{ marginRight: '4px' }} />{t('edit') || 'Edit'}
-                    </button>
-                    <button onClick={() => handleDelete(crop.id)} className="farmer-delete-button">
-                      <FaTrash style={{ marginRight: '4px' }} />{t('delete') || 'Delete'}
-                    </button>
-                    <select 
-                      value={crop.status} 
-                      onChange={(e) => updateCropStatus(crop.id, e.target.value)}
-                      className="farmer-form-input"
-                      style={{maxWidth: '150px'}}
-                    >
-                      <option value="available">{t('available') || 'Available'}</option>
-                      <option value="sold">{t('sold') || 'Sold'}</option>
-                      <option value="reserved">{t('reserved') || 'Reserved'}</option>
+                  <div className="fd-field">
+                    <label className="fd-label">Status</label>
+                    <select value={row.status} onChange={e => updateField(index, 'status', e.target.value)} className="fd-input">
+                      <option value="available">Available</option>
+                      <option value="reserved">Reserved</option>
                     </select>
                   </div>
+                  <div className="fd-field fd-field--full">
+                    <label className="fd-label">Notes (optional)</label>
+                    <textarea
+                      placeholder="Any extra info about this crop…"
+                      value={row.notes}
+                      onChange={e => updateField(index, 'notes', e.target.value)}
+                      className="fd-textarea"
+                    />
+                  </div>
+                  <div className="fd-form-actions">
+                    <button onClick={() => handleSave(index)} className="fd-save-btn" disabled={loading}>
+                      {loading ? 'Saving…' : <><FaSave style={{ marginRight: 5 }} />Save Crop</>}
+                    </button>
+                    <button onClick={() => { resetForm(); setCropPickerStep('pick'); setCropSearch('') }} className="fd-cancel-btn">
+                      <FaTimes style={{ marginRight: 4 }} />Cancel
+                    </button>
+                  </div>
                 </div>
-              ))}
+              </div>
+            )
+          })}
+
+          {/* Empty state */}
+          {savedCrops.length === 0 && !showAddForm && (
+            <div className="fd-empty">
+              <div className="fd-empty-icon">🌾</div>
+              <h3 className="fd-empty-title">No crops listed yet</h3>
+              <p className="fd-empty-sub">Click "Add New Crop" to start listing your produce and reach buyers directly.</p>
             </div>
-          </div>
+          )}
+
+          {/* Crop Cards Grid */}
+          {savedCrops.length > 0 && (
+            <div className="fd-crops-grid">
+              {savedCrops.map((crop) => {
+                const img = getCropImage(crop.crop || crop.cropName)
+                const sm = statusMeta[crop.status] || statusMeta.available
+                const totalVal = (parseFloat(crop.price) || 0) * (parseFloat(crop.quantity) || 0)
+                return (
+                  <div key={crop.id} className="fd-crop-card">
+                    <div className="fd-card-accent" />
+                    <div className="fd-card-header">
+                      <div className="fd-card-img-wrap">
+                        {img
+                          ? <img src={img} alt={crop.crop} className="fd-card-img" />
+                          : <FaLeaf style={{ fontSize: 30, color: '#2e7d32' }} />
+                        }
+                      </div>
+                      <div className="fd-card-titleblock">
+                        <h4 className="fd-card-name">{crop.crop || crop.cropName}</h4>
+                        <span className="fd-status-badge" style={{ background: sm.bg, color: sm.color }}>
+                          <span style={{ marginRight: 4, fontSize: 11 }}>{sm.icon}</span>{sm.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="fd-card-body">
+                      <div className="fd-info-row">
+                        <span className="fd-info-label">Quantity</span>
+                        <span className="fd-info-val">{crop.quantity} kg</span>
+                      </div>
+                      <div className="fd-info-row">
+                        <span className="fd-info-label">Price / kg</span>
+                        <span className="fd-info-val fd-price-val">₹{parseFloat(crop.price).toLocaleString()}</span>
+                      </div>
+                      <div className="fd-info-row fd-info-row--highlight">
+                        <span className="fd-info-label">Total Value</span>
+                        <span className="fd-info-val fd-total-val">₹{totalVal.toLocaleString()}</span>
+                      </div>
+                      <div className="fd-info-row">
+                        <span className="fd-info-label">
+                          <FaMapMarkerAlt style={{ color: '#e53935', marginRight: 4 }} />Location
+                        </span>
+                        <span className="fd-info-val">{fmt(crop.district)}, {fmt(crop.state)}</span>
+                      </div>
+                      {crop.notes && (
+                        <div className="fd-notes-row">
+                          <FaTag style={{ color: '#888', marginRight: 6, fontSize: 11 }} />
+                          <span className="fd-notes-text">{crop.notes}</span>
+                        </div>
+                      )}
+                      {crop.createdAt && (
+                        <div className="fd-date-row">
+                          <FaCalendarAlt style={{ color: '#aaa', marginRight: 5, fontSize: 11 }} />
+                          <span className="fd-date-text">
+                            {crop.createdAt?.toDate
+                              ? crop.createdAt.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                              : new Date(crop.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="fd-card-footer">
+                      <select
+                        value={crop.status}
+                        onChange={e => updateCropStatus(crop.id, e.target.value)}
+                        className="fd-status-select"
+                      >
+                        <option value="available">Available</option>
+                        <option value="sold">Sold</option>
+                        <option value="reserved">Reserved</option>
+                      </select>
+                      <button onClick={() => setShowAddForm(true)} className="fd-edit-btn" title="Edit">
+                        <FaEdit />
+                      </button>
+                      <button onClick={() => handleDelete(crop.id)} className="fd-del-btn" title="Delete">
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
-      ) : activeTab === 'analytics' ? (
-        <div className="analytics-container">
-          <h2 className="section-title">{t('farm_analytics') || 'Farm Analytics'}</h2>
-          <div className="analytics-grid">
-            <div className="analytics-card">
-              <FaLeaf className="analytics-icon" />
-              <h3>{t('total_crops') || 'Total Crops'}</h3>
-              <p className="analytics-value">{analytics.totalCrops}</p>
-            </div>
-            <div className="analytics-card">
-              <FaMoneyBillWave className="analytics-icon" />
-              <h3>{t('total_value') || 'Total Value'}</h3>
-              <p className="analytics-value">₹{analytics.totalValue.toLocaleString()}</p>
-            </div>
-            <div className="analytics-card">
-              <FaTruck className="analytics-icon" />
-              <h3>{t('available') || 'Available'}</h3>
-              <p className="analytics-value">{analytics.availableCrops}</p>
-            </div>
-            <div className="analytics-card">
-              <FaCalendarAlt className="analytics-icon" />
-              <h3>{t('sold') || 'Sold'}</h3>
-              <p className="analytics-value">{analytics.soldCrops}</p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <CropRecommendation />
       )}
-      
-      {/* Notification Modal */}
-      {showNotificationModal && currentNotification && (
-        <NotificationModal
-          notification={currentNotification}
-          onClear={handleClearNotification}
-          onMarkAsRead={handleMarkAsRead}
-        />
+
+      {/* ─── ANALYTICS TAB ─── */}
+      {activeTab === 'analytics' && (
+        <div className="fd-content">
+          <h2 className="fd-content-title">
+            <FaChartLine style={{ color: '#1565c0', marginRight: 8 }} />
+            Farm Analytics
+          </h2>
+          <div className="fd-analytics-grid">
+            {[
+              { icon: <FaSeedling />, label: 'Total Crops',     val: analytics.totalCrops,               cls: 'green' },
+              { icon: <FaMoneyBillWave />, label: 'Portfolio Value', val: `₹${analytics.totalValue.toLocaleString()}`, cls: 'blue' },
+              { icon: <FaTruck />,    label: 'Available',       val: analytics.availableCrops,           cls: 'teal' },
+              { icon: <FaCalendarAlt />, label: 'Sold',         val: analytics.soldCrops,                cls: 'orange' },
+            ].map((card, i) => (
+              <div key={i} className={`fd-analytic-card fd-analytic-card--${card.cls}`}>
+                <div className="fd-analytic-icon">{card.icon}</div>
+                <div>
+                  <p className="fd-analytic-label">{card.label}</p>
+                  <p className="fd-analytic-val">{card.val}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {savedCrops.length > 0 && (
+            <div className="fd-breakdown-card">
+              <h3 className="fd-breakdown-title">Crop Breakdown</h3>
+              <div className="fd-breakdown-list">
+                {savedCrops.map(crop => {
+                  const img = getCropImage(crop.crop || crop.cropName)
+                  const sm = statusMeta[crop.status] || statusMeta.available
+                  return (
+                    <div key={crop.id} className="fd-breakdown-row">
+                      <div className="fd-breakdown-left">
+                        {img
+                          ? <img src={img} alt={crop.crop} className="fd-breakdown-img" />
+                          : <FaLeaf style={{ color: '#2e7d32', fontSize: 20 }} />
+                        }
+                        <div>
+                          <p className="fd-breakdown-name">{crop.crop || crop.cropName}</p>
+                          <p className="fd-breakdown-loc">{fmt(crop.district)}, {fmt(crop.state)}</p>
+                        </div>
+                      </div>
+                      <div className="fd-breakdown-right">
+                        <span className="fd-breakdown-qty">{crop.quantity} kg</span>
+                        <span className="fd-breakdown-price">₹{crop.price}/kg</span>
+                        <span className="fd-breakdown-status" style={{ background: sm.bg, color: sm.color }}>{sm.label}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {savedCrops.length === 0 && (
+            <div className="fd-empty">
+              <div className="fd-empty-icon">📊</div>
+              <h3 className="fd-empty-title">No data yet</h3>
+              <p className="fd-empty-sub">Add crops to see analytics here.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── ORDERS TAB ─── */}
+      {activeTab === 'orders' && (
+        <div className="fd-content">
+          <h2 className="fd-content-title">
+            <FaShoppingBag style={{ color: '#6a1b9a', marginRight: 8 }} />
+            Orders
+          </h2>
+          <div className="fd-empty">
+            <div className="fd-empty-icon">📦</div>
+            <h3 className="fd-empty-title">No orders yet</h3>
+            <p className="fd-empty-sub">Orders from customers will appear here once they purchase your crops. Keep your listings active!</p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── NOTIFICATIONS TAB ─── */}
+      {activeTab === 'notifications' && (
+        <div className="fd-content">
+          <h2 className="fd-content-title">
+            <FaBell style={{ color: '#e65100', marginRight: 8 }} />
+            Notifications
+          </h2>
+          <div className="fd-empty">
+            <div className="fd-empty-icon">🔔</div>
+            <h3 className="fd-empty-title">All caught up!</h3>
+            <p className="fd-empty-sub">You have no new notifications. We'll alert you when customers are interested in your crops.</p>
+          </div>
+        </div>
       )}
     </div>
   )

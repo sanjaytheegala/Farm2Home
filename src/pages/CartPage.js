@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { db, collection, addDoc, auth } from '../firebase'
 import { useTranslation } from 'react-i18next'
 import Navbar from '../components/Navbar'
 import { FaShoppingCart, FaTrash, FaPlus, FaMinus, FaCheckCircle, FaCreditCard, FaWallet, FaUniversity } from 'react-icons/fa'
@@ -94,9 +93,12 @@ const CartPage = () => {
     const otp = generateOTP()
     const newOrderId = generateOrderId()
     
+    // Get current user from localStorage
+    const currentUser = JSON.parse(localStorage.getItem('mockUserData') || '{}')
+    
     const orderData = {
       orderId: newOrderId,
-      userId: auth.currentUser?.uid || 'guest',
+      userId: currentUser.uid || 'guest',
       items: cartItems,
       deliveryAddress,
       paymentMethod,
@@ -104,13 +106,17 @@ const CartPage = () => {
       deliveryCharge: calculateDeliveryCharge(),
       otp,
       status: 'pending',
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
       timestamp: Date.now(),
-      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) // 3 days
+      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days
     }
 
     try {
-      await addDoc(collection(db, 'orders'), orderData)
+      // Save order to localStorage
+      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
+      orders.push(orderData)
+      localStorage.setItem('orders', JSON.stringify(orders))
+      
       setOrderId(newOrderId)
       setCheckoutStep('confirmation')
       localStorage.removeItem('cart')

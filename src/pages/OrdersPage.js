@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { db, collection, getDocs, query, orderBy } from '../firebase'
 import { useTranslation } from 'react-i18next'
 import Navbar from '../components/Navbar'
 import { FaBox, FaTruck, FaCheckCircle, FaClock, FaMapMarkerAlt, FaPhone, FaCalendar } from 'react-icons/fa'
@@ -16,16 +15,15 @@ const OrdersPage = () => {
 
   const fetchOrders = async () => {
     try {
-      const ordersRef = collection(db, 'orders')
-      const q = query(ordersRef, orderBy('timestamp', 'desc'))
-      const querySnapshot = await getDocs(q)
+      // Load orders from localStorage
+      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
       
-      const fetchedOrders = []
-      querySnapshot.forEach((doc) => {
-        fetchedOrders.push({ id: doc.id, ...doc.data() })
-      })
+      // Sort by timestamp descending
+      const sortedOrders = orders
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .map((order, index) => ({ id: `order-${index}`, ...order }))
       
-      setOrders(fetchedOrders)
+      setOrders(sortedOrders)
       setLoading(false)
     } catch (error) {
       console.error('Error fetching orders:', error)

@@ -59,7 +59,6 @@
 ### High Priority
 1. **Image Compression**: Compress large images (logo.png, Gemini image)
 2. **CDN Integration**: Implement image CDN (Cloudinary, ImageKit)
-3. **Service Worker**: Add caching for better offline experience
 
 ### Medium Priority
 1. **Bundle Splitting**: Further optimize with webpack chunks
@@ -69,7 +68,6 @@
 ### Low Priority
 1. **Font Optimization**: Optimize web fonts loading
 2. **CSS Optimization**: Implement CSS-in-JS or better CSS splitting
-3. **PWA Features**: Add full PWA capabilities
 
 ## Monitoring Tools
 

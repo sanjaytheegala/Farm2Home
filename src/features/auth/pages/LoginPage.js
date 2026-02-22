@@ -1,96 +1,146 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
-import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword } from '../../../firebase';
+import { auth, db, functions } from '../../../firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
+import { doc, getDoc } from 'firebase/firestore';
 
 const LoginPage = () => {
   const [isFarmer, setIsFarmer] = useState(true);
-  const [loginMethod, setLoginMethod] = useState('phone'); // 'phone' or 'email'
+  const [loginMethod, setLoginMethod] = useState('email'); // 'phone' or 'email'
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleBackToHome = () => {
     navigate('/');
   };
 
-  const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-          console.log("Recaptcha verified");
-        }
-      });
-    }
-  };
-
   const handleSendOTP = async () => {
     setError('');
+    setLoading(true);
+    
     if (!phone) {
       setError('Please enter a phone number.');
+      setLoading(false);
       return;
     }
-    setupRecaptcha();
-    const appVerifier = window.recaptchaVerifier;
-    try {
-      const result = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);
-      setConfirmationResult(result);
-      console.log('OTP sent successfully!');
-    } catch (err) {
-      setError('Failed to send OTP. Please check the phone number or try again later.');
-      console.error(err);
-    }
+
+    // Mock OTP sending
+    setTimeout(() => {
+      setConfirmationResult(true);
+      console.log('Mock OTP sent (use any 6 digits)');
+      setLoading(false);
+    }, 500);
   };
 
   const handleVerifyOTP = async () => {
     setError('');
+    setLoading(true);
+    
     if (!otp) {
       setError('Please enter the OTP.');
+      setLoading(false);
       return;
     }
-    try {
-      const result = await confirmationResult.confirm(otp);
-      // Store user role for mock authentication
-      localStorage.setItem('mockUserRole', isFarmer ? 'farmer' : 'consumer');
-      localStorage.setItem('mockUserData', JSON.stringify({
-        uid: result.user.uid,
+
+    // Mock OTP verification
+    if (otp.length === 6) {
+      const mockUser = {
+        uid: 'user_' + Date.now(),
         phone: phone,
         role: isFarmer ? 'farmer' : 'consumer',
-        loginMethod: 'phone'
-      }));
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('mockUserData', JSON.stringify(mockUser));
       navigate(isFarmer ? '/farmer' : '/consumer');
-    } catch (err) {
-      setError('Invalid OTP. Please try again.');
-      console.error(err);
+    } else {
+      setError('Invalid OTP. Please enter 6 digits.');
     }
+    setLoading(false);
   };
 
   const handleEmailLogin = async () => {
     setError('');
+    setLoading(true);
+
     if (!email || !password) {
-      setError('Please enter both email and password.');
+      setError('Please enter your email (or phone number) and password.');
+      setLoading(false);
       return;
     }
+
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      // Store user role for mock authentication
-      localStorage.setItem('mockUserRole', isFarmer ? 'farmer' : 'consumer');
-      localStorage.setItem('mockUserData', JSON.stringify({
-        uid: result.user.uid,
-        email: email,
-        role: isFarmer ? 'farmer' : 'consumer',
-        loginMethod: 'email'
-      }));
-      navigate(isFarmer ? '/farmer' : '/consumer');
+      let emailToUse = email.trim();
+
+      // Detect phone number: only digits (with optional +, spaces, dashes)
+      const isPhoneNumber = /^[\d\s\-+()]+$/.test(emailToUse);
+
+      if (isPhoneNumber) {
+        console.log('📱 Phone number detected, calling Cloud Function for email lookup...');
+
+        // Call the Cloud Function (runs with Admin SDK — bypasses all Firestore rules)
+        const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
+        const cleanPhone = emailToUse.replace(/\D/g, '');
+        const result = await getEmailByPhone({ phoneNumber: cleanPhone });
+        emailToUse = result.data.email;
+
+        console.log('✅ Resolved email for phone number:', emailToUse);
+      }
+
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, emailToUse, password);
+      const user = userCredential.user;
+
+      // Fetch user profile from Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        throw new Error('User profile not found. Please contact support.');
+      }
+
+      const userData = { uid: user.uid, ...userDocSnap.data() };
+
+      if (userData.status && userData.status !== 'active') {
+        throw new Error('Your account is inactive. Please contact support.');
+      }
+
+      // Role validation — make sure they're logging in through the correct portal
+      const selectedRole = isFarmer ? 'farmer' : 'consumer';
+      if (userData.role && userData.role !== selectedRole) {
+        throw new Error(
+          `This account is registered as a ${userData.role}. Please select the correct login type.`
+        );
+      }
+
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+      console.log('✅ User logged in successfully:', userData);
+
+      navigate(userData.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
     } catch (err) {
-      setError('Failed to sign in. Please check your email and password.');
-      console.error(err);
+      console.error('Login error:', err);
+      let errorMessage = 'Failed to login. Please try again.';
+      if (err.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email.';
+      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -173,8 +223,8 @@ const LoginPage = () => {
             <>
               <div style={{ marginBottom: '15px' }}>
                 <input
-                  type="email"
-                  placeholder="Email"
+                  type="text"
+                  placeholder="Email or Phone Number"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
@@ -192,8 +242,21 @@ const LoginPage = () => {
             </>
           )}
           {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
-          <button type="submit" style={{ width: '100%', padding: '12px', background: '#28a745', border: 'none', borderRadius: '5px', cursor: 'pointer', color: 'white', fontSize: '16px' }}>
-            {loginMethod === 'phone' ? (confirmationResult ? 'Verify OTP' : 'Send OTP') : 'Login'}
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{ 
+              width: '100%', 
+              padding: '12px', 
+              background: loading ? '#666' : '#28a745', 
+              border: 'none', 
+              borderRadius: '5px', 
+              cursor: loading ? 'not-allowed' : 'pointer', 
+              color: 'white', 
+              fontSize: '16px' 
+            }}
+          >
+            {loading ? 'Loading...' : (loginMethod === 'phone' ? (confirmationResult ? 'Verify OTP' : 'Send OTP') : 'Login')}
           </button>
         </form>
         <div id="recaptcha-container" style={{ marginTop: '20px' }}></div>

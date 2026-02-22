@@ -9,19 +9,24 @@ import {
   FaQuoteLeft, FaTimes, FaPhone, FaEnvelope, FaEye, FaEyeSlash,
   FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaApple, FaGooglePlay, FaUserTie
 } from 'react-icons/fa'
-import { auth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword, doc, setDoc, db } from '../../../firebase'
 import { logger } from '../../../utils/logger'
+import FarmerSignupModal from '../../../components/FarmerSignupModal'
+import { auth, db, functions } from '../../../firebase'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { httpsCallable } from 'firebase/functions'
+import { doc, getDoc } from 'firebase/firestore'
 
 const HomePage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [hoveredCard, setHoveredCard] = useState(null)
   const [showLoginCard, setShowLoginCard] = useState(false)
+  const [showFarmerSignupModal, setShowFarmerSignupModal] = useState(false)
   const [selectedRole, setSelectedRole] = useState('consumer') // 'farmer' or 'consumer'
   
   // Auth form states
   const [formType, setFormType] = useState('login') // 'login' or 'signup'
-  const [loginMethod, setLoginMethod] = useState('phone') // 'phone' or 'email'
+  const [loginMethod, setLoginMethod] = useState('email') // 'phone' or 'email' - default to email/password
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -43,6 +48,7 @@ const HomePage = () => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
   const [textIndex, setTextIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
   
   // Testimonial carousel state
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0)
@@ -68,16 +74,10 @@ const HomePage = () => {
     { name: 'Arjun Singh', role: 'Consumer', text: 'Supporting sustainable agriculture while getting the best produce. Win-win situation!', rating: 5 }
   ]
 
-  // Authentication functions
+  // Mock authentication functions
   const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response) => {
-          logger.log("Recaptcha verified");
-        }
-      });
-    }
+    // Mock implementation - no Firebase needed
+    logger.log("Mock recaptcha setup");
   };
 
   const handleSendOTP = async () => {
@@ -88,16 +88,11 @@ const HomePage = () => {
       setLoading(false);
       return;
     }
-    setupRecaptcha();
-    const appVerifier = window.recaptchaVerifier;
     
-    // Ensure phone number is in E.164 format
-    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-
+    // Mock OTP sending
     try {
-      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-      setConfirmationResult(result);
-      logger.log('OTP sent successfully!');
+      setConfirmationResult({ phone }); // Mock confirmation result
+      logger.log('Mock OTP sent successfully!');
     } catch (err) {
       setError('Failed to send OTP. Please try again.');
       logger.error(err);
@@ -114,23 +109,25 @@ const HomePage = () => {
       return;
     }
     try {
-      const result = await confirmationResult.confirm(otp);
-      const user = result.user;
-      
-      // Store user data for mock authentication
-      const userData = {
-        role: selectedRole,
-        name: 'Demo User',
-        email: user.email || phone,
-        uid: user.uid
-      };
-      console.log('OTP verification success - storing user data:', userData);
-      localStorage.setItem('mockUserData', JSON.stringify(userData));
-      
-      // Navigate to appropriate dashboard
-      console.log('Navigating to dashboard for role:', selectedRole);
-      console.log('Navigation path:', selectedRole === 'farmer' ? '/farmer' : '/consumer');
-      navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
+      // Mock OTP verification - any 6-digit OTP works
+      if (otp.length === 6) {
+        const userId = `user_${Date.now()}`;
+        const userData = {
+          role: selectedRole,
+          name: 'Demo User',
+          email: phone || `${userId}@phone.com`,
+          uid: userId
+        };
+        console.log('OTP verification success - storing user data:', userData);
+        localStorage.setItem('mockUserData', JSON.stringify(userData));
+        
+        // Navigate to appropriate dashboard
+        console.log('Navigating to dashboard for role:', selectedRole);
+        console.log('Navigation path:', selectedRole === 'farmer' ? '/farmer' : '/consumer');
+        navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
+      } else {
+        setError('Invalid OTP. Please enter 6 digits.');
+      }
     } catch (err) {
       setError('Invalid OTP. Please try again.');
       console.error(err);
@@ -142,55 +139,91 @@ const HomePage = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    if (!email || !password) {
-      setError('Please fill all fields.');
-      setLoading(false);
-      return;
-    }
-
-    // For testing - bypass Firebase auth temporarily
-    if (email === 'test@consumer.com' && password === 'test123') {
-      // Mock successful login
-      const userData = {
-        role: selectedRole,
-        name: 'Test Consumer',
-        email: email,
-        uid: 'test-uid-' + Date.now()
-      };
-      console.log('Test login success - storing user data:', userData);
-      localStorage.setItem('mockUserData', JSON.stringify(userData));
-      
-      // Navigate to appropriate dashboard
-      console.log('Navigating to dashboard for role:', selectedRole);
-      console.log('Navigation path:', selectedRole === 'farmer' ? '/farmer' : '/consumer');
-      navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
-      setLoading(false);
-      return;
-    }
 
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      const user = result.user;
+      // Validate inputs
+      if (!email || !password) {
+        throw new Error('Please enter email and password');
+      }
+
+      let emailToUse = email.trim();
+
+      // Check if input is a phone number (contains only digits and possibly +, -, spaces)
+      const phonePattern = /^[\d\s\-+()]+$/;
+      const isPhoneNumber = phonePattern.test(emailToUse);
+
+      if (isPhoneNumber) {
+        console.log('📱 Phone number detected, calling Cloud Function for email lookup...');
+
+        // Call the Cloud Function (runs with Admin SDK — bypasses all Firestore rules)
+        const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
+        const cleanPhone = emailToUse.replace(/\D/g, '');
+        const result = await getEmailByPhone({ phoneNumber: cleanPhone });
+        emailToUse = result.data.email;
+
+        console.log('✅ Found email for phone number:', emailToUse);
+      }
+
+      // Sign in with Firebase Auth using email
+      const userCredential = await signInWithEmailAndPassword(
+        auth, 
+        emailToUse, 
+        password
+      );
       
-      // Store user data for mock authentication
-      const userData = {
-        role: selectedRole,
-        name: 'Demo User',
-        email: user.email,
-        uid: user.uid
-      };
-      console.log('Email login success - storing user data:', userData);
-      localStorage.setItem('mockUserData', JSON.stringify(userData));
+      const user = userCredential.user;
+
+      // Fetch user data from Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        throw new Error('User data not found. Please contact support.');
+      }
+
+      const userData = userDoc.data();
       
-      // Navigate to appropriate dashboard
-      console.log('Navigating to dashboard for role:', selectedRole);
-      console.log('Navigation path:', selectedRole === 'farmer' ? '/farmer' : '/consumer');
-      navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
+      // Add uid to userData if not present
+      if (!userData.uid) {
+        userData.uid = user.uid;
+      }
+      
+      // Check if user is active
+      if (userData.status !== 'active') {
+        throw new Error('Your account is inactive. Please contact support.');
+      }
+
+      console.log('✅ Login successful with UID:', user.uid);
+
+      // Store user data in localStorage with uid
+      localStorage.setItem('currentUser', JSON.stringify(userData));
+
+      // Close the login card and navigate based on role
+      closeLoginCard();
+      setTimeout(() => {
+        navigate(userData.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
+      }, 500);
+
     } catch (err) {
-      setError('Invalid email or password.');
-      console.error(err);
+      console.error('Login error:', err);
+      let errorMessage = 'Failed to login. Please try again.';
+      
+      if (err.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email. Please sign up.';
+      } else if (err.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSignup = async (e) => {
@@ -205,36 +238,24 @@ const HomePage = () => {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        role: selectedRole,
-        createdAt: new Date()
-      });
-
-      // Store user data for mock authentication
+      // Mock signup with localStorage
+      const userId = `user_${Date.now()}`;
       const userData = {
+        uid: userId,
+        email: email,
         role: selectedRole,
         name: 'Demo User',
-        email: user.email,
-        uid: user.uid
+        createdAt: new Date().toISOString()
       };
+      
+      // Store user data
       localStorage.setItem('mockUserData', JSON.stringify(userData));
       
       // Navigate to appropriate dashboard
       console.log('Navigating to dashboard for role:', selectedRole);
       navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') {
-        setError('This email address is already in use.');
-      } else if (err.code === 'auth/weak-password') {
-        setError('Password should be at least 6 characters.');
-      } else {
-        setError('Failed to create an account. Please try again.');
-      }
+      setError('Failed to create an account. Please try again.');
     }
     setLoading(false);
   };
@@ -247,7 +268,7 @@ const HomePage = () => {
     setOtp('');
     setError('');
     setConfirmationResult(null);
-    setLoginMethod('phone');
+    setLoginMethod('email'); // Default to email/password method
     setLoading(false);
     setShowPassword(false);
   };
@@ -268,9 +289,11 @@ const HomePage = () => {
     setFormType('login'); // Reset to login by default
   };
 
-  const handleRoleSelect = (role) => {
+  const openLoginCard = (role) => {
     setSelectedRole(role)
     setShowLoginCard(true)
+    setFormType('login'); // Ensure it opens in login mode
+    setLoginMethod('email'); // Default to email/password login instead of OTP
     // Scroll to login section (a bit above statistics)
     setTimeout(() => {
       const loginSection = document.getElementById('login-section')
@@ -278,6 +301,10 @@ const HomePage = () => {
         loginSection.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
     }, 100)
+  };
+
+  const handleRoleSelect = (role) => {
+    openLoginCard(role);
   }
 
   // Add CSS animation for cursor blinking
@@ -305,35 +332,86 @@ const HomePage = () => {
     return () => clearInterval(interval)
   }, [testimonials.length])
 
-  // Typewriter animation effect
+  // Typewriter animation effect using requestAnimationFrame for smooth consistent timing
   useEffect(() => {
     const currentMessage = typewriterMessages[textIndex]
-    
-    const timeout = setTimeout(() => {
-      if (!isDeleting) {
-        // Typing
-        if (currentIndex < currentMessage.length) {
-          setCurrentText(currentMessage.substring(0, currentIndex + 1))
-          setCurrentIndex(currentIndex + 1)
-        } else {
-          // Finished typing, wait then start deleting
-          setTimeout(() => setIsDeleting(true), 2000)
+    let lastTime = 0
+    let elapsed = 0
+    let pauseElapsed = 0
+    let animationFrameId
+
+    const TYPING_SPEED = 55 // ms per character when typing
+    const ERASING_SPEED = 30 // ms per character when erasing
+    const PAUSE_AFTER_TYPING = 1800 // ms pause after finishing typing
+    const PAUSE_AFTER_ERASING = 500 // ms pause after finishing erasing
+
+    const tick = (timestamp) => {
+      if (!lastTime) {
+        lastTime = timestamp
+      }
+
+      const delta = timestamp - lastTime
+      lastTime = timestamp
+
+      if (isPaused) {
+        // Handle pause state
+        pauseElapsed += delta
+
+        if (isDeleting && pauseElapsed >= PAUSE_AFTER_TYPING) {
+          // Finished pause after typing, start erasing
+          setIsPaused(false)
+          pauseElapsed = 0
+        } else if (!isDeleting && pauseElapsed >= PAUSE_AFTER_ERASING) {
+          // Finished pause after erasing, move to next message
+          setIsPaused(false)
+          pauseElapsed = 0
+          setTextIndex((prevIndex) => (prevIndex + 1) % typewriterMessages.length)
         }
       } else {
-        // Deleting
-        if (currentIndex > 0) {
-          setCurrentText(currentMessage.substring(0, currentIndex - 1))
-          setCurrentIndex(currentIndex - 1)
-        } else {
-          // Finished deleting, move to next message
-          setIsDeleting(false)
-          setTextIndex((textIndex + 1) % typewriterMessages.length)
+        // Handle typing/erasing state
+        elapsed += delta
+        const interval = isDeleting ? ERASING_SPEED : TYPING_SPEED
+
+        if (elapsed >= interval) {
+          elapsed = 0
+
+          if (!isDeleting) {
+            // Typing
+            if (currentIndex < currentMessage.length) {
+              setCurrentText(currentMessage.substring(0, currentIndex + 1))
+              setCurrentIndex((prev) => prev + 1)
+            } else {
+              // Finished typing, pause then start deleting
+              setIsPaused(true)
+              pauseElapsed = 0
+              setIsDeleting(true)
+            }
+          } else {
+            // Erasing
+            if (currentIndex > 0) {
+              setCurrentText(currentMessage.substring(0, currentIndex - 1))
+              setCurrentIndex((prev) => prev - 1)
+            } else {
+              // Finished erasing, pause then move to next message
+              setIsPaused(true)
+              pauseElapsed = 0
+              setIsDeleting(false)
+            }
+          }
         }
       }
-    }, isDeleting ? 50 : 100) // Faster deletion, slower typing
-    
-    return () => clearTimeout(timeout)
-  }, [currentIndex, isDeleting, textIndex, typewriterMessages])
+
+      animationFrameId = requestAnimationFrame(tick)
+    }
+
+    animationFrameId = requestAnimationFrame(tick)
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
+    }
+  }, [currentIndex, isDeleting, textIndex, typewriterMessages, isPaused])
 
   // Animate statistics on scroll
   useEffect(() => {
@@ -408,11 +486,11 @@ const HomePage = () => {
             </p>
             <div style={ctaButtons} className="cta-buttons">
               <button 
-                onClick={() => navigate('/farmer')}
+                onClick={() => setShowFarmerSignupModal(true)}
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                title="Go to Farmer Dashboard"
+                title="Sign up as Farmer"
               >
                 <FaLeaf style={{ marginRight: '8px' }} />
                 {t('join_as_farmer') || 'Join as Farmer'}
@@ -539,8 +617,8 @@ const HomePage = () => {
                   <form onSubmit={handleEmailLogin}>
                     <div style={inputGroup}>
                       <input
-                        type="email"
-                        placeholder={t('email_placeholder')}
+                        type="text"
+                        placeholder="Email or Phone Number"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         style={inputField}
@@ -909,6 +987,16 @@ const HomePage = () => {
 
       {/* Recaptcha Container - Hidden */}
       <div id="recaptcha-container" style={{ display: 'none' }}></div>
+
+      {/* Farmer Signup Modal */}
+      <FarmerSignupModal 
+        isOpen={showFarmerSignupModal} 
+        onClose={() => setShowFarmerSignupModal(false)}
+        onSwitchToLogin={() => {
+          setShowFarmerSignupModal(false);
+          openLoginCard('farmer');
+        }}
+      />
     </div>
   )
 }
@@ -930,10 +1018,10 @@ const heroSection = {
   textAlign: 'center',
   position: 'relative',
   display: 'flex',
-  alignItems: 'center',
+  alignItems: 'flex-start', // Changed from 'center' to 'flex-start' for fixed top positioning
   justifyContent: 'center',
   overflow: 'hidden',
-  padding: '0 20px',
+  padding: '80px 20px 0 20px', // Added top padding to position content from top
 };
 
 const heroBackground = {
@@ -952,7 +1040,7 @@ const heroContent = {
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
   gap: '40px',
-  alignItems: 'center',
+  alignItems: 'start', // Changed from 'center' to 'start' to prevent vertical centering
   position: 'relative',
   zIndex: 1,
   padding: '0 20px',
@@ -964,6 +1052,8 @@ const heroText = {
   flexDirection: 'column',
   alignItems: 'flex-start',
   width: '100%',
+  position: 'relative', // Ensure positioning context
+  flexShrink: 0, // Prevent shrinking
 };
 
 const heroTitle = {
@@ -975,6 +1065,8 @@ const heroTitle = {
   alignItems: 'center',
   gap: '2px',
   fontFamily: '"Poppins", "Roboto", "Arial", sans-serif',
+  height: '70px', // Fixed height to prevent any shifting
+  lineHeight: '70px',
 };
 
 const heroTitleHighlight = {
@@ -996,20 +1088,23 @@ const heroSubtitle = {
   opacity: 1,
   fontWeight: '500',
   textShadow: '1px 1px 2px rgba(255,255,255,0.8)',
+  height: '50px', // Fixed height to prevent any shifting
+  lineHeight: '50px',
 };
 
 const heroDescription = {
   fontSize: '1.2rem',
-  marginBottom: '40px',
+  marginBottom: '0', // Remove margin, use margin on buttons instead
   color: '#000000',
   opacity: 1,
   lineHeight: 1.6,
-  height: '96px', // Fixed pixel height to prevent any movement
+  minHeight: '115px', // Fixed height to accommodate exactly 2 lines of text and prevent button jumping
+  maxHeight: '115px',
   width: '100%', // Full width to prevent horizontal movement
   overflow: 'hidden',
   textAlign: 'left',
   position: 'relative',
-  display: 'block', // Changed from flex to block
+  display: 'block',
   textShadow: '1px 1px 2px rgba(255,255,255,0.8)',
 };
 
@@ -1026,6 +1121,8 @@ const ctaButtons = {
   gap: '20px',
   justifyContent: 'flex-start',
   flexWrap: 'wrap',
+  marginTop: '40px', // Fixed margin to prevent any adjustment
+  position: 'relative', // Ensure positioning context
 };
 
 // Removed unused primaryBtn style object

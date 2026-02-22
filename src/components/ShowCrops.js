@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, getDocs } from '../firebase';
 import './ShowCrops.css';
 import { FaSearch, FaMapMarkerAlt, FaSort, FaLeaf, FaRupeeSign, FaCalendarAlt } from 'react-icons/fa';
 
@@ -33,19 +32,12 @@ const ShowCrops = ({ showAdminInfo = false }) => {
     'Chittoor'
   ];
 
-  // Fetch crops from Firestore
+  // Fetch crops from localStorage
   useEffect(() => {
     const fetchCrops = async () => {
       try {
         setLoading(true);
-        const cropsSnapshot = await getDocs(collection(db, 'crops'));
-        const cropsData = [];
-        cropsSnapshot.forEach((doc) => {
-          cropsData.push({
-            id: doc.id,
-            ...doc.data()
-          });
-        });
+        const cropsData = JSON.parse(localStorage.getItem('crops') || '[]');
         setCrops(cropsData);
         setFilteredCrops(cropsData);
       } catch (error) {

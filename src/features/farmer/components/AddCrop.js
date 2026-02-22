@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, serverTimestamp } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
-import { CROP_DICTIONARY } from '../data/cropData';
+import { CROP_DICTIONARY } from '../../../data/cropData';
 
 const AddCrop = () => {
   const navigate = useNavigate();
@@ -13,18 +11,11 @@ const AddCrop = () => {
   const [district, setDistrict] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Auto-populate location from user profile
+  // Auto-populate location (optional - can be manually filled)
   useEffect(() => {
-    const storedUserData = localStorage.getItem('mockUserData');
-    if (storedUserData) {
-      try {
-        const userData = JSON.parse(storedUserData);
-        if (userData.state) setState(userData.state);
-        if (userData.district) setDistrict(userData.district);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-      }
-    }
+    // Default test values - can be changed by user
+    setState('Telangana');
+    setDistrict('Warangal');
   }, []);
 
   // Levenshtein Distance Algorithm - Calculates similarity between two strings
@@ -116,23 +107,16 @@ const AddCrop = () => {
     setLoading(true);
 
     try {
-      // Get farmer info from localStorage
-      const storedUserData = localStorage.getItem('mockUserData');
-      let farmerId = 'farmer_' + Date.now();
-      let farmerEmail = '';
-      
-      if (storedUserData) {
-        try {
-          const userData = JSON.parse(storedUserData);
-          farmerId = userData.uid || userData.email || farmerId;
-          farmerEmail = userData.email || '';
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-        }
-      }
+      // Get current user from localStorage
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const farmerId = currentUser.uid || 'farmer_guest';
+      const farmerEmail = currentUser.email || 'guest@farm2home.com';
 
-      // Add document to Firestore
-      await addDoc(collection(db, 'crops'), {
+      console.log('📝 Adding crop with farmer ID:', farmerId);
+
+      // Create new crop object
+      const newCrop = {
+        id: 'crop_' + Date.now(),
         cropName,
         price: Number(price),
         quantity,
@@ -141,25 +125,34 @@ const AddCrop = () => {
         imageURL: getCropImage(cropName),
         farmerId: farmerId,
         farmerEmail: farmerEmail,
-        createdAt: serverTimestamp()
-      });
+        status: 'available',
+        createdAt: new Date().toISOString()
+      };
+
+      console.log('📦 Crop data to be added:', newCrop);
+
+      // Get existing crops from localStorage
+      const existingCrops = JSON.parse(localStorage.getItem('crops') || '[]');
+      existingCrops.push(newCrop);
+      localStorage.setItem('crops', JSON.stringify(existingCrops));
+      
+      console.log('✅ Crop added successfully with ID:', newCrop.id);
 
       // Success message
-      alert('Crop Added Successfully');
+      alert('✅ Crop Added Successfully!\n\nCrop ID: ' + newCrop.id);
 
       // Clear form
       setCropName('');
       setPrice('');
       setQuantity('');
-      // Don't clear location fields as they're from user profile
       
-      // Navigate to farmer dashboard/my crops
+      // Navigate to farmer dashboard
       setTimeout(() => {
         navigate('/farmer');
       }, 500);
     } catch (error) {
-      console.error('Error adding crop:', error);
-      alert('Failed to add crop. Please try again.');
+      console.error('❌ Error adding crop:', error);
+      alert('❌ Failed to add crop: ' + error.message + '\n\nCheck console for details.');
     } finally {
       setLoading(false);
     }
@@ -167,7 +160,21 @@ const AddCrop = () => {
 
   return (
     <div style={{ maxWidth: '600px', margin: '50px auto', padding: '30px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-      <h2 style={{ textAlign: 'center', color: '#28a745', marginBottom: '30px' }}>Add New Crop</h2>
+      <h2 style={{ textAlign: 'center', color: '#28a745', marginBottom: '20px' }}>Add New Crop</h2>
+      
+      {/* Test Mode Indicator */}
+      <div style={{ 
+        padding: '12px', 
+        marginBottom: '20px', 
+        borderRadius: '6px', 
+        backgroundColor: '#d1ecf1',
+        border: '1px solid #bee5eb',
+        color: '#0c5460',
+        fontSize: '14px',
+        textAlign: 'center'
+      }}>
+        <span>🌱 <strong>Add your crops</strong> to reach consumers directly</span>
+      </div>
       
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '20px' }}>
@@ -245,23 +252,15 @@ const AddCrop = () => {
             onChange={(e) => setState(e.target.value)}
             required
             placeholder="e.g., Telangana, Karnataka"
-            readOnly={!!state}
             style={{
               width: '100%',
               padding: '10px',
               fontSize: '14px',
               border: '1px solid #ccc',
               borderRadius: '4px',
-              boxSizing: 'border-box',
-              backgroundColor: state ? '#f0f0f0' : 'white',
-              cursor: state ? 'not-allowed' : 'text'
+              boxSizing: 'border-box'
             }}
           />
-          {state && (
-            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-              Location auto-filled from your profile
-            </small>
-          )}
         </div>
 
         <div style={{ marginBottom: '30px' }}>
@@ -274,23 +273,15 @@ const AddCrop = () => {
             onChange={(e) => setDistrict(e.target.value)}
             required
             placeholder="e.g., Hyderabad, Mumbai"
-            readOnly={!!district}
             style={{
               width: '100%',
               padding: '10px',
               fontSize: '14px',
               border: '1px solid #ccc',
               borderRadius: '4px',
-              boxSizing: 'border-box',
-              backgroundColor: district ? '#f0f0f0' : 'white',
-              cursor: district ? 'not-allowed' : 'text'
+              boxSizing: 'border-box'
             }}
           />
-          {district && (
-            <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-              Location auto-filled from your profile
-            </small>
-          )}
         </div>
 
         <button

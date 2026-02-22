@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, getDocs } from '../firebase';
 import './ShowCrops.css';
-import { FaSearch, FaMapMarkerAlt, FaSort, FaLeaf, FaRupeeSign, FaCalendarAlt } from 'react-icons/fa';
+import { FaSearch, FaMapMarkerAlt, FaSort, FaLeaf, FaRupeeSign, FaCalendarAlt, FaEdit, FaTrash } from 'react-icons/fa';
 
-const ShowCrops = ({ showAdminInfo = false }) => {
+const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
   const [crops, setCrops] = useState([]);
   const [filteredCrops, setFilteredCrops] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
   const [sortBy, setSortBy] = useState('default');
   const [loading, setLoading] = useState(true);
+  const [editingCrop, setEditingCrop] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   // Districts list (South Indian districts)
   const districts = [
@@ -33,30 +34,117 @@ const ShowCrops = ({ showAdminInfo = false }) => {
     'Chittoor'
   ];
 
-  // Fetch crops from Firestore
-  useEffect(() => {
-    const fetchCrops = async () => {
-      try {
-        setLoading(true);
-        const cropsSnapshot = await getDocs(collection(db, 'crops'));
-        const cropsData = [];
-        cropsSnapshot.forEach((doc) => {
-          cropsData.push({
-            id: doc.id,
-            ...doc.data()
-          });
-        });
-        setCrops(cropsData);
-        setFilteredCrops(cropsData);
-      } catch (error) {
-        console.error('Error fetching crops:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Fetch crops from localStorage
+  const fetchCrops = async () => {
+    try {
+      // Get current user from localStorage
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const farmerId = currentUser.uid || '';
+      
+      console.log('📥 Fetching crops from localStorage for farmer:', farmerId);
+      setLoading(true);
+      
+      // Get all crops from localStorage
+      const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
+      
+      // Filter crops for current farmer
+      const farmerCrops = allCrops.filter(crop => crop.farmerId === farmerId);
+      
+      // Sort by createdAt (newest first)
+      farmerCrops.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      console.log('✅ Successfully fetched', farmerCrops.length, 'crops from localStorage');
+      setCrops(farmerCrops);
+      setFilteredCrops(farmerCrops);
+    } catch (error) {
+      console.error('❌ Error fetching crops:', error);
+      alert('Error fetching crops: ' + error.message);
+      // Fallback to empty array if error
+      setCrops([]);
+      setFilteredCrops([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchCrops();
   }, []);
+
+  // Handle edit crop
+  const handleEditCrop = (crop) => {
+    setEditingCrop(crop.id);
+    setEditForm({
+      cropName: crop.cropName || '',
+      price: crop.price || '',
+      quantity: crop.quantity || '',
+      district: crop.district || '',
+      status: crop.status || 'pending'
+    });
+  };
+
+  // Handle save edit
+  const handleSaveEdit = async (cropId) => {
+    try {
+      console.log('📝 Updating crop:', cropId);
+      console.log('Updated data:', editForm);
+      
+      // Get all crops and update the specified one
+      const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
+      const updatedCrops = allCrops.map(crop => 
+        crop.id === cropId ? {
+          ...crop,
+          cropName: editForm.cropName,
+          price: Number(editForm.price),
+          quantity: editForm.quantity,
+          district: editForm.district,
+          status: editForm.status,
+          updatedAt: new Date().toISOString()
+        } : crop
+      );
+      localStorage.setItem('crops', JSON.stringify(updatedCrops));
+      
+      console.log('✅ Crop updated successfully');
+      alert('✅ Crop updated successfully!');
+      
+      setEditingCrop(null);
+      setEditForm({});
+      fetchCrops(); // Refresh the list
+    } catch (error) {
+      console.error('❌ Error updating crop:', error);
+      alert('❌ Failed to update crop: ' + error.message);
+    }
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditingCrop(null);
+    setEditForm({});
+  };
+
+  // Handle delete crop
+  const handleDeleteCrop = async (cropId, cropName) => {
+    if (!window.confirm(`Are you sure you want to delete "${cropName}"?`)) {
+      return;
+    }
+
+    try {
+      console.log('🗑️ Deleting crop:', cropId);
+      
+      // Get all crops and remove the specified one
+      const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
+      const updatedCrops = allCrops.filter(crop => crop.id !== cropId);
+      localStorage.setItem('crops', JSON.stringify(updatedCrops));
+      
+      console.log('✅ Crop deleted successfully');
+      alert('✅ Crop deleted successfully!');
+      
+      fetchCrops(); // Refresh the list
+    } catch (error) {
+      console.error('❌ Error deleting crop:', error);
+      alert('❌ Failed to delete crop: ' + error.message);
+    }
+  };
 
   // Filter and sort crops whenever filters change
   useEffect(() => {
@@ -210,9 +298,60 @@ const ShowCrops = ({ showAdminInfo = false }) => {
                     </div>
                   )}
 
-                  <button className="buy-button">
-                    Buy Now
-                  </button>
+                  {enableEdit && editingCrop === crop.id ? (
+                    <div className="edit-form" style={{ marginTop: '10px' }}>
+                      <input
+                        type="text"
+                        value={editForm.cropName}
+                        onChange={(e) => setEditForm({...editForm, cropName: e.target.value})}
+                        placeholder="Crop Name"
+                        style={{ width: '100%', padding: '5px', marginBottom: '5px', borderRadius: '3px', border: '1px solid #ddd' }}
+                      />
+                      <input
+                        type="number"
+                        value={editForm.price}
+                        onChange={(e) => setEditForm({...editForm, price: e.target.value})}
+                        placeholder="Price"
+                        style={{ width: '100%', padding: '5px', marginBottom: '5px', borderRadius: '3px', border: '1px solid #ddd' }}
+                      />
+                      <input
+                        type="text"
+                        value={editForm.quantity}
+                        onChange={(e) => setEditForm({...editForm, quantity: e.target.value})}
+                        placeholder="Quantity"
+                        style={{ width: '100%', padding: '5px', marginBottom: '5px', borderRadius: '3px', border: '1px solid #ddd' }}
+                      />
+                      <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+                        <button onClick={() => handleSaveEdit(crop.id)} style={{ flex: 1, padding: '5px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>
+                          Save
+                        </button>
+                        <button onClick={handleCancelEdit} style={{ flex: 1, padding: '5px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {enableEdit && (() => {
+                        const currentUser = JSON.parse(localStorage.getItem('mockUserData') || '{}');
+                        return currentUser.uid && crop.farmerId === currentUser.uid;
+                      })() && (
+                        <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
+                          <button onClick={() => handleEditCrop(crop)} style={{ flex: 1, padding: '8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                            <FaEdit /> Edit
+                          </button>
+                          <button onClick={() => handleDeleteCrop(crop.id, crop.cropName)} style={{ flex: 1, padding: '8px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                            <FaTrash /> Delete
+                          </button>
+                        </div>
+                      )}
+                      {!enableEdit && (
+                        <button className="buy-button">
+                          Buy Now
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

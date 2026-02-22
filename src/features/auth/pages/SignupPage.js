@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
-import { auth, db, createUserWithEmailAndPassword, doc, setDoc } from '../../../firebase';
+import { auth, db } from '../../../firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const SignupPage = () => {
   const [userType, setUserType] = useState('consumer'); // 'consumer' or 'farmer'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleBackToHome = () => {
@@ -24,31 +29,52 @@ const SignupPage = () => {
       return;
     }
 
+    if (password.length < 6) {
+      setError("Password should be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      // 1. Create user in Firebase Auth
+      // Create Firebase Auth account
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Create a user document in Firestore
-      await setDoc(doc(db, "users", user.uid), {
+      // Save user profile to Firestore
+      const userData = {
         uid: user.uid,
-        email: user.email,
+        email: email,
+        name: name || 'User',
+        phoneNumber: phone.replace(/\D/g, '') || '',
         role: userType,
-        createdAt: new Date()
-      });
+        status: 'active',
+        createdAt: serverTimestamp(),
+      };
 
-      // 3. Redirect to the correct dashboard
-      navigate(userType === 'farmer' ? '/farmer' : '/consumer');
+      await setDoc(doc(db, 'users', user.uid), userData);
+
+      // Store in localStorage for session
+      localStorage.setItem('currentUser', JSON.stringify({ ...userData, createdAt: new Date().toISOString() }));
+
+      console.log('✅ User created successfully:', userData);
+
+      // Redirect to the correct dashboard
+      navigate(userType === 'farmer' ? '/farmer-dashboard' : '/consumer');
 
     } catch (err) {
+      console.error('Signup error:', err);
       if (err.code === 'auth/email-already-in-use') {
-        setError('This email address is already in use.');
+        setError('This email is already registered. Please login instead.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters.');
       } else {
-        setError('Failed to create an account. Please try again.');
+        setError(err.message || 'Failed to create an account. Please try again.');
       }
-      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,11 +118,30 @@ const SignupPage = () => {
         <form onSubmit={handleSignup}>
           <div style={{ marginBottom: '15px' }}>
             <input
+              type="text"
+              placeholder="Full Name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
+              style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <input
+              type="tel"
+              placeholder="Phone Number (optional)"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
               style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
             />
           </div>
@@ -123,8 +168,21 @@ const SignupPage = () => {
           
           {error && <p style={{ color: 'red', textAlign: 'center', marginBottom: '15px' }}>{error}</p>}
           
-          <button type="submit" style={{ width: '100%', padding: '12px', background: '#28a745', border: 'none', borderRadius: '5px', cursor: 'pointer', color: 'white', fontSize: '16px' }}>
-            Sign Up as a {userType.charAt(0).toUpperCase() + userType.slice(1)}
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{ 
+              width: '100%', 
+              padding: '12px', 
+              background: loading ? '#666' : '#28a745', 
+              border: 'none', 
+              borderRadius: '5px', 
+              cursor: loading ? 'not-allowed' : 'pointer', 
+              color: 'white', 
+              fontSize: '16px' 
+            }}
+          >
+            {loading ? 'Creating Account...' : `Sign Up as a ${userType.charAt(0).toUpperCase() + userType.slice(1)}`}
           </button>
         </form>
         

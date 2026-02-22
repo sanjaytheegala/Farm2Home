@@ -1,12 +1,9 @@
-// firebase.js
-// Production Firebase configuration
-import { initializeApp } from 'firebase/app';
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { getAnalytics } from 'firebase/analytics';
-import { logger } from './utils/logger';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBGMtcNKYtFdSaMSiXVyHh9xMKs1N5RKL4",
   authDomain: "farm2home-4a7a2.firebaseapp.com",
@@ -21,32 +18,10 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
+// Exports for the rest of the app
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const analytics = getAnalytics(app);
+export const storage = getStorage(app);
+export const functions = getFunctions(app);
 
-// Export Firebase functions for use in components
-export {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  addDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  serverTimestamp,
-  onSnapshot
-};
-
-logger.log('Firebase.js loaded - using Cloud Firestore configuration');
-
+export default app;

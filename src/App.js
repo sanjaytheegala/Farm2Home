@@ -15,8 +15,7 @@ const HomePage = React.lazy(() => import('./features/home/pages/HomePage'));
 const FarmerDashboard = React.lazy(() => import('./features/farmer/pages/FarmerDashboard'));
 // Using new modular ConsumerDashboard
 const ConsumerDashboard = React.lazy(() => import('./features/consumer/pages/ConsumerDashboard'));
-const SignupPage = React.lazy(() => import('./features/auth/pages/SignupPage'));
-const LoginPage = React.lazy(() => import('./features/auth/pages/LoginPage'));
+const AuthPage = React.lazy(() => import('./features/auth/pages/AuthPage'));
 const AboutPage = React.lazy(() => import('./pages/AboutPage'));
 const CartPage = React.lazy(() => import('./pages/CartPage'));
 const OrdersPage = React.lazy(() => import('./pages/OrdersPage'));
@@ -118,8 +117,9 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/signup" element={<AuthPage />} />
+          <Route path="/login" element={<AuthPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/profile" element={<ProfilePage />} />
@@ -139,6 +139,10 @@ const AppContent = () => {
 
           <Route
             path="/farmer"
+            element={<FarmerDashboard />}
+          />
+          <Route
+            path="/farmer-dashboard"
             element={<FarmerDashboard />}
           />
           <Route

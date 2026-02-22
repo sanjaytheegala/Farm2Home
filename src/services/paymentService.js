@@ -12,9 +12,6 @@
  *    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
  */
 
-import { collection, addDoc, doc, updateDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase';
-
 // Razorpay Key (Test Mode - Replace with your actual key)
 const RAZORPAY_KEY_ID = process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_YOUR_KEY_ID';
 
@@ -32,23 +29,28 @@ export const loadRazorpayScript = () => {
 };
 
 /**
- * Create order in Firestore and get order ID
+ * Create order in localStorage and get order ID
  */
 export const createOrder = async (orderData) => {
   try {
     const order = {
       ...orderData,
+      id: 'order_' + Date.now(),
       status: 'pending',
       paymentStatus: 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
-    const docRef = await addDoc(collection(db, 'orders'), order);
+    // Save to localStorage
+    const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    allOrders.push(order);
+    localStorage.setItem('orders', JSON.stringify(allOrders));
+    
     return {
       success: true,
-      orderId: docRef.id,
-      order: { id: docRef.id, ...order }
+      orderId: order.id,
+      order: order
     };
   } catch (error) {
     console.error('Error creating order:', error);
@@ -61,13 +63,18 @@ export const createOrder = async (orderData) => {
  */
 export const updateOrderPayment = async (orderId, paymentData) => {
   try {
-    await updateDoc(doc(db, 'orders', orderId), {
-      paymentStatus: 'completed',
-      paymentId: paymentData.razorpay_payment_id,
-      paymentSignature: paymentData.razorpay_signature,
-      status: 'confirmed',
-      updatedAt: new Date()
-    });
+    const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    const updatedOrders = allOrders.map(order => 
+      order.id === orderId ? {
+        ...order,
+        paymentStatus: 'completed',
+        paymentId: paymentData.razorpay_payment_id,
+        paymentSignature: paymentData.razorpay_signature,
+        status: 'confirmed',
+        updatedAt: new Date().toISOString()
+      } : order
+    );
+    localStorage.setItem('orders', JSON.stringify(updatedOrders));
     return { success: true };
   } catch (error) {
     console.error('Error updating payment:', error);
@@ -86,7 +93,7 @@ export const initiatePayment = async (orderDetails, customerDetails) => {
     return { success: false, error: 'Script load failed' };
   }
 
-  // Create order in Firestore first
+  // Create order in localStorage first
   const orderResult = await createOrder({
     ...orderDetails,
     customer: customerDetails
@@ -106,12 +113,12 @@ export const initiatePayment = async (orderDetails, customerDetails) => {
     name: 'Farm2Home',
     description: orderDetails.description || 'Purchase from Farm2Home',
     image: '/logo.png', // Your logo
-    order_id: orderId, // Order ID from Firestore
+    order_id: orderId, // Order ID from localStorage
     handler: async function (response) {
       // Payment successful
       console.log('Payment successful:', response);
       
-      // Update order in Firestore
+      // Update order in localStorage
       await updateOrderPayment(orderId, response);
       
       // Call success callback if provided
@@ -178,18 +185,8 @@ export const processCODOrder = async (orderDetails, customerDetails) => {
  */
 export const getUserOrders = async (userId) => {
   try {
-    const q = query(
-      collection(db, 'orders'),
-      where('customer.userId', '==', userId)
-    );
-    const ordersSnapshot = await getDocs(q);
-    const orders = [];
-    ordersSnapshot.forEach((doc) => {
-      orders.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    const orders = allOrders.filter(order => order.customer?.userId === userId);
     return { success: true, orders };
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -202,10 +199,15 @@ export const getUserOrders = async (userId) => {
  */
 export const cancelOrder = async (orderId) => {
   try {
-    await updateDoc(doc(db, 'orders', orderId), {
-      status: 'cancelled',
-      updatedAt: new Date()
-    });
+    const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+    const updatedOrders = allOrders.map(order => 
+      order.id === orderId ? {
+        ...order,
+        status: 'cancelled',
+        updatedAt: new Date().toISOString()
+      } : order
+    );
+    localStorage.setItem('orders', JSON.stringify(updatedOrders));
     return { success: true };
   } catch (error) {
     console.error('Error cancelling order:', error);

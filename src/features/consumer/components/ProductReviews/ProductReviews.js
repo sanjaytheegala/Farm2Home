@@ -46,20 +46,18 @@ const ProductReviews = ({ productId, productName }) => {
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     
-    if (!auth.currentUser) {
+    // Check if user is logged in using localStorage
+    const currentUser = JSON.parse(localStorage.getItem('mockUserData') || '{}');
+    if (!currentUser.uid) {
       alert(t('please_login_to_review'));
-    // TODO: Uncomment when Firebase is configured
-    // if (!auth.currentUser) {
-    //   alert(t('please_login_to_review'));
-    //   return;
-    // }
+      return;
+    }
 
     setSubmitting(true);
 
     try {
-      // TODO: Uncomment when Firebase is configured
-      // const reviewData = { productId, productName, userId: auth.currentUser.uid, ...newReview };
-      // await addDoc(collection(db, 'reviews'), reviewData);
+      // Mock review submission (can be replaced with actual implementation later)
+      console.log('Review submitted:', { productId, productName, userId: currentUser.uid, ...newReview });
       
       // Reset form
       setNewReview({

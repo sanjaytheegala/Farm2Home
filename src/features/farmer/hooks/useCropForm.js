@@ -11,7 +11,6 @@ export const useCropForm = (userLocation = {}) => {
     quantity: '',
     price: '',
     status: 'available',
-    harvestDate: '',
     notes: ''
   }]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -35,7 +34,6 @@ export const useCropForm = (userLocation = {}) => {
       quantity: '',
       price: '',
       status: 'available',
-      harvestDate: '',
       notes: ''
     }]);
   };
@@ -54,7 +52,6 @@ export const useCropForm = (userLocation = {}) => {
       quantity: '',
       price: '',
       status: 'available',
-      harvestDate: '',
       notes: ''
     }]);
     setShowAddForm(false);
@@ -79,7 +76,6 @@ export const useCropForm = (userLocation = {}) => {
       quantity: row.quantity,
       price: parseFloat(row.price),
       status: row.status,
-      harvestDate: row.harvestDate,
       notes: row.notes,
       state: selectedState,
       district: selectedDistrict

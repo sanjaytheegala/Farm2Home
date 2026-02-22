@@ -3,16 +3,17 @@ import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import './Navbar.css'
-// Removed unused icons: FaUser, FaSignOutAlt, FaBars, FaTimes, FaCog, FaStore, FaHome, FaLeaf, FaSearch, FaArrowLeft, FaArrowRight
-import { FaShoppingCart, FaBoxOpen, FaBell, FaChevronLeft, FaChevronRight, FaTools, FaLeaf, FaBars, FaTimes, FaHome, FaGift, FaHistory, FaUserCircle, FaSearch } from 'react-icons/fa'
+// Removed unused icons: FaUser, FaSignOutAlt, FaBars, FaTimes, FaCog, FaStore, FaHome, FaLeaf, FaSearch, FaArrowLeft, FaArrowRight, FaBoxOpen
+import { FaShoppingCart, FaChevronLeft, FaChevronRight, FaTools, FaLeaf, FaBars, FaTimes, FaHome, FaGift, FaHistory, FaUserCircle, FaSearch, FaSignOutAlt } from 'react-icons/fa'
+import { useAuth } from '../context/AuthContext'
 
 // Pass cartCount and notificationCount as props
 const Navbar = React.memo(({ 
   showCart = false, 
-  showOrders = false, 
   cartCount = 0, 
   notifications = [],
   isConsumerDashboard = false,
+  isFarmerDashboard: isFarmerDashboardProp = false,
   activeTab = 'browse',
   onTabChange = () => {},
   onSearchClick = () => {}
@@ -20,12 +21,18 @@ const Navbar = React.memo(({
   const navigate = useNavigate()
   const location = useLocation()
   const [isScrolled, setIsScrolled] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const { t, i18n } = useTranslation();
+  const { signOut } = useAuth();
+
+  const handleLogout = useCallback(async () => {
+    try { await signOut() } catch (e) {}
+    localStorage.removeItem('currentUser')
+    navigate('/')
+  }, [signOut, navigate])
 
   // Check if we're on farmer dashboard
-  const isFarmerDashboard = location.pathname === '/farmer'
+  const isFarmerDashboard = isFarmerDashboardProp || location.pathname === '/farmer' || location.pathname === '/farmer-dashboard'
   const isConsumerPage = location.pathname === '/consumer'
 
   // Optimized scroll handler with useCallback
@@ -39,7 +46,6 @@ const Navbar = React.memo(({
   }, [handleScroll])
 
   // Optimized navigation handlers
-  const handleOrdersClick = useCallback(() => navigate('/orders'), [navigate])
   const handleCartClick = useCallback(() => navigate('/cart'), [navigate])
   const handleResourceShareClick = useCallback(() => navigate('/resource-share'), [navigate])
   // Removed ecommerce handler
@@ -57,6 +63,10 @@ const Navbar = React.memo(({
 
   const handleCropRecommendations = useCallback(() => {
     window.open('/crop-recommendations', '_blank');
+  }, []);
+
+  const handleResourceShareNewTab = useCallback(() => {
+    window.open('/resource-share', '_blank');
   }, []);
 
   const changeLanguage = useCallback((lng) => {
@@ -134,19 +144,11 @@ const Navbar = React.memo(({
                 <FaLeaf className="nav-icon" />
                 <span className="nav-text">Crop Recommendations</span>
               </button>
-              <button className="nav-item" onClick={handleResourceShareClick}>
+              <button className="nav-item" onClick={handleResourceShareNewTab}>
                 <FaTools className="nav-icon" />
-                <span className="nav-text">Resource Share</span>
+                <span className="nav-text">Resource Sharing</span>
               </button>
             </>
-          )}
-
-          {/* Common Navigation Items (only show when not on consumer page) */}
-          {!isConsumerPage && showOrders && (
-            <button className="nav-item" onClick={handleOrdersClick}>
-              <FaBoxOpen className="nav-icon" />
-              <span className="nav-text">{t('orders')}</span>
-            </button>
           )}
         </div>
 
@@ -154,37 +156,7 @@ const Navbar = React.memo(({
         <div className="navbar-right">
           {/* Search removed from homepage */}
 
-          {/* Notifications */}
-          <div className="notification-container">
-            <button 
-              className="nav-button notification-btn" 
-              onClick={() => setShowNotifications(!showNotifications)}
-              title="Notifications"
-            >
-              <FaBell />
-              {notifications.length > 0 && <span className="notification-badge">{notifications.length}</span>}
-            </button>
-            {showNotifications && (
-              <div className="notification-dropdown">
-                {notifications.length > 0 ? (
-                  notifications.map((notif, index) => (
-                    <div className="notification-item" key={index}>
-                      {/* Assuming notif object has icon, text, and time */}
-                      <span className="notification-icon">{notif.icon}</span>
-                      <div className="notification-content">
-                        <p>{notif.text}</p>
-                        <span className="notification-time">{notif.time}</span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="notification-item">
-                    <p>No new notifications.</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+
 
           {/* Language Selector */}
           <div className="language-container">
@@ -203,6 +175,17 @@ const Navbar = React.memo(({
               <option value="kn">ಕನ್ನಡ</option>
             </select>
           </div>
+
+          {/* Logout Button — farmer dashboard only */}
+          {isFarmerDashboard && (
+            <button
+              className="navbar-logout-btn"
+              onClick={handleLogout}
+              title="Logout"
+            >
+              <FaSignOutAlt />
+            </button>
+          )}
 
           {/* Mobile Menu Toggle */}
           <button 
@@ -249,9 +232,13 @@ const Navbar = React.memo(({
                 <FaLeaf className="nav-icon" />
                 <span>Crop Recommendations</span>
               </button>
-              <button className="mobile-menu-item" onClick={() => { handleResourceShareClick(); setShowMobileMenu(false); }}>
+              <button className="mobile-menu-item" onClick={() => { handleResourceShareNewTab(); setShowMobileMenu(false); }}>
                 <FaTools className="nav-icon" />
                 <span>Resource Share</span>
+              </button>
+              <button className="mobile-menu-item mobile-menu-item--logout" onClick={() => { handleLogout(); setShowMobileMenu(false); }}>
+                <FaSignOutAlt className="nav-icon" />
+                <span>Logout</span>
               </button>
             </>
           )}

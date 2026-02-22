@@ -386,18 +386,13 @@ Generated on: ${new Date().toLocaleDateString()}
         </button>
         <div style={header}>
           <FaSeedling style={{ fontSize: 32, color: '#fff', marginRight: 12, filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.5))' }} />
-          <h1 style={title}>{t('ai_crop_recommendations') || 'AI Crop Recommendations'}</h1>
+          <h1 style={title}>{t('crop_recommendations') || 'Crop Recommendations'}</h1>
         </div>
         <button onClick={() => navigate(1)} style={navButton}>
           {t('forward') || 'Forward'}
           <FaChevronRight style={{ marginLeft: '8px' }} />
         </button>
       </div>
-      
-      <p style={description}>
-        {t('crop_recommendation_description') || 
-         'Get personalized crop recommendations based on your soil type, climate, season, and farming experience. Our AI analyzes multiple factors to suggest the most profitable and suitable crops for your farm.'}
-      </p>
 
       {/* Navigation Tabs */}
       <div style={tabContainer}>
