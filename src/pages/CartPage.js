@@ -193,7 +193,10 @@ const CartPage = () => {
               <strong>{t('total') || 'Total'}:</strong>
               <strong>₹{calculateGrandTotal().toFixed(2)}</strong>
             </div>
-            <button onClick={proceedToAddress} style={checkoutBtn}>
+            <button
+              onClick={() => navigate('/checkout', { state: { items: cartItems } })}
+              style={checkoutBtn}
+            >
               {t('proceed_checkout') || 'Proceed to Checkout'}
             </button>
           </div>

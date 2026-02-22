@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
+import { auth, db } from '../firebase'
 import Navbar from '../components/Navbar'
 import { FaBox, FaTruck, FaCheckCircle, FaClock, FaMapMarkerAlt, FaPhone, FaCalendar } from 'react-icons/fa'
 
@@ -15,15 +17,26 @@ const OrdersPage = () => {
 
   const fetchOrders = async () => {
     try {
-      // Load orders from localStorage
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
-      
-      // Sort by timestamp descending
-      const sortedOrders = orders
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .map((order, index) => ({ id: `order-${index}`, ...order }))
-      
-      setOrders(sortedOrders)
+      const user = auth.currentUser
+      if (!user) {
+        setOrders([])
+        setLoading(false)
+        return
+      }
+
+      const q = query(
+        collection(db, 'orders'),
+        where('customerId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      )
+      const snapshot = await getDocs(q)
+      const fetchedOrders = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Normalise Firestore Timestamp → JS Date
+        createdAtMs: doc.data().createdAt?.toMillis?.() || Date.now(),
+      }))
+      setOrders(fetchedOrders)
       setLoading(false)
     } catch (error) {
       console.error('Error fetching orders:', error)
@@ -46,61 +59,43 @@ const OrdersPage = () => {
     }
   }
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return ''
-    const date = new Date(timestamp)
-    return date.toLocaleDateString('en-IN', { 
-      day: 'numeric', 
-      month: 'short', 
-      year: 'numeric' 
-    })
+  const formatDate = (ms) => {
+    if (!ms) return ''
+    return new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
-  const formatTime = (timestamp) => {
-    if (!timestamp) return ''
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString('en-IN', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    })
+  const formatTime = (ms) => {
+    if (!ms) return ''
+    return new Date(ms).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
   }
 
   const OrderCard = ({ order }) => {
     const statusInfo = getStatusInfo(order.status)
-    
+
     return (
       <div style={orderCard} onClick={() => setSelectedOrder(order)}>
         <div style={orderHeader}>
           <div>
-            <h3 style={orderId}>{t('order') || 'Order'} #{order.orderId}</h3>
+            <h3 style={orderId}>{t('order') || 'Order'} #{order.id.slice(0, 8).toUpperCase()}</h3>
             <p style={orderDate}>
-              <FaCalendar /> {formatDate(order.timestamp)} at {formatTime(order.timestamp)}
+              <FaCalendar /> {formatDate(order.createdAtMs)} at {formatTime(order.createdAtMs)}
             </p>
           </div>
-          <div style={{...statusBadge, backgroundColor: statusInfo.color + '20', color: statusInfo.color}}>
+          <div style={{ ...statusBadge, backgroundColor: statusInfo.color + '20', color: statusInfo.color }}>
             {statusInfo.icon} {statusInfo.text}
           </div>
         </div>
 
         <div style={orderItems}>
-          {order.items && order.items.slice(0, 2).map((item, idx) => (
-            <div key={idx} style={itemRow}>
-              <span>{item.crop} ({item.quantity} kg)</span>
-              <span>₹{(parseFloat(item.price) * parseInt(item.quantity || 1)).toFixed(2)}</span>
-            </div>
-          ))}
-          {order.items && order.items.length > 2 && (
-            <p style={moreItems}>+{order.items.length - 2} {t('more_items') || 'more items'}</p>
-          )}
+          <div style={itemRow}>
+            <span>{order.cropName || 'Product'} ({order.quantity} kg)</span>
+            <span>₹{parseFloat(order.totalAmount || 0).toFixed(2)}</span>
+          </div>
         </div>
 
         <div style={orderFooter}>
-          <div>
-            <strong>{t('total') || 'Total'}: ₹{order.totalAmount?.toFixed(2) || 0}</strong>
-          </div>
-          <button style={viewDetailsBtn}>
-            {t('view_details') || 'View Details'}
-          </button>
+          <strong>{t('total') || 'Total'}: ₹{parseFloat(order.totalAmount || 0).toFixed(2)}</strong>
+          <button style={viewDetailsBtn}>{t('view_details') || 'View Details'}</button>
         </div>
       </div>
     )
@@ -123,7 +118,7 @@ const OrdersPage = () => {
                 <div style={trackingIcon(true)}><FaCheckCircle /></div>
                 <div>
                   <p style={trackingLabel}>{t('order_placed') || 'Order Placed'}</p>
-                  <p style={trackingTime}>{formatDate(order.timestamp)}</p>
+                  <p style={trackingTime}>{formatDate(order.createdAtMs)}</p>
                 </div>
               </div>
               
@@ -133,7 +128,7 @@ const OrdersPage = () => {
                 <div style={trackingIcon(order.status !== 'pending')}><FaCheckCircle /></div>
                 <div>
                   <p style={trackingLabel}>{t('confirmed') || 'Confirmed'}</p>
-                  <p style={trackingTime}>{order.status !== 'pending' ? formatDate(order.timestamp) : '-'}</p>
+                  <p style={trackingTime}>{order.status !== 'pending' ? formatDate(order.createdAtMs) : '-'}</p>
                 </div>
               </div>
               
@@ -143,7 +138,7 @@ const OrdersPage = () => {
                 <div style={trackingIcon(['shipped', 'delivered'].includes(order.status))}><FaTruck /></div>
                 <div>
                   <p style={trackingLabel}>{t('shipped') || 'Shipped'}</p>
-                  <p style={trackingTime}>{['shipped', 'delivered'].includes(order.status) ? formatDate(order.timestamp) : '-'}</p>
+                  <p style={trackingTime}>{['shipped', 'delivered'].includes(order.status) ? formatDate(order.createdAtMs) : '-'}</p>
                 </div>
               </div>
               
@@ -153,33 +148,31 @@ const OrdersPage = () => {
                 <div style={trackingIcon(order.status === 'delivered')}><FaCheckCircle /></div>
                 <div>
                   <p style={trackingLabel}>{t('delivered') || 'Delivered'}</p>
-                  <p style={trackingTime}>{order.status === 'delivered' ? formatDate(order.timestamp) : '-'}</p>
+                  <p style={trackingTime}>{order.status === 'delivered' ? formatDate(order.createdAtMs) : '-'}</p>
                 </div>
               </div>
             </div>
           </div>
 
           <div style={detailsSection}>
-            <h3>{t('items') || 'Items'} ({order.items?.length || 0})</h3>
-            {order.items?.map((item, idx) => (
-              <div key={idx} style={detailItem}>
-                <div>
-                  <p style={itemName}>{item.crop}</p>
-                  <p style={itemQty}>{item.quantity} kg × ₹{item.price}</p>
-                </div>
-                <p style={itemTotal}>₹{(parseFloat(item.price) * parseInt(item.quantity || 1)).toFixed(2)}</p>
+            <h3>{t('items') || 'Item'}</h3>
+            <div style={detailItem}>
+              <div>
+                <p style={itemName}>{order.cropName || 'Product'}</p>
+                <p style={itemQty}>{order.quantity} kg</p>
               </div>
-            ))}
+              <p style={itemTotal}>₹{parseFloat(order.totalAmount || 0).toFixed(2)}</p>
+            </div>
           </div>
 
           <div style={detailsSection}>
             <h3><FaMapMarkerAlt /> {t('delivery_address') || 'Delivery Address'}</h3>
-            {order.deliveryAddress && (
+            {order.shippingAddress && (
               <div style={addressBox}>
-                <p><strong>{order.deliveryAddress.fullName}</strong></p>
-                <p><FaPhone /> {order.deliveryAddress.phone}</p>
-                <p>{order.deliveryAddress.addressLine}</p>
-                <p>{order.deliveryAddress.city}, {order.deliveryAddress.state} - {order.deliveryAddress.pincode}</p>
+                <p><strong>{order.shippingAddress.fullName}</strong></p>
+                <p><FaPhone /> {order.shippingAddress.phone}</p>
+                <p>{order.shippingAddress.street}</p>
+                <p>{order.shippingAddress.city} - {order.shippingAddress.pincode}</p>
               </div>
             )}
           </div>
@@ -187,31 +180,16 @@ const OrdersPage = () => {
           <div style={detailsSection}>
             <h3>{t('payment_summary') || 'Payment Summary'}</h3>
             <div style={summaryBox}>
-              <div style={summaryRow}>
-                <span>{t('subtotal') || 'Subtotal'}:</span>
-                <span>₹{((order.totalAmount || 0) - (order.deliveryCharge || 0)).toFixed(2)}</span>
-              </div>
-              <div style={summaryRow}>
-                <span>{t('delivery') || 'Delivery Charge'}:</span>
-                <span>₹{order.deliveryCharge?.toFixed(2) || 0}</span>
-              </div>
-              <div style={{...summaryRow, ...summaryTotal}}>
+              <div style={{ ...summaryRow, ...summaryTotal }}>
                 <strong>{t('total') || 'Total'}:</strong>
-                <strong>₹{order.totalAmount?.toFixed(2) || 0}</strong>
+                <strong>₹{parseFloat(order.totalAmount || 0).toFixed(2)}</strong>
               </div>
               <div style={paymentMethodBox}>
                 <span>{t('payment_method') || 'Payment Method'}:</span>
-                <span style={paymentBadge}>{order.paymentMethod?.toUpperCase() || 'COD'}</span>
+                <span style={paymentBadge}>COD</span>
               </div>
             </div>
           </div>
-
-          {order.otp && (
-            <div style={otpBox}>
-              <p><strong>{t('delivery_otp') || 'Delivery OTP'}:</strong> {order.otp}</p>
-              <p style={otpNote}>{t('share_otp') || 'Share this OTP with delivery person'}</p>
-            </div>
-          )}
         </div>
       </div>
     )

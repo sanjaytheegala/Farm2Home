@@ -21,6 +21,7 @@ const OrdersPage = React.lazy(() => import('./pages/OrdersPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ResourceSharePage = React.lazy(() => import('./pages/ResourceSharePage'));
 const CropRecommendationPage = React.lazy(() => import('./pages/CropRecommendationPage'));
+const OrderCheckout = React.lazy(() => import('./pages/OrderCheckout'));
 
 // Loading component
 const PageLoader = () => (
@@ -122,6 +123,14 @@ const AppContent = () => {
           <Route path="/login" element={<Navigate to="/" state={{ openModal: true, role: 'consumer' }} replace />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute allowedRoles={['consumer']}>
+                <OrderCheckout />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/profile" element={<ProfilePage />} />
           {/* Removed ecommerce route */}
           <Route path="/crop-recommendations" element={<CropRecommendationPage />} />

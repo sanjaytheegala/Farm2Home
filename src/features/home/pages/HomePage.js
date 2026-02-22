@@ -798,15 +798,7 @@ const HomePage = () => {
               </div>
             )}
 
-            <div style={loginCardFeatures}>
-              {selectedRole === 'consumer' && (
-                <>
-                  <div style={featureItem}>✓ {t('fresh_produce_farms')}</div>
-                  <div style={featureItem}>✓ {t('direct_pricing')}</div>
-                  <div style={featureItem}>✓ {t('support_agriculture')}</div>
-                </>
-              )}
-            </div>
+
           </div>
         </div>
       )}
