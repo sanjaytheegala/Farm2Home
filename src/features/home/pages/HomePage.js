@@ -739,6 +739,7 @@ const HomePage = () => {
                     )}
                   </div>
                 ) : (
+                  <>
                   <form onSubmit={handleEmailLogin}>
                     <div style={inputGroup}>
                       <input
@@ -793,6 +794,7 @@ const HomePage = () => {
                   >
                     Forgot Password?
                   </button>
+                  </>
                 )}
               </div>
             ) : !showForgotPassword ? (
