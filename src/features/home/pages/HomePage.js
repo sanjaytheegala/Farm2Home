@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
 import './HomePage.css'
@@ -20,6 +20,7 @@ import { doc, getDoc } from 'firebase/firestore'
 const HomePage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentUser, userData } = useAuth()
   const [hoveredCard, setHoveredCard] = useState(null)
   const [showLoginCard, setShowLoginCard] = useState(false)
@@ -308,6 +309,16 @@ const HomePage = () => {
   const handleRoleSelect = (role) => {
     openLoginCard(role);
   }
+
+  // Auto-open login modal when redirected from a ProtectedRoute
+  useEffect(() => {
+    if (location.state?.openModal) {
+      openLoginCard(location.state.role || 'consumer');
+      // Clear the state so refreshing doesn’t re-open the modal
+      window.history.replaceState({}, document.title);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Add CSS animation for cursor blinking
   useEffect(() => {

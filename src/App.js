@@ -1,6 +1,6 @@
 // App.js
 import React, { Suspense, useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
@@ -15,7 +15,6 @@ const HomePage = React.lazy(() => import('./features/home/pages/HomePage'));
 const FarmerDashboard = React.lazy(() => import('./features/farmer/pages/FarmerDashboard'));
 // Using new modular ConsumerDashboard
 const ConsumerDashboard = React.lazy(() => import('./features/consumer/pages/ConsumerDashboard'));
-const AuthPage = React.lazy(() => import('./features/auth/pages/AuthPage'));
 const AboutPage = React.lazy(() => import('./pages/AboutPage'));
 const CartPage = React.lazy(() => import('./pages/CartPage'));
 const OrdersPage = React.lazy(() => import('./pages/OrdersPage'));
@@ -117,9 +116,10 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/signup" element={<AuthPage />} />
-          <Route path="/login" element={<AuthPage />} />
+          {/* /login, /signup, /auth removed — auth is handled via modal on the homepage */}
+          <Route path="/auth" element={<Navigate to="/" replace />} />
+          <Route path="/signup" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<Navigate to="/" state={{ openModal: true, role: 'consumer' }} replace />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/profile" element={<ProfilePage />} />

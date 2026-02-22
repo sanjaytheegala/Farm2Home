@@ -6,8 +6,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userData } = useAuth();
 
   if (!currentUser) {
-    // User not logged in, redirect to login page
-    return <Navigate to="/login" />;
+    // Not logged in — go home and auto-open the login modal
+    const role = allowedRoles?.[0] || 'consumer';
+    return <Navigate to="/" state={{ openModal: true, role }} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(userData?.role)) {

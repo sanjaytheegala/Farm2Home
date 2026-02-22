@@ -187,7 +187,7 @@ const SignupPage = () => {
         </form>
         
         <p style={{ textAlign: 'center', marginTop: '20px' }}>
-          Already have an account? <Link to="/login" style={{ color: '#28a745', textDecoration: 'none' }}>Login</Link>
+          Already have an account? <Link to="/" style={{ color: '#28a745', textDecoration: 'none' }}>Login</Link>
         </p>
       </div>
     </div>

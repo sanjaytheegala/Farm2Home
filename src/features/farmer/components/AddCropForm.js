@@ -97,8 +97,8 @@ const AddCropForm = () => {
 
     // Check if user is authenticated using Firebase Auth directly
     if (!authenticatedUser) {
-      setError('Please log in first to add crops. Go to Login page and sign in with your account.');
-      setTimeout(() => navigate('/login'), 2000);
+      setError('Please log in first to add crops.');
+      setTimeout(() => navigate('/', { state: { openModal: true, role: 'farmer' } }), 2000);
       return;
     }
 

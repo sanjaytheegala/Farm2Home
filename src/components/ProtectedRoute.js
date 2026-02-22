@@ -6,15 +6,15 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userData } = useAuth();
 
   if (!currentUser) {
-    // User not logged in, redirect to login page
-    return <Navigate to="/login" />;
+    // Not logged in — go home and auto-open the login modal for the required role
+    const role = allowedRoles?.[0] || 'consumer';
+    return <Navigate to="/" state={{ openModal: true, role }} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(userData?.role)) {
-    // User is logged in, but does not have the required role
-    // Redirect them to a page they do have access to (e.g., home or their dashboard)
-    // Or show an 'Unauthorized' page
-    return <Navigate to="/" />; 
+    // Wrong role — send to their own dashboard
+    const dest = userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer';
+    return <Navigate to={dest} replace />;
   }
 
   return children;
