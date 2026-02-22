@@ -20,7 +20,15 @@ export const AuthProvider = ({ children }) => {
       if (user) {
         try {
           const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
+          let userDoc = await getDoc(userDocRef);
+
+          // Race condition: signup writes the Firestore doc AFTER Firebase Auth
+          // fires onAuthStateChanged. Retry once after a short delay so we always
+          // get the full profile (with role) instead of falling back to basic data.
+          if (!userDoc.exists()) {
+            await new Promise((r) => setTimeout(r, 1500));
+            userDoc = await getDoc(userDocRef);
+          }
 
           if (userDoc.exists()) {
             const fullUserData = { uid: user.uid, email: user.email, displayName: user.displayName, ...userDoc.data() };
