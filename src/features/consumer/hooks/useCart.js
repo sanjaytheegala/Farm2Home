@@ -1,87 +1,125 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { auth, db } from '../../../firebase';
+import {
+  collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDocs,
+} from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 /**
- * Custom hook to manage shopping cart functionality
- * Handles cart items, localStorage persistence, and cart operations
+ * useCart — Firestore-backed cart (/users/{uid}/cart/{productId}).
+ * Falls back to localStorage when the user is signed out so guest browsing
+ * still works. On sign-in the localStorage cart is merged into Firestore.
  */
+const LOCAL_KEY = 'cart';
+
+const localGet = () => {
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch { return []; }
+};
+
 export const useCart = () => {
   const [cartItems, setCartItems] = useState([]);
+  const [uid, setUid] = useState(null);
 
-  // Load cart from localStorage on mount
+  /* ── Watch auth state ── */
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem('cart')) || [];
-    setCartItems(savedCart);
+    const unsub = onAuthStateChanged(auth, (user) => setUid(user?.uid || null));
+    return () => unsub();
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  /* ── Firestore real-time listener (signed-in) ── */
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-    // Dispatch custom event to notify other components (like Navbar) about cart updates
-    window.dispatchEvent(new Event('cartUpdated'));
-  }, [cartItems]);
-
-  // Add item to cart
-  const addToCart = (product, quantity = 1) => {
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
-      
-      if (existingItem) {
-        // Update quantity if item already exists
-        return prevItems.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      } else {
-        // Add new item
-        return [...prevItems, { ...product, quantity }];
-      }
-    });
-  };
-
-  // Remove item from cart
-  const removeFromCart = (productId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
-  };
-
-  // Update item quantity
-  const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
+    if (!uid) {
+      // Signed-out: use localStorage
+      setCartItems(localGet());
       return;
     }
 
-    setCartItems(prevItems =>
-      prevItems.map(item =>
-        item.id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      )
-    );
-  };
+    const cartRef = collection(db, 'users', uid, 'cart');
+    const unsub = onSnapshot(cartRef, (snap) => {
+      const items = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+      setCartItems(items);
+      // Keep localStorage in sync for Navbar badge (no auth needed there)
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
+      window.dispatchEvent(new Event('cartUpdated'));
+    });
 
-  // Clear entire cart
-  const clearCart = () => {
-    setCartItems([]);
-    localStorage.removeItem('cart');
-  };
+    // Migrate any existing localStorage cart into Firestore on first sign-in
+    const pending = localGet();
+    if (pending.length > 0) {
+      const batch = writeBatch(db);
+      pending.forEach(item => {
+        const ref = doc(db, 'users', uid, 'cart', item.id);
+        batch.set(ref, item, { merge: true });
+      });
+      batch.commit().then(() => localStorage.removeItem(LOCAL_KEY)).catch(() => {});
+    }
 
-  // Get total price
-  const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => {
-      return total + (item.pricePerKg * item.quantity);
-    }, 0);
-  };
+    return () => unsub();
+  }, [uid]);
 
-  // Get total items count
-  const getTotalItems = () => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
-  };
+  /* ── Helpers ── */
+  const cartRef = (productId) => uid ? doc(db, 'users', uid, 'cart', productId) : null;
 
-  // Check if item is in cart
-  const isInCart = (productId) => {
-    return cartItems.some(item => item.id === productId);
-  };
+  const addToCart = useCallback(async (product, quantity = 1) => {
+    if (!uid) {
+      // Guest: localStorage only
+      const items = localGet();
+      const idx = items.findIndex(i => i.id === product.id);
+      if (idx >= 0) items[idx].quantity += quantity;
+      else items.push({ ...product, quantity });
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
+      setCartItems([...items]);
+      window.dispatchEvent(new Event('cartUpdated'));
+      return;
+    }
+    const existing = cartItems.find(i => i.id === product.id);
+    const newQty = (existing?.quantity || 0) + quantity;
+    await setDoc(cartRef(product.id), { ...product, quantity: newQty }, { merge: true });
+  }, [uid, cartItems]);
+
+  const removeFromCart = useCallback(async (productId) => {
+    if (!uid) {
+      const items = localGet().filter(i => i.id !== productId);
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
+      setCartItems(items);
+      window.dispatchEvent(new Event('cartUpdated'));
+      return;
+    }
+    await deleteDoc(cartRef(productId));
+  }, [uid]);
+
+  const updateQuantity = useCallback(async (productId, newQuantity) => {
+    if (newQuantity <= 0) { removeFromCart(productId); return; }
+    if (!uid) {
+      const items = localGet().map(i => i.id === productId ? { ...i, quantity: newQuantity } : i);
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
+      setCartItems(items);
+      window.dispatchEvent(new Event('cartUpdated'));
+      return;
+    }
+    await setDoc(cartRef(productId), { quantity: newQuantity }, { merge: true });
+  }, [uid, removeFromCart]);
+
+  const clearCart = useCallback(async () => {
+    if (!uid) {
+      localStorage.removeItem(LOCAL_KEY);
+      setCartItems([]);
+      window.dispatchEvent(new Event('cartUpdated'));
+      return;
+    }
+    const snap = await getDocs(collection(db, 'users', uid, 'cart'));
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  }, [uid]);
+
+  const getTotalPrice = () =>
+    cartItems.reduce((t, i) => t + ((i.pricePerKg || i.price || 0) * i.quantity), 0);
+
+  const getTotalItems = () =>
+    cartItems.reduce((t, i) => t + i.quantity, 0);
+
+  const isInCart = (productId) => cartItems.some(i => i.id === productId);
 
   return {
     cartItems,
@@ -91,6 +129,6 @@ export const useCart = () => {
     clearCart,
     getTotalPrice,
     getTotalItems,
-    isInCart
+    isInCart,
   };
 };

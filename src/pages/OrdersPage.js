@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 import Navbar from '../components/Navbar'
 import { logger } from '../utils/logger'
@@ -15,37 +15,39 @@ const OrdersPage = () => {
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
-
-  const fetchOrders = async () => {
-    try {
-      const user = auth.currentUser
-      if (!user) {
-        setOrders([])
-        setLoading(false)
-        return
-      }
-
-      const q = query(
-        collection(db, 'orders'),
-        where('customerId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      )
-      const snapshot = await getDocs(q)
-      const fetchedOrders = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        // Normalise Firestore Timestamp → JS Date
-        createdAtMs: doc.data().createdAt?.toMillis?.() || Date.now(),
-      }))
-      setOrders(fetchedOrders)
+    const user = auth.currentUser
+    if (!user) {
+      setOrders([])
       setLoading(false)
-    } catch (error) {
-      logger.error('Error fetching orders:', error)
-      setLoading(false)
+      return
     }
-  }
+
+    const q = query(
+      collection(db, 'orders'),
+      where('customerId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    )
+
+    // Real-time listener — list updates instantly when farmer changes order status
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedOrders = snapshot.docs.map(d => ({
+          id: d.id,
+          ...d.data(),
+          createdAtMs: d.data().createdAt?.toMillis?.() || Date.now(),
+        }))
+        setOrders(fetchedOrders)
+        setLoading(false)
+      },
+      (error) => {
+        logger.error('Error fetching orders:', error)
+        setLoading(false)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [])
 
   const getStatusInfo = (status) => {
     switch (status) {
