@@ -55,9 +55,18 @@ export const useOrders = () => {
     return () => unsubscribe();
   }, []);
 
-  const updateOrderStatus = useCallback(async (orderId, newStatus) => {
+  const updateOrderStatus = useCallback(async (orderId, newStatus, farmerId) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), { status: newStatus });
+      const user = auth.currentUser;
+      if (!user) return { success: false, error: 'Not authenticated' };
+      // Safety: ensure the order belongs to the signed-in farmer
+      if (farmerId && farmerId !== user.uid) {
+        return { success: false, error: 'Unauthorized: this order does not belong to you.' };
+      }
+      await updateDoc(doc(db, 'orders', orderId), {
+        status: newStatus,
+        updatedAt: new Date(),
+      });
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };

@@ -5,6 +5,7 @@ import { useCrops } from '../hooks/useCrops'
 import { useCropForm } from '../hooks/useCropForm'
 import { useOrders } from '../hooks/useOrders'
 import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
 import './FarmerDashboard.css'
 
 import {
@@ -72,6 +73,7 @@ const FarmerDashboard = () => {
 
   const { savedCrops, loading, analytics, addCrop, deleteCrop, updateCropStatus } = useCrops()
   const { orders, loading: ordersLoading, updateOrderStatus } = useOrders()
+  const { success: toastSuccess, error: toastError } = useToast()
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const {
@@ -603,9 +605,14 @@ const FarmerDashboard = () => {
                             disabled={statusUpdating}
                             onClick={async () => {
                               setStatusUpdating(true)
-                              await updateOrderStatus(order.id, statusCfg.next)
+                              const result = await updateOrderStatus(order.id, statusCfg.next, order.farmerId)
                               setStatusUpdating(false)
-                              setSelectedOrder(prev => prev ? { ...prev, status: statusCfg.next } : null)
+                              if (result.success) {
+                                toastSuccess(`Order marked as ${statusCfg.next}!`)
+                                setSelectedOrder(prev => prev ? { ...prev, status: statusCfg.next } : null)
+                              } else {
+                                toastError(result.error || 'Failed to update order status')
+                              }
                             }}
                           >
                             {statusUpdating ? 'Updating…' : statusCfg.nextLabel}
