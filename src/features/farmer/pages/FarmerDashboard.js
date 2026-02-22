@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '../../../components/Navbar'
 import { useCrops } from '../hooks/useCrops'
 import { useCropForm } from '../hooks/useCropForm'
+import { useOrders } from '../hooks/useOrders'
 import { useAuth } from '../../../context/AuthContext'
 import './FarmerDashboard.css'
 
 import {
   FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave,
   FaTruck, FaMoneyBillWave, FaCalendarAlt, FaBell, FaShoppingBag,
-  FaMapMarkerAlt, FaSeedling, FaTimes, FaCheckCircle, FaClock, FaTag, FaSearch
+  FaMapMarkerAlt, FaSeedling, FaTimes, FaCheckCircle, FaClock, FaTag, FaSearch, FaPhone
 } from 'react-icons/fa'
 import { findCropByKeyword, CROP_DICTIONARY } from '../../../data/cropData'
 
@@ -70,6 +71,9 @@ const FarmerDashboard = () => {
   }, [currentUser, userData, navigate])
 
   const { savedCrops, loading, analytics, addCrop, deleteCrop, updateCropStatus } = useCrops()
+  const { orders, loading: ordersLoading, updateOrderStatus } = useOrders()
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [statusUpdating, setStatusUpdating] = useState(false)
   const {
     rows, showAddForm, selectedState, selectedDistrict,
     setShowAddForm, setSelectedState, setSelectedDistrict,
@@ -495,13 +499,128 @@ const FarmerDashboard = () => {
         <div className="fd-content">
           <h2 className="fd-content-title">
             <FaShoppingBag style={{ color: '#6a1b9a', marginRight: 8 }} />
-            Orders
+            Incoming Orders
+            {orders.length > 0 && (
+              <span className="fd-orders-badge">{orders.length}</span>
+            )}
           </h2>
-          <div className="fd-empty">
-            <div className="fd-empty-icon">📦</div>
-            <h3 className="fd-empty-title">No orders yet</h3>
-            <p className="fd-empty-sub">Orders from customers will appear here once they purchase your crops. Keep your listings active!</p>
-          </div>
+
+          {ordersLoading ? (
+            <div className="fd-empty">
+              <div className="fd-empty-icon">⏳</div>
+              <h3 className="fd-empty-title">Loading orders…</h3>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="fd-empty">
+              <div className="fd-empty-icon">📦</div>
+              <h3 className="fd-empty-title">No orders yet</h3>
+              <p className="fd-empty-sub">Orders from customers will appear here once they purchase your crops.</p>
+            </div>
+          ) : (
+            <div className="fd-orders-list">
+              {orders.map(order => {
+                const statusCfg = {
+                  pending:   { label: 'Pending',        color: '#f59e0b', bg: '#fef3c7', next: 'confirmed',  nextLabel: '✓ Confirm Order' },
+                  confirmed: { label: 'Admin Confirmed',color: '#16a34a', bg: '#dcfce7', next: 'shipped',    nextLabel: '🚚 Mark Shipped' },
+                  shipped:   { label: 'Shipped',         color: '#0891b2', bg: '#cffafe', next: 'delivered',  nextLabel: '✅ Mark Delivered' },
+                  delivered: { label: 'Delivered',       color: '#16a34a', bg: '#dcfce7', next: null,         nextLabel: null },
+                }[order.status] || { label: order.status, color: '#999', bg: '#f3f4f6', next: null, nextLabel: null }
+
+                const addr = order.shippingAddress || {}
+                const date = order.createdAtMs ? new Date(order.createdAtMs).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+
+                return (
+                  <div key={order.id} className={`fd-order-card ${selectedOrder?.id === order.id ? 'fd-order-card--open' : ''}`} style={{ borderLeftColor: statusCfg.color }}>
+                    {/* ── Card Header (always visible) ── */}
+                    <div className="fd-order-header" onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}>
+                      <div className="fd-order-meta">
+                        <span className="fd-order-id">#{order.id.slice(0, 8).toUpperCase()}</span>
+                        <span className="fd-order-date">{date}</span>
+                      </div>
+                      <div className="fd-order-summary">
+                        <span className="fd-order-crop">{order.cropName || 'Crop'}</span>
+                        <span className="fd-order-qty">{order.quantity} {order.unit || 'kg'}</span>
+                      </div>
+                      <div className="fd-order-right">
+                        <span className="fd-order-amount">₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</span>
+                        <span className="fd-order-status-pill" style={{ color: statusCfg.color, background: statusCfg.bg }}>
+                          {statusCfg.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* ── Expanded Detail Panel ── */}
+                    {selectedOrder?.id === order.id && (
+                      <div className="fd-order-detail">
+                        <div className="fd-order-detail-grid">
+                          {/* Customer info */}
+                          <div className="fd-order-section">
+                            <h4 className="fd-order-section-title">👤 Customer</h4>
+                            <p className="fd-order-info-line"><strong>{addr.fullName || '—'}</strong></p>
+                            <p className="fd-order-info-line"><FaPhone style={{ marginRight: 6, color: '#6b7280' }} />{addr.phone || '—'}</p>
+                          </div>
+
+                          {/* Delivery address */}
+                          <div className="fd-order-section">
+                            <h4 className="fd-order-section-title"><FaMapMarkerAlt style={{ marginRight: 4 }} /> Delivery Address</h4>
+                            <p className="fd-order-info-line">{addr.area || addr.street || '—'}</p>
+                            <p className="fd-order-info-line">{addr.city}{addr.pincode ? ` – ${addr.pincode}` : ''}</p>
+                          </div>
+
+                          {/* Order details */}
+                          <div className="fd-order-section">
+                            <h4 className="fd-order-section-title">🌾 Crop Details</h4>
+                            <p className="fd-order-info-line">{order.cropName} × {order.quantity} {order.unit || 'kg'}</p>
+                            <p className="fd-order-info-line">₹{order.pricePerKg || order.price || '—'}/kg</p>
+                            <p className="fd-order-info-line"><strong>Total: ₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</strong></p>
+                            <p className="fd-order-info-line">Payment: <strong>COD</strong></p>
+                          </div>
+                        </div>
+
+                        {/* ── Status progress bar ── */}
+                        <div className="fd-order-progress">
+                          {['pending', 'confirmed', 'shipped', 'delivered'].map((step, i) => {
+                            const steps = ['pending', 'confirmed', 'shipped', 'delivered']
+                            const currentIdx = steps.indexOf(order.status)
+                            const stepIdx = i
+                            const isDone = stepIdx <= currentIdx
+                            const isCurrent = stepIdx === currentIdx
+                            const labels = ['Pending', 'Confirmed', 'Shipped', 'Delivered']
+                            return (
+                              <div key={step} className={`fd-progress-step ${isDone ? 'fd-progress-step--done' : ''} ${isCurrent ? 'fd-progress-step--current' : ''}`}>
+                                <div className="fd-progress-dot" />
+                                <span className="fd-progress-label">{labels[i]}</span>
+                                {i < 3 && <div className={`fd-progress-line ${stepIdx < currentIdx ? 'fd-progress-line--done' : ''}`} />}
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* ── Action button ── */}
+                        {statusCfg.next && (
+                          <button
+                            className="fd-order-action-btn"
+                            disabled={statusUpdating}
+                            onClick={async () => {
+                              setStatusUpdating(true)
+                              await updateOrderStatus(order.id, statusCfg.next)
+                              setStatusUpdating(false)
+                              setSelectedOrder(prev => prev ? { ...prev, status: statusCfg.next } : null)
+                            }}
+                          >
+                            {statusUpdating ? 'Updating…' : statusCfg.nextLabel}
+                          </button>
+                        )}
+                        {!statusCfg.next && (
+                          <div className="fd-order-delivered-msg">🎉 This order has been delivered!</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
