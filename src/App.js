@@ -139,15 +139,27 @@ const AppContent = () => {
 
           <Route
             path="/farmer"
-            element={<FarmerDashboard />}
+            element={
+              <ProtectedRoute allowedRoles={['farmer']}>
+                <FarmerDashboard />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/farmer-dashboard"
-            element={<FarmerDashboard />}
+            element={
+              <ProtectedRoute allowedRoles={['farmer']}>
+                <FarmerDashboard />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/consumer"
-            element={<ConsumerDashboard />}
+            element={
+              <ProtectedRoute allowedRoles={['consumer']}>
+                <ConsumerDashboard />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </Suspense>
