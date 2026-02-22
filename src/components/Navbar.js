@@ -50,7 +50,13 @@ const Navbar = React.memo(({
   const handleResourceShareClick = useCallback(() => navigate('/resource-share'), [navigate])
   // Removed ecommerce handler
   const handleAboutClick = useCallback(() => navigate('/about'), [navigate])
-  const handleHomeClick = useCallback(() => navigate('/'), [navigate])
+  const handleHomeClick = useCallback(() => {
+    if (isFarmerDashboard) {
+      navigate('/farmer-dashboard');
+    } else {
+      navigate('/');
+    }
+  }, [navigate, isFarmerDashboard])
   const handleBackClick = useCallback((e) => {
     e.stopPropagation();
     navigate(-1);
@@ -62,12 +68,12 @@ const Navbar = React.memo(({
   }, [navigate]);
 
   const handleCropRecommendations = useCallback(() => {
-    window.open('/crop-recommendations', '_blank');
-  }, []);
+    navigate('/crop-recommendations');
+  }, [navigate]);
 
   const handleResourceShareNewTab = useCallback(() => {
-    window.open('/resource-share', '_blank');
-  }, []);
+    navigate('/resource-share');
+  }, [navigate]);
 
   const changeLanguage = useCallback((lng) => {
     i18n.changeLanguage(lng);

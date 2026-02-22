@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../../../context/AuthContext'
 import './HomePage.css'
 // Optimized icon imports - import only what's needed
 import { 
@@ -19,6 +20,7 @@ import { doc, getDoc } from 'firebase/firestore'
 const HomePage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { currentUser, userData } = useAuth()
   const [hoveredCard, setHoveredCard] = useState(null)
   const [showLoginCard, setShowLoginCard] = useState(false)
   const [showFarmerSignupModal, setShowFarmerSignupModal] = useState(false)
@@ -486,24 +488,40 @@ const HomePage = () => {
             </p>
             <div style={ctaButtons} className="cta-buttons">
               <button 
-                onClick={() => setShowFarmerSignupModal(true)}
+                onClick={() => {
+                  if (currentUser && userData?.role === 'farmer') {
+                    navigate('/farmer-dashboard');
+                  } else {
+                    setShowFarmerSignupModal(true);
+                  }
+                }}
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                title="Sign up as Farmer"
+                title={currentUser && userData?.role === 'farmer' ? 'Go to Farmer Dashboard' : 'Sign up as Farmer'}
               >
                 <FaLeaf style={{ marginRight: '8px' }} />
-                {t('join_as_farmer') || 'Join as Farmer'}
+                {currentUser && userData?.role === 'farmer'
+                  ? 'Go to Dashboard'
+                  : (t('join_as_farmer') || 'Join as Farmer')}
               </button>
               <button 
-                onClick={() => navigate('/consumer')}
+                onClick={() => {
+                  if (currentUser && userData?.role === 'consumer') {
+                    navigate('/consumer');
+                  } else {
+                    openLoginCard('consumer');
+                  }
+                }}
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                title="Go to Consumer Dashboard"
+                title={currentUser && userData?.role === 'consumer' ? 'Go to Consumer Dashboard' : 'Go to Consumer Dashboard'}
               >
                 <FaShoppingCart style={{ marginRight: '8px' }} />
-                {t('shop_fresh_products') || 'Shop Fresh Products'}
+                {currentUser && userData?.role === 'consumer'
+                  ? 'Go to Dashboard'
+                  : (t('shop_fresh_products') || 'Shop Fresh Products')}
               </button>
             </div>
           </div>
