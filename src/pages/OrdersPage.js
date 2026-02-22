@@ -108,140 +108,198 @@ const OrdersPage = () => {
   }
 
   const OrderDetails = ({ order }) => {
+
+    // ── Step config ─────────────────────────────────────────────────────────
+    // statusOrder drives which steps are "done" vs "future".
+    const STATUS_ORDER = ['pending', 'confirmed', 'shipped', 'delivered'];
+    const currentIndex = STATUS_ORDER.indexOf(order.status);
+
+    const STEPS = [
+      {
+        key:   'pending',
+        label: 'Pending',
+        icon:  <FaClock />,
+        // The exact pulse spec: rgba(255,191,0,0.7) → rgba(255,191,0,0)
+        pulseColor: 'rgba(255,191,0,0.7)',
+        activeColor: '#f59e0b',          // amber — active/current
+        doneColor:   '#16a34a',          // green  — completed
+        pillStyle: { color: '#92400e', background: '#fef3c7' },
+        subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
+        futureSubtitle: 'Awaiting order',
+      },
+      {
+        key:   'confirmed',
+        label: 'Admin Confirmed',
+        icon:  <FaCheckCircle />,
+        pulseColor: 'rgba(22,163,74,0.6)',
+        activeColor: '#16a34a',
+        doneColor:   '#16a34a',
+        pillStyle: { color: '#166534', background: '#dcfce7' },
+        subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
+        futureSubtitle: 'Awaiting confirmation',
+      },
+      {
+        key:   'shipped',
+        label: 'Shipped',
+        icon:  <FaTruck />,
+        pulseColor: 'rgba(8,145,178,0.6)',
+        activeColor: '#0891b2',
+        doneColor:   '#16a34a',
+        pillStyle: { color: '#155e75', background: '#cffafe' },
+        subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
+        futureSubtitle: 'Not yet shipped',
+      },
+      {
+        key:   'delivered',
+        label: 'Delivered',
+        icon:  <FaCheckCircle />,
+        pulseColor: 'rgba(22,163,74,0.6)',
+        activeColor: '#16a34a',
+        doneColor:   '#16a34a',
+        pillStyle: { color: '#166534', background: '#dcfce7' },
+        subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
+        futureSubtitle: 'Pending delivery',
+      },
+    ];
+
     return (
       <div style={detailsModal} onClick={() => setSelectedOrder(null)}>
         <div style={detailsContent} onClick={(e) => e.stopPropagation()}>
           <button style={closeBtn} onClick={() => setSelectedOrder(null)}>×</button>
-          
-          <h2 style={detailsHeading}>
-            Order Details
-          </h2>
 
-          {/* 4-Step Tracking Timeline */}
+          {/* ── Header ── */}
+          <div style={{ marginBottom: 8 }}>
+            <h2 style={detailsHeading}>Order Details</h2>
+            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#6b7280' }}>
+              Order ID: <strong>#{order.id.slice(0, 8).toUpperCase()}</strong>
+            </p>
+          </div>
+
+          {/* ── Vertical Timeline ─────────────────────────────────────── */}
           <div style={detailsSection}>
-            <h3 style={{ marginBottom: 20, color: '#333' }}>Order Status</h3>
+
+            {/* Inject the keyframes once — spec-exact rgba values */}
             <style>{`
-              @keyframes pulse-dot {
-                0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.5); }
-                50% { box-shadow: 0 0 0 8px rgba(251,191,36,0); }
+              @keyframes pulse {
+                0%   { box-shadow: 0 0 0 0   rgba(255, 191, 0, 0.7); }
+                70%  { box-shadow: 0 0 0 10px rgba(255, 191, 0, 0);   }
+                100% { box-shadow: 0 0 0 0   rgba(255, 191, 0, 0);   }
+              }
+              @keyframes pulse-green {
+                0%   { box-shadow: 0 0 0 0   rgba(22, 163, 74, 0.6); }
+                70%  { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);   }
+                100% { box-shadow: 0 0 0 0   rgba(22, 163, 74, 0);   }
+              }
+              @keyframes pulse-cyan {
+                0%   { box-shadow: 0 0 0 0   rgba(8, 145, 178, 0.6); }
+                70%  { box-shadow: 0 0 0 10px rgba(8, 145, 178, 0);   }
+                100% { box-shadow: 0 0 0 0   rgba(8, 145, 178, 0);   }
               }
             `}</style>
-            <div style={trackingSteps}>
 
-              {/* Step 1 — Pending (always active, always first) */}
-              {(() => {
-                const isCurrent = order.status === 'pending';
+            <h3 style={{ margin: '0 0 24px', fontSize: 16, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Tracking Status
+            </h3>
+
+            {/* Stepper — position:relative so the connector line is absolutely placed */}
+            <div style={{ position: 'relative' }}>
+              {STEPS.map((step, idx) => {
+                const stepStatusIndex = STATUS_ORDER.indexOf(step.key);
+                const isDone    = stepStatusIndex < currentIndex;   // completed past step
+                const isCurrent = stepStatusIndex === currentIndex;  // active now
+                const isFuture  = stepStatusIndex > currentIndex;    // not yet reached
+
+                // Circle color: amber if current, green if done, grey if future
+                const circleColor = isCurrent ? step.activeColor
+                                  : isDone    ? step.doneColor
+                                  :             '#d1d5db';
+
+                // Connector line color: green if this step is already done, grey if future
+                const lineColor = isDone ? '#16a34a' : '#e5e7eb';
+                const isLastStep = idx === STEPS.length - 1;
+
+                // Pulse animation name per step color
+                const pulseAnimation =
+                  step.key === 'pending'  ? 'pulse 1.8s ease-in-out infinite' :
+                  step.key === 'shipped'  ? 'pulse-cyan 1.8s ease-in-out infinite' :
+                                            'pulse-green 1.8s ease-in-out infinite';
+
                 return (
-                  <>
-                    <div style={trackingStep(true)}>
+                  <div key={step.key} style={{ display: 'flex', gap: 0, opacity: isFuture ? 0.5 : 1, transition: 'opacity 0.3s' }}>
+
+                    {/* ── Left Column: circle + vertical line ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: 20, flexShrink: 0 }}>
+
+                      {/* Circle indicator */}
                       <div style={{
-                        ...trackingIcon(true),
-                        backgroundColor: isCurrent ? '#f59e0b' : '#16a34a',
-                        animation: isCurrent ? 'pulse-dot 1.6s ease-in-out infinite' : 'none',
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        backgroundColor: circleColor,
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 18,
+                        flexShrink: 0,
+                        zIndex: 1,
+                        position: 'relative',
+                        // Spec-exact pulsing amber ring when current
+                        animation: isCurrent ? pulseAnimation : 'none',
+                        transition: 'background-color 0.4s',
                       }}>
-                        <FaClock />
+                        {step.icon}
                       </div>
-                      <div>
-                        <p style={trackingLabel}>
-                          Pending
-                          {isCurrent && (
-                            <span style={{ marginLeft: 8, fontSize: 12, color: '#f59e0b', fontWeight: 700, background: '#fef3c7', padding: '2px 8px', borderRadius: 50 }}>
-                              Current
-                            </span>
-                          )}
-                        </p>
-                        <p style={trackingTime}>{formatDate(order.createdAtMs)} at {formatTime(order.createdAtMs)}</p>
-                      </div>
-                    </div>
-                    <div style={trackingLine(order.status !== 'pending')} />
-                  </>
-                );
-              })()}
 
-              {/* Step 2 — Admin Confirmed */}
-              {(() => {
-                const isActive = ['confirmed', 'shipped', 'delivered'].includes(order.status);
-                const isCurrent = order.status === 'confirmed';
-                return (
-                  <>
-                    <div style={trackingStep(isActive)}>
-                      <div style={{
-                        ...trackingIcon(isActive),
-                        animation: isCurrent ? 'pulse-dot 1.6s ease-in-out infinite' : 'none',
-                      }}>
-                        <FaCheckCircle />
-                      </div>
-                      <div>
-                        <p style={trackingLabel}>
-                          Admin Confirmed
-                          {isCurrent && (
-                            <span style={{ marginLeft: 8, fontSize: 12, color: '#16a34a', fontWeight: 700, background: '#dcfce7', padding: '2px 8px', borderRadius: 50 }}>
-                              Current
-                            </span>
-                          )}
-                        </p>
-                        <p style={trackingTime}>{isActive ? formatDate(order.createdAtMs) : 'Awaiting confirmation'}</p>
-                      </div>
+                      {/* Connector line — stretches to next step */}
+                      {!isLastStep && (
+                        <div style={{
+                          width: 2,
+                          flex: 1,
+                          minHeight: 40,
+                          backgroundColor: lineColor,
+                          marginTop: 4,
+                          marginBottom: 4,
+                          borderRadius: 2,
+                          transition: 'background-color 0.4s',
+                        }} />
+                      )}
                     </div>
-                    <div style={trackingLine(['shipped', 'delivered'].includes(order.status))} />
-                  </>
-                );
-              })()}
 
-              {/* Step 3 — Shipped */}
-              {(() => {
-                const isActive = ['shipped', 'delivered'].includes(order.status);
-                const isCurrent = order.status === 'shipped';
-                return (
-                  <>
-                    <div style={trackingStep(isActive)}>
-                      <div style={{
-                        ...trackingIcon(isActive),
-                        animation: isCurrent ? 'pulse-dot 1.6s ease-in-out infinite' : 'none',
-                      }}>
-                        <FaTruck />
-                      </div>
-                      <div>
-                        <p style={trackingLabel}>
-                          Shipped
-                          {isCurrent && (
-                            <span style={{ marginLeft: 8, fontSize: 12, color: '#0891b2', fontWeight: 700, background: '#cffafe', padding: '2px 8px', borderRadius: 50 }}>
-                              Current
-                            </span>
-                          )}
-                        </p>
-                        <p style={trackingTime}>{isActive ? formatDate(order.createdAtMs) : 'Not yet shipped'}</p>
-                      </div>
-                    </div>
-                    <div style={trackingLine(order.status === 'delivered')} />
-                  </>
-                );
-              })()}
+                    {/* ── Right Column: label + subtitle ── */}
+                    <div style={{ paddingTop: 10, paddingBottom: isLastStep ? 0 : 32, flex: 1 }}>
+                      <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: isFuture ? '#9ca3af' : '#111827', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        {step.label}
 
-              {/* Step 4 — Delivered */}
-              {(() => {
-                const isActive = order.status === 'delivered';
-                const isCurrent = isActive;
-                return (
-                  <div style={trackingStep(isActive)}>
-                    <div style={{ ...trackingIcon(isActive) }}>
-                      <FaCheckCircle />
-                    </div>
-                    <div>
-                      <p style={trackingLabel}>
-                        Delivered
+                        {/* "Current" pill — amber for pending, green/cyan for others */}
                         {isCurrent && (
-                          <span style={{ marginLeft: 8, fontSize: 12, color: '#16a34a', fontWeight: 700, background: '#dcfce7', padding: '2px 8px', borderRadius: 50 }}>
-                            Current
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '2px 10px',
+                            borderRadius: 50,
+                            letterSpacing: '0.3px',
+                            ...step.pillStyle,
+                          }}>
+                            ● Current
+                          </span>
+                        )}
+
+                        {/* Tick badge for completed steps */}
+                        {isDone && (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: 50 }}>
+                            ✓ Done
                           </span>
                         )}
                       </p>
-                      <p style={trackingTime}>{isActive ? formatDate(order.createdAtMs) : 'Pending delivery'}</p>
+
+                      <p style={{ margin: 0, fontSize: 12, color: isFuture ? '#d1d5db' : '#6b7280' }}>
+                        {(isCurrent || isDone) ? step.subtitle : step.futureSubtitle}
+                      </p>
                     </div>
                   </div>
                 );
-              })()}
-
+              })}
             </div>
           </div>
 
@@ -507,50 +565,6 @@ const detailsSection = {
   marginBottom: '24px',
   paddingBottom: '24px',
   borderBottom: '1px solid #eee'
-}
-
-const trackingSteps = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0'
-}
-
-const trackingStep = (active) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '16px',
-  opacity: active ? 1 : 0.4
-})
-
-const trackingIcon = (active) => ({
-  width: '40px',
-  height: '40px',
-  borderRadius: '50%',
-  backgroundColor: active ? '#28a745' : '#ddd',
-  color: 'white',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '20px'
-})
-
-const trackingLine = (active) => ({
-  width: '2px',
-  height: '30px',
-  backgroundColor: active ? '#28a745' : '#ddd',
-  marginLeft: '19px'
-})
-
-const trackingLabel = {
-  margin: '0 0 4px 0',
-  fontSize: '16px',
-  fontWeight: 'bold'
-}
-
-const trackingTime = {
-  margin: 0,
-  fontSize: '12px',
-  color: '#666'
 }
 
 const detailItem = {
