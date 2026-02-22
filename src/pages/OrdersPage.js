@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 import Navbar from '../components/Navbar'
-import { FaBox, FaTruck, FaCheckCircle, FaClock, FaMapMarkerAlt, FaPhone, FaCalendar } from 'react-icons/fa'
+import { logger } from '../utils/logger'
+import { FaBox, FaTruck, FaCheckCircle, FaClock, FaMapMarkerAlt, FaPhone, FaCalendar, FaRupeeSign, FaArrowLeft, FaShoppingBag } from 'react-icons/fa'
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchOrders()
@@ -39,7 +42,7 @@ const OrdersPage = () => {
       setOrders(fetchedOrders)
       setLoading(false)
     } catch (error) {
-      console.error('Error fetching orders:', error)
+      logger.error('Error fetching orders:', error)
       setLoading(false)
     }
   }
@@ -73,7 +76,10 @@ const OrdersPage = () => {
     const statusInfo = getStatusInfo(order.status)
 
     return (
-      <div style={orderCard} onClick={() => setSelectedOrder(order)}>
+      <div
+        style={{ ...orderCard, borderLeft: `4px solid ${statusInfo.color}` }}
+        onClick={() => setSelectedOrder(order)}
+      >
         <div style={orderHeader}>
           <div>
             <h3 style={orderId}>{t('order') || 'Order'} #{order.id.slice(0, 8).toUpperCase()}</h3>
@@ -88,7 +94,7 @@ const OrdersPage = () => {
 
         <div style={orderItems}>
           <div style={itemRow}>
-            <span>{order.cropName || 'Product'} ({order.quantity} kg)</span>
+            <span>{order.cropName || 'Product'} × {order.quantity} {order.unit || 'kg'}</span>
             <span>₹{parseFloat(order.totalAmount || 0).toFixed(2)}</span>
           </div>
         </div>
@@ -171,7 +177,7 @@ const OrdersPage = () => {
               <div style={addressBox}>
                 <p><strong>{order.shippingAddress.fullName}</strong></p>
                 <p><FaPhone /> {order.shippingAddress.phone}</p>
-                <p>{order.shippingAddress.street}</p>
+                <p>{order.shippingAddress.street || order.shippingAddress.area}</p>
                 <p>{order.shippingAddress.city} - {order.shippingAddress.pincode}</p>
               </div>
             )}
@@ -205,13 +211,21 @@ const OrdersPage = () => {
         
         {loading ? (
           <div style={loadingBox}>
-            <p>{t('loading') || 'Loading orders...'}</p>
+            <div style={{ width: 40, height: 40, border: '4px solid #d1fae5', borderTop: '4px solid #16a34a', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <p style={{ color: '#6b7280' }}>Loading your orders...</p>
           </div>
         ) : orders.length === 0 ? (
           <div style={emptyBox}>
-            <FaBox size={64} color="#ddd" />
-            <p style={emptyText}>{t('no_orders') || 'No orders yet'}</p>
-            <p>{t('order_something') || 'Start shopping to see your orders here'}</p>
+            <FaShoppingBag size={64} color="#d1fae5" />
+            <p style={emptyText}>No orders yet</p>
+            <p style={{ color: '#9ca3af', fontSize: 15, marginBottom: 24 }}>Browse products and place your first order!</p>
+            <button
+              onClick={() => navigate('/consumer')}
+              style={{ padding: '12px 28px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, margin: '0 auto' }}
+            >
+              <FaArrowLeft /> Go Shopping
+            </button>
           </div>
         ) : (
           <div style={orderList}>

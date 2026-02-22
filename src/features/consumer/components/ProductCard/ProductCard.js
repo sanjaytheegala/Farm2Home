@@ -7,7 +7,8 @@ const ProductCard = ({
   onAddToCart, 
   onToggleFavorite, 
   isFavorite,
-  onViewDetails 
+  onViewDetails,
+  onBuyNow,
 }) => {
   const [imageError, setImageError] = useState(false);
   const defaultImage = '/images/default_crop.jpg';
@@ -15,6 +16,11 @@ const ProductCard = ({
   const handleAddToCart = (e) => {
     e.stopPropagation();
     onAddToCart(product);
+  };
+
+  const handleBuyNow = (e) => {
+    e.stopPropagation();
+    onBuyNow && onBuyNow(product);
   };
 
   const handleToggleFavorite = (e) => {
@@ -119,14 +125,22 @@ const ProductCard = ({
           )}
         </div>
 
-        {/* Add to Cart Button */}
-        <button 
-          className="add-to-cart-btn"
-          onClick={handleAddToCart}
-        >
-          <FaShoppingCart />
-          Add to Cart
-        </button>
+        {/* Action Buttons */}
+        <div className="product-action-btns">
+          <button
+            className="add-to-cart-btn"
+            onClick={handleAddToCart}
+          >
+            <FaShoppingCart />
+            Add to Cart
+          </button>
+          <button
+            className="buy-now-btn"
+            onClick={handleBuyNow}
+          >
+            Buy Now
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaShoppingCart, 
   FaLeaf, 
@@ -19,6 +20,7 @@ import {
 import ProductCard from '../components/ProductCard/ProductCard';
 import SearchBar from '../components/Filters/SearchBar';
 import FilterSection from '../components/Filters/FilterSection';
+import ShippingAddressModal from '../components/ShippingAddressModal/ShippingAddressModal';
 import { useCart } from '../hooks/useCart';
 import { useFavorites } from '../hooks/useFavorites';
 import { useFilters } from '../hooks/useFilters';
@@ -30,6 +32,7 @@ import './ConsumerDashboard.css';
  * Premium farmer-to-consumer platform for fresh organic produce
  */
 const ConsumerDashboard = () => {
+  const navigate = useNavigate();
   // Fetch products from Firestore (silently in background)
   const { products: firestoreProducts, loading } = useProducts({ realtime: true });
   
@@ -55,6 +58,7 @@ const ConsumerDashboard = () => {
   // Local state
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [showSidebar, setShowSidebar] = useState(false);
+  const [buyNowProduct, setBuyNowProduct] = useState(null); // product to purchase instantly
   
   // Ref for category section and footer
   const categorySectionRef = useRef(null);
@@ -106,8 +110,14 @@ const ConsumerDashboard = () => {
     addToCart(product, 1);
   };
 
-  const handleViewDetails = (product) => {
-    // TODO: navigate to product detail page
+  // Handle Buy Now — open shipping address modal
+  const handleBuyNow = (product) => {
+    setBuyNowProduct(product);
+  };
+
+  // After order is placed successfully, go to My Orders
+  const handleOrderSuccess = () => {
+    navigate('/orders');
   };
 
   // Calculate stats
@@ -118,6 +128,14 @@ const ConsumerDashboard = () => {
 
   return (
     <div className="consumer-dashboard">
+      {/* Buy Now — Shipping Address Modal */}
+      {buyNowProduct && (
+        <ShippingAddressModal
+          product={buyNowProduct}
+          onClose={() => setBuyNowProduct(null)}
+          onSuccess={handleOrderSuccess}
+        />
+      )}
       {/* Hero Section - Redesigned */}
       <section className="hero-section-modern">
         <div className="hero-overlay"></div>
@@ -201,7 +219,7 @@ const ConsumerDashboard = () => {
                       onAddToCart={handleAddToCart}
                       onToggleFavorite={toggleFavorite}
                       isFavorite={isFavorite(product.id)}
-                      onViewDetails={handleViewDetails}
+                      onBuyNow={handleBuyNow}
                     />
                   ))
                 ) : (
