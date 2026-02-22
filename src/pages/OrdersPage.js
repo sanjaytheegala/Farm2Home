@@ -77,7 +77,7 @@ const OrdersPage = () => {
 
     return (
       <div
-        style={{ ...orderCard, borderLeft: `4px solid ${statusInfo.color}` }}
+        style={{ ...orderCard, borderLeft: `5px solid ${statusInfo.color}` }}
         onClick={() => setSelectedOrder(order)}
       >
         <div style={orderHeader}>
@@ -100,8 +100,8 @@ const OrdersPage = () => {
         </div>
 
         <div style={orderFooter}>
-          <strong>{t('total') || 'Total'}: ₹{parseFloat(order.totalAmount || 0).toFixed(2)}</strong>
-          <button style={viewDetailsBtn}>{t('view_details') || 'View Details'}</button>
+          <strong>Total: ₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</strong>
+          <button style={viewDetailsBtn}>View Details</button>
         </div>
       </div>
     )
@@ -114,84 +114,169 @@ const OrdersPage = () => {
           <button style={closeBtn} onClick={() => setSelectedOrder(null)}>×</button>
           
           <h2 style={detailsHeading}>
-            {t('order_details') || 'Order Details'}
+            Order Details
           </h2>
 
+          {/* 4-Step Tracking Timeline */}
           <div style={detailsSection}>
-            <h3>{t('order_status') || 'Order Status'}</h3>
+            <h3 style={{ marginBottom: 20, color: '#333' }}>Order Status</h3>
+            <style>{`
+              @keyframes pulse-dot {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.5); }
+                50% { box-shadow: 0 0 0 8px rgba(251,191,36,0); }
+              }
+            `}</style>
             <div style={trackingSteps}>
-              <div style={trackingStep(true)}>
-                <div style={trackingIcon(true)}><FaCheckCircle /></div>
-                <div>
-                  <p style={trackingLabel}>{t('order_placed') || 'Order Placed'}</p>
-                  <p style={trackingTime}>{formatDate(order.createdAtMs)}</p>
-                </div>
-              </div>
-              
-              <div style={trackingLine(order.status !== 'pending')} />
-              
-              <div style={trackingStep(order.status !== 'pending')}>
-                <div style={trackingIcon(order.status !== 'pending')}><FaCheckCircle /></div>
-                <div>
-                  <p style={trackingLabel}>{t('confirmed') || 'Confirmed'}</p>
-                  <p style={trackingTime}>{order.status !== 'pending' ? formatDate(order.createdAtMs) : '-'}</p>
-                </div>
-              </div>
-              
-              <div style={trackingLine(['shipped', 'delivered'].includes(order.status))} />
-              
-              <div style={trackingStep(['shipped', 'delivered'].includes(order.status))}>
-                <div style={trackingIcon(['shipped', 'delivered'].includes(order.status))}><FaTruck /></div>
-                <div>
-                  <p style={trackingLabel}>{t('shipped') || 'Shipped'}</p>
-                  <p style={trackingTime}>{['shipped', 'delivered'].includes(order.status) ? formatDate(order.createdAtMs) : '-'}</p>
-                </div>
-              </div>
-              
-              <div style={trackingLine(order.status === 'delivered')} />
-              
-              <div style={trackingStep(order.status === 'delivered')}>
-                <div style={trackingIcon(order.status === 'delivered')}><FaCheckCircle /></div>
-                <div>
-                  <p style={trackingLabel}>{t('delivered') || 'Delivered'}</p>
-                  <p style={trackingTime}>{order.status === 'delivered' ? formatDate(order.createdAtMs) : '-'}</p>
-                </div>
-              </div>
+
+              {/* Step 1 — Pending (always active, always first) */}
+              {(() => {
+                const isCurrent = order.status === 'pending';
+                return (
+                  <>
+                    <div style={trackingStep(true)}>
+                      <div style={{
+                        ...trackingIcon(true),
+                        backgroundColor: isCurrent ? '#f59e0b' : '#16a34a',
+                        animation: isCurrent ? 'pulse-dot 1.6s ease-in-out infinite' : 'none',
+                      }}>
+                        <FaClock />
+                      </div>
+                      <div>
+                        <p style={trackingLabel}>
+                          Pending
+                          {isCurrent && (
+                            <span style={{ marginLeft: 8, fontSize: 12, color: '#f59e0b', fontWeight: 700, background: '#fef3c7', padding: '2px 8px', borderRadius: 50 }}>
+                              Current
+                            </span>
+                          )}
+                        </p>
+                        <p style={trackingTime}>{formatDate(order.createdAtMs)} at {formatTime(order.createdAtMs)}</p>
+                      </div>
+                    </div>
+                    <div style={trackingLine(order.status !== 'pending')} />
+                  </>
+                );
+              })()}
+
+              {/* Step 2 — Admin Confirmed */}
+              {(() => {
+                const isActive = ['confirmed', 'shipped', 'delivered'].includes(order.status);
+                const isCurrent = order.status === 'confirmed';
+                return (
+                  <>
+                    <div style={trackingStep(isActive)}>
+                      <div style={{
+                        ...trackingIcon(isActive),
+                        animation: isCurrent ? 'pulse-dot 1.6s ease-in-out infinite' : 'none',
+                      }}>
+                        <FaCheckCircle />
+                      </div>
+                      <div>
+                        <p style={trackingLabel}>
+                          Admin Confirmed
+                          {isCurrent && (
+                            <span style={{ marginLeft: 8, fontSize: 12, color: '#16a34a', fontWeight: 700, background: '#dcfce7', padding: '2px 8px', borderRadius: 50 }}>
+                              Current
+                            </span>
+                          )}
+                        </p>
+                        <p style={trackingTime}>{isActive ? formatDate(order.createdAtMs) : 'Awaiting confirmation'}</p>
+                      </div>
+                    </div>
+                    <div style={trackingLine(['shipped', 'delivered'].includes(order.status))} />
+                  </>
+                );
+              })()}
+
+              {/* Step 3 — Shipped */}
+              {(() => {
+                const isActive = ['shipped', 'delivered'].includes(order.status);
+                const isCurrent = order.status === 'shipped';
+                return (
+                  <>
+                    <div style={trackingStep(isActive)}>
+                      <div style={{
+                        ...trackingIcon(isActive),
+                        animation: isCurrent ? 'pulse-dot 1.6s ease-in-out infinite' : 'none',
+                      }}>
+                        <FaTruck />
+                      </div>
+                      <div>
+                        <p style={trackingLabel}>
+                          Shipped
+                          {isCurrent && (
+                            <span style={{ marginLeft: 8, fontSize: 12, color: '#0891b2', fontWeight: 700, background: '#cffafe', padding: '2px 8px', borderRadius: 50 }}>
+                              Current
+                            </span>
+                          )}
+                        </p>
+                        <p style={trackingTime}>{isActive ? formatDate(order.createdAtMs) : 'Not yet shipped'}</p>
+                      </div>
+                    </div>
+                    <div style={trackingLine(order.status === 'delivered')} />
+                  </>
+                );
+              })()}
+
+              {/* Step 4 — Delivered */}
+              {(() => {
+                const isActive = order.status === 'delivered';
+                const isCurrent = isActive;
+                return (
+                  <div style={trackingStep(isActive)}>
+                    <div style={{ ...trackingIcon(isActive) }}>
+                      <FaCheckCircle />
+                    </div>
+                    <div>
+                      <p style={trackingLabel}>
+                        Delivered
+                        {isCurrent && (
+                          <span style={{ marginLeft: 8, fontSize: 12, color: '#16a34a', fontWeight: 700, background: '#dcfce7', padding: '2px 8px', borderRadius: 50 }}>
+                            Current
+                          </span>
+                        )}
+                      </p>
+                      <p style={trackingTime}>{isActive ? formatDate(order.createdAtMs) : 'Pending delivery'}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
             </div>
           </div>
 
           <div style={detailsSection}>
-            <h3>{t('items') || 'Item'}</h3>
+            <h3>Item</h3>
             <div style={detailItem}>
               <div>
                 <p style={itemName}>{order.cropName || 'Product'}</p>
-                <p style={itemQty}>{order.quantity} kg</p>
+                <p style={itemQty}>{order.quantity} {order.unit || 'kg'}</p>
               </div>
-              <p style={itemTotal}>₹{parseFloat(order.totalAmount || 0).toFixed(2)}</p>
+              <p style={itemTotal}>₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</p>
             </div>
           </div>
 
           <div style={detailsSection}>
-            <h3><FaMapMarkerAlt /> {t('delivery_address') || 'Delivery Address'}</h3>
+            <h3><FaMapMarkerAlt /> Delivery Address</h3>
             {order.shippingAddress && (
               <div style={addressBox}>
                 <p><strong>{order.shippingAddress.fullName}</strong></p>
                 <p><FaPhone /> {order.shippingAddress.phone}</p>
-                <p>{order.shippingAddress.street || order.shippingAddress.area}</p>
+                <p>{order.shippingAddress.area || order.shippingAddress.street}</p>
                 <p>{order.shippingAddress.city} - {order.shippingAddress.pincode}</p>
               </div>
             )}
           </div>
 
           <div style={detailsSection}>
-            <h3>{t('payment_summary') || 'Payment Summary'}</h3>
+            <h3>Payment Summary</h3>
             <div style={summaryBox}>
               <div style={{ ...summaryRow, ...summaryTotal }}>
-                <strong>{t('total') || 'Total'}:</strong>
-                <strong>₹{parseFloat(order.totalAmount || 0).toFixed(2)}</strong>
+                <strong>Total:</strong>
+                <strong>₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</strong>
               </div>
               <div style={paymentMethodBox}>
-                <span>{t('payment_method') || 'Payment Method'}:</span>
+                <span>Payment Method:</span>
                 <span style={paymentBadge}>COD</span>
               </div>
             </div>

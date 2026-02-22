@@ -16,7 +16,7 @@ const ShippingAddressModal = ({ product, onClose, onSuccess }) => {
   const [form, setForm] = useState({
     fullName: '',
     phone: '',
-    street: '',
+    area: '',
     city: '',
     pincode: '',
   });
@@ -36,7 +36,7 @@ const ShippingAddressModal = ({ product, onClose, onSuccess }) => {
     if (!form.fullName.trim()) e.fullName = 'Full name is required';
     if (!/^[6-9]\d{9}$/.test(form.phone.replace(/\s/g, '')))
       e.phone = 'Enter a valid 10-digit Indian mobile number';
-    if (!form.street.trim()) e.street = 'Area / Street is required';
+    if (!form.area.trim()) e.area = 'Area / Street is required';
     if (!form.city.trim()) e.city = 'City is required';
     if (!/^\d{6}$/.test(form.pincode)) e.pincode = 'Enter a valid 6-digit pincode';
     return e;
@@ -77,11 +77,12 @@ const ShippingAddressModal = ({ product, onClose, onSuccess }) => {
         quantity: qty,
         unit: product.unit || 'kg',
         pricePerKg: price,
-        totalAmount: parseFloat(total),
+        totalPrice: parseFloat(total),
+        totalAmount: parseFloat(total),   // keep for backward compat
         shippingAddress: {
           fullName: form.fullName.trim(),
           phone: form.phone.trim(),
-          street: form.street.trim(),
+          area: form.area.trim(),
           city: form.city.trim(),
           pincode: form.pincode.trim(),
         },
@@ -201,13 +202,13 @@ const ShippingAddressModal = ({ product, onClose, onSuccess }) => {
           <div className="sam-field">
             <label className="sam-label"><FaMapMarkerAlt /> Area / Street</label>
             <input
-              className={`sam-input ${errors.street ? 'sam-input-err' : ''}`}
+              className={`sam-input ${errors.area ? 'sam-input-err' : ''}`}
               type="text"
               placeholder="e.g. 12 Gandhi Nagar, Near Bus Stand"
-              value={form.street}
-              onChange={handleChange('street')}
+              value={form.area}
+              onChange={handleChange('area')}
             />
-            {errors.street && <p className="sam-err">{errors.street}</p>}
+            {errors.area && <p className="sam-err">{errors.area}</p>}
           </div>
 
           {/* City + Pincode */}
