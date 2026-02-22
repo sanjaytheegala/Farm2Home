@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { FaTimes } from 'react-icons/fa';
 
@@ -158,6 +158,8 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
         console.log('✅ Found email for phone number');
       }
 
+      // Ensure session persists across page-reload and browser-restart
+      await setPersistence(auth, browserLocalPersistence);
       // Sign in with Firebase Auth using email
       const userCredential = await signInWithEmailAndPassword(
         auth, 

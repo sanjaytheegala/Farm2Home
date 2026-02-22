@@ -4,6 +4,8 @@ import { auth, db } from '../../../firebase';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence,
   updateProfile 
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -158,6 +160,8 @@ const AuthPage = () => {
 
       }
 
+      // Ensure session persists across page-reload and browser-restart
+      await setPersistence(auth, browserLocalPersistence);
       // Sign in with Firebase Auth using email
       const userCredential = await signInWithEmailAndPassword(
         auth, 

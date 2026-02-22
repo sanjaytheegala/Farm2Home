@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
@@ -20,6 +20,12 @@ const app = initializeApp(firebaseConfig);
 
 // Exports for the rest of the app
 export const auth = getAuth(app);
+
+// Set LOCAL persistence globally so sessions survive page-refresh and browser restart.
+// Firebase internally queues all subsequent auth operations until this resolves,
+// so no per-login-function call is needed — but we add it there too for safety.
+setPersistence(auth, browserLocalPersistence).catch(() => {});
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);

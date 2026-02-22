@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import { auth, db, functions } from '../../../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -89,6 +89,8 @@ const LoginPage = () => {
         emailToUse = result.data.email;
       }
 
+      // Ensure session persists across page-reload and browser-restart
+      await setPersistence(auth, browserLocalPersistence);
       // Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, emailToUse, password);
       const user = userCredential.user;

@@ -13,7 +13,7 @@ import {
 import { logger } from '../../../utils/logger'
 import FarmerSignupModal from '../../../components/FarmerSignupModal'
 import { auth, db, functions } from '../../../firebase'
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
+import { signInWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -187,6 +187,8 @@ const HomePage = () => {
         emailToUse = result.data.email;
       }
 
+      // Ensure session persists across page-reload and browser-restart
+      await setPersistence(auth, browserLocalPersistence);
       // Sign in with Firebase Auth using email
       const userCredential = await signInWithEmailAndPassword(
         auth, 
