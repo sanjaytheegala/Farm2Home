@@ -107,7 +107,7 @@ const ShippingAddressModal = ({ product, onClose, onSuccess }) => {
       <div className="sam-overlay" onClick={onClose}>
         <div className="sam-modal sam-success" onClick={(e) => e.stopPropagation()}>
           <div className="sam-success-icon"><FaCheckCircle /></div>
-          <h2 className="sam-success-title">Order Placed!</h2>
+          <h2 className="sam-success-title">🎉 Order Placed Successfully!</h2>
           <p className="sam-success-sub">
             Your order for <strong>{product.name}</strong> has been placed successfully.
           </p>

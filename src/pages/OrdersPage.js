@@ -361,7 +361,7 @@ const OrdersPage = () => {
         ) : orders.length === 0 ? (
           <div style={emptyBox}>
             <FaShoppingBag size={64} color="#d1fae5" />
-            <p style={emptyText}>No orders yet</p>
+            <p style={emptyText}>No orders yet. Start shopping!</p>
             <p style={{ color: '#9ca3af', fontSize: 15, marginBottom: 24 }}>Browse products and place your first order!</p>
             <button
               onClick={() => navigate('/consumer')}
