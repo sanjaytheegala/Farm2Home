@@ -13,9 +13,9 @@ import {
 import { logger } from '../../../utils/logger'
 import FarmerSignupModal from '../../../components/FarmerSignupModal'
 import { auth, db, functions } from '../../../firebase'
-import { signInWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence } from 'firebase/auth'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const HomePage = () => {
   const { t } = useTranslation()
@@ -232,8 +232,8 @@ const HomePage = () => {
       
       if (err.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email. Please sign up.';
-      } else if (err.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password. Please try again.';
+      } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        errorMessage = 'Incorrect email or password. Please try again.';
       } else if (err.code === 'auth/invalid-email') {
         errorMessage = 'Invalid email address.';
       } else if (err.code === 'auth/too-many-requests') {
@@ -253,31 +253,61 @@ const HomePage = () => {
     setError('');
     setLoading(true);
 
+    if (!email || !password) {
+      setError('Please enter your email and password.');
+      setLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       setLoading(false);
       return;
     }
 
     try {
-      // Mock signup with localStorage
-      const userId = `user_${Date.now()}`;
-      const userData = {
-        uid: userId,
-        email: email,
-        role: selectedRole,
-        name: 'Demo User',
-        createdAt: new Date().toISOString()
+      await setPersistence(auth, browserLocalPersistence);
+
+      // Create real Firebase Auth account
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const user = userCredential.user;
+
+      // Save profile to Firestore users/{uid}
+      const userProfile = {
+        uid: user.uid,
+        email: user.email,
+        role: selectedRole,          // 'consumer' or 'farmer'
+        name: '',
+        status: 'active',
+        createdAt: serverTimestamp()
       };
-      
-      // Store user data
-      localStorage.setItem('mockUserData', JSON.stringify(userData));
-      
-      navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
+      await setDoc(doc(db, 'users', user.uid), userProfile);
+
+      localStorage.setItem('currentUser', JSON.stringify({ ...userProfile, createdAt: new Date().toISOString() }));
+
+      closeLoginCard();
+      setTimeout(() => {
+        navigate(selectedRole === 'farmer' ? '/farmer-dashboard' : '/consumer');
+      }, 300);
     } catch (err) {
-      setError('Failed to create an account. Please try again.');
+      if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Please log in instead.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password is too weak. Use at least 6 characters.');
+      } else {
+        setError(err.message || 'Failed to create account. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const resetForm = () => {
