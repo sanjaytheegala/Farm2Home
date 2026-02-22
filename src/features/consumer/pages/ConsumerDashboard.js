@@ -104,12 +104,10 @@ const ConsumerDashboard = () => {
   // Handle adding product to cart
   const handleAddToCart = (product) => {
     addToCart(product, 1);
-    console.log(`Added ${product.name} to cart!`);
   };
 
-  // Handle viewing product details
   const handleViewDetails = (product) => {
-    console.log('View product details:', product);
+    // TODO: navigate to product detail page
   };
 
   // Calculate stats

@@ -29,7 +29,7 @@ const AdvancedSearch = ({ onSearch, onFilter }) => {
           });
         },
         (error) => {
-          console.log('Location access denied:', error);
+          // Location access denied — silently ignore
         }
       );
     }

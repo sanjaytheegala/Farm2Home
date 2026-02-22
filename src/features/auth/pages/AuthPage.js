@@ -88,7 +88,7 @@ const AuthPage = () => {
 
       await setDoc(userDocRef, userData);
 
-      console.log('✅ User created successfully with UID:', user.uid);
+
       setSuccess('Account created successfully! Redirecting...');
 
       // Store user data in localStorage with uid
@@ -100,7 +100,6 @@ const AuthPage = () => {
       }, 1500);
 
     } catch (err) {
-      console.error('Signup error:', err);
       let errorMessage = 'Failed to create account. Please try again.';
       
       if (err.code === 'auth/email-already-in-use') {
@@ -139,8 +138,7 @@ const AuthPage = () => {
       const isPhoneNumber = phonePattern.test(emailToUse);
 
       if (isPhoneNumber) {
-        console.log('📱 Phone number detected, querying Firestore for email...');
-        
+
         // Clean phone number - remove all non-digit characters
         const cleanPhone = emailToUse.replace(/\D/g, '');
         
@@ -157,8 +155,7 @@ const AuthPage = () => {
         const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data();
         emailToUse = userData.email;
-        
-        console.log('✅ Found email for phone number:', emailToUse);
+
       }
 
       // Sign in with Firebase Auth using email
@@ -190,7 +187,7 @@ const AuthPage = () => {
         throw new Error('Your account is inactive. Please contact support.');
       }
 
-      console.log('✅ Login successful with UID:', user.uid);
+
       setSuccess('Login successful! Redirecting...');
 
       // Store user data in localStorage with uid
@@ -202,7 +199,6 @@ const AuthPage = () => {
       }, 1000);
 
     } catch (err) {
-      console.error('Login error:', err);
       let errorMessage = 'Failed to login. Please try again.';
       
       if (err.code === 'auth/user-not-found') {

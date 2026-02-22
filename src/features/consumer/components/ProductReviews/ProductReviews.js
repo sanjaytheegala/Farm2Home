@@ -38,7 +38,6 @@ const ProductReviews = ({ productId, productName }) => {
       setReviews([]);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching reviews:', error);
       setLoading(false);
     }
   };
@@ -56,10 +55,7 @@ const ProductReviews = ({ productId, productName }) => {
     setSubmitting(true);
 
     try {
-      // Mock review submission (can be replaced with actual implementation later)
-      console.log('Review submitted:', { productId, productName, userId: currentUser.uid, ...newReview });
-      
-      // Reset form
+      // Mock review submission (can be replaced with actual Firestore implementation)
       setNewReview({
         rating: 5,
         title: '',
@@ -76,8 +72,7 @@ const ProductReviews = ({ productId, productName }) => {
       
       alert(t('review_submitted') || 'Review submitted successfully! (Firebase not configured yet)');
     } catch (error) {
-      console.error('Error submitting review:', error);
-      alert(t('review_error') || 'Error submitting review'
+      alert(t('review_error') || 'Error submitting review');
     }
   };
 

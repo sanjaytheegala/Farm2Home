@@ -53,10 +53,12 @@ const Navbar = React.memo(({
   const handleHomeClick = useCallback(() => {
     if (isFarmerDashboard) {
       navigate('/farmer-dashboard');
+    } else if (isConsumerPage) {
+      navigate('/consumer');
     } else {
       navigate('/');
     }
-  }, [navigate, isFarmerDashboard])
+  }, [navigate, isFarmerDashboard, isConsumerPage])
   const handleBackClick = useCallback((e) => {
     e.stopPropagation();
     navigate(-1);
@@ -182,8 +184,8 @@ const Navbar = React.memo(({
             </select>
           </div>
 
-          {/* Logout Button — farmer dashboard only */}
-          {isFarmerDashboard && (
+          {/* Logout Button — shown on farmer AND consumer dashboards */}
+          {(isFarmerDashboard || isConsumerPage) && (
             <button
               className="navbar-logout-btn"
               onClick={handleLogout}
@@ -230,6 +232,10 @@ const Navbar = React.memo(({
                 <FaSearch className="nav-icon" />
                 <span>Search</span>
               </button>
+              <button className="mobile-menu-item mobile-menu-item--logout" onClick={() => { handleLogout(); setShowMobileMenu(false); }}>
+                <FaSignOutAlt className="nav-icon" />
+                <span>Logout</span>
+              </button>
             </>
           )}
           {isFarmerDashboard && (
@@ -248,12 +254,7 @@ const Navbar = React.memo(({
               </button>
             </>
           )}
-          {!isConsumerPage && showOrders && (
-            <button className="mobile-menu-item" onClick={() => { handleOrdersClick(); setShowMobileMenu(false); }}>
-              <FaBoxOpen className="nav-icon" />
-              <span>{t('orders')}</span>
-            </button>
-          )}
+
         </div>
       )}
     </div>

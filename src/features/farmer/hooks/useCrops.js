@@ -58,19 +58,14 @@ export const useCrops = () => {
             const userId = parsedUser.uid || parsedUser.id;
             
             if (userId) {
-              console.log('⚠️ Using localStorage userId (Auth not ready):', userId);
-              // Still try to query with this ID, but it may fail
               await queryFirestoreForCrops(userId);
             } else {
-              console.warn('⚠️ No valid user ID in localStorage');
               setSavedCrops([]);
             }
           } catch (err) {
-            console.error('Error parsing localStorage user:', err);
             setSavedCrops([]);
           }
         } else {
-          console.warn('⚠️ No user authenticated');
           setSavedCrops([]);
         }
         setLoading(false);
@@ -79,11 +74,11 @@ export const useCrops = () => {
 
       // User is authenticated via Firebase Auth
       const userId = user.uid;
-      console.log('✅ Authenticated via Firebase Auth:', userId);
+
       await queryFirestoreForCrops(userId);
       
     } catch (error) {
-      console.error('❌ Error loading crops:', error);
+
       setSavedCrops([]);
     } finally {
       setLoading(false);
@@ -93,8 +88,6 @@ export const useCrops = () => {
   // Helper function to query Firestore
   const queryFirestoreForCrops = async (userId) => {
     try {
-      console.log('📥 Loading crops for farmer:', userId);
-
       // Simple single-field query — no composite index needed
       const cropsRef = collection(db, 'crops');
       const q = query(
@@ -116,10 +109,8 @@ export const useCrops = () => {
         return tb - ta;
       });
 
-      console.log(`✅ Loaded ${farmerCrops.length} crops from Firestore`);
       setSavedCrops(farmerCrops);
     } catch (error) {
-      console.error('❌ Error querying Firestore:', error);
       throw error;
     }
   };
@@ -132,7 +123,7 @@ export const useCrops = () => {
       const user = auth.currentUser;
       
       if (!user) {
-        console.error('❌ No user authenticated in Firebase Auth');
+
         alert('⚠️ Please log in first to add crops.\n\nGo to Login page and sign in with your account.');
         return { success: false, error: 'User not authenticated' };
       }
@@ -141,7 +132,6 @@ export const useCrops = () => {
       const userId = user.uid;
       const userEmail = user.email || '';
 
-      console.log('✅ Authenticated user UID:', userId);
 
       // Validate required fields
       const cropNameField = cropData.cropName || cropData.crop;
@@ -165,9 +155,7 @@ export const useCrops = () => {
         createdAt: serverTimestamp()
       };
       
-      console.log('📤 Adding crop to Firestore with schema:', newCropData);
 
-      // Add to Firestore
       const cropsRef = collection(db, 'crops');
       const docRef = await addDoc(cropsRef, newCropData);
       
@@ -179,16 +167,9 @@ export const useCrops = () => {
       };
       
       setSavedCrops([newCrop, ...savedCrops]);
-      console.log('✅ Crop added successfully with ID:', docRef.id);
-      
       return { success: true, crop: newCrop };
     } catch (error) {
-      console.error('❌ Error adding crop:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      
       let errorMessage = 'Failed to add crop: ';
-      
       if (error.code === 'permission-denied') {
         errorMessage += 'Permission denied. Make sure you are properly authenticated.';
       } else if (error.code === 'unauthenticated') {
@@ -196,7 +177,6 @@ export const useCrops = () => {
       } else {
         errorMessage += error.message || 'Unknown error';
       }
-      
       alert('❌ ' + errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -207,19 +187,12 @@ export const useCrops = () => {
   // Delete crop from Firebase Firestore
   const deleteCrop = async (cropId, isAdminDelete = false, reason = '') => {
     try {
-      console.log('🗑️ Attempting to delete crop:', cropId);
-      
-      // Delete from Firestore
       const cropDocRef = doc(db, 'crops', cropId);
       await deleteDoc(cropDocRef);
       
-      // Update local state
       setSavedCrops(savedCrops.filter(crop => crop.id !== cropId));
-      console.log('✅ Crop deleted successfully from Firestore');
-      
       return { success: true };
     } catch (error) {
-      console.error('❌ Failed to delete crop:', error);
       alert('❌ Failed to delete crop: ' + (error.message || 'Unknown error'));
       return { success: false, error: error.message };
     }

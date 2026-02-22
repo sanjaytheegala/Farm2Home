@@ -124,10 +124,9 @@ const CartPage = () => {
       
       // Simulate payment processing
       setTimeout(() => {
-        console.log(`Order ${newOrderId} placed successfully! OTP: ${otp}`)
+        // order placed
       }, 1000)
     } catch (error) {
-      console.error('Failed to place order:', error)
       alert(t('order_failed') || 'Failed to place order. Please try again.')
       setLoading(false)
     }

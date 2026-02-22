@@ -115,13 +115,7 @@ export const initiatePayment = async (orderDetails, customerDetails) => {
     image: '/logo.png', // Your logo
     order_id: orderId, // Order ID from localStorage
     handler: async function (response) {
-      // Payment successful
-      console.log('Payment successful:', response);
-      
-      // Update order in localStorage
       await updateOrderPayment(orderId, response);
-      
-      // Call success callback if provided
       if (orderDetails.onSuccess) {
         orderDetails.onSuccess(response, orderId);
       }
@@ -139,7 +133,6 @@ export const initiatePayment = async (orderDetails, customerDetails) => {
     },
     modal: {
       ondismiss: function() {
-        console.log('Payment cancelled by user');
         if (orderDetails.onCancel) {
           orderDetails.onCancel(orderId);
         }

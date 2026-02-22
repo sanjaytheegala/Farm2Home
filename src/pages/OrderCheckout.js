@@ -14,6 +14,8 @@ import {
   FaShoppingBag,
   FaLeaf,
   FaArrowLeft,
+  FaArrowRight,
+  FaEdit,
 } from 'react-icons/fa';
 
 /* ─────────────────────────────────────────────
@@ -226,7 +228,7 @@ const validate = (form) => {
   const errors = {};
   if (!form.fullName.trim()) errors.fullName = 'Name is required';
   if (!/^\d{10}$/.test(form.phone)) errors.phone = 'Enter a valid 10-digit phone number';
-  if (!form.street.trim()) errors.street = 'Street address is required';
+  if (!form.area.trim()) errors.area = 'Area/Colony is required';
   if (!form.city.trim()) errors.city = 'City is required';
   if (!/^\d{6}$/.test(form.pincode)) errors.pincode = 'Enter a valid 6-digit pincode';
   return errors;
@@ -256,12 +258,14 @@ const OrderCheckout = () => {
   const [form, setForm] = useState({
     fullName: '',
     phone: '',
-    street: '',
+    area: '',
     city: '',
     pincode: '',
+    landmark: '',
   });
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
+  const [step, setStep] = useState(1); // 1 = address, 2 = review + confirm
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState(null);
@@ -281,6 +285,16 @@ const OrderCheckout = () => {
       return sum + price * qty;
     }, 0);
 
+  const handleContinueToReview = () => {
+    const validationErrors = validate(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleConfirmOrder = async () => {
     const validationErrors = validate(form);
     if (Object.keys(validationErrors).length > 0) {
@@ -299,9 +313,10 @@ const OrderCheckout = () => {
       const shippingAddress = {
         fullName: form.fullName.trim(),
         phone: form.phone.trim(),
-        street: form.street.trim(),
+        area: form.area.trim(),
         city: form.city.trim(),
         pincode: form.pincode.trim(),
+        landmark: form.landmark.trim() || '',
       };
 
       // Write one Firestore document per cart item (or a single doc for single-item checkout)
@@ -329,7 +344,6 @@ const OrderCheckout = () => {
       setPlacedOrderId(orderRefs[0]);
       setShowSuccess(true);
     } catch (err) {
-      console.error('Order placement failed:', err);
       alert('Failed to place order. Please try again.');
     } finally {
       setLoading(false);
@@ -366,6 +380,26 @@ const OrderCheckout = () => {
     );
   }
 
+  /* ── Step indicator ── */
+  const StepBar = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 28 }}>
+      {[{ n: 1, label: 'Delivery Address' }, { n: 2, label: 'Review & Confirm' }].map(({ n, label }, i) => (
+        <React.Fragment key={n}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 13, fontWeight: 700,
+              background: step >= n ? '#16a34a' : '#e5e7eb',
+              color: step >= n ? '#fff' : '#6b7280',
+            }}>{step > n ? '✓' : n}</div>
+            <span style={{ fontSize: 13, fontWeight: step === n ? 700 : 400, color: step >= n ? '#15803d' : '#9ca3af' }}>{label}</span>
+          </div>
+          {i < 1 && <div style={{ flex: 1, height: 2, background: step > 1 ? '#16a34a' : '#e5e7eb', borderRadius: 2 }} />}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
   return (
     <div style={styles.page}>
       <Navbar />
@@ -373,175 +407,148 @@ const OrderCheckout = () => {
       <div style={styles.container}>
         {/* Header */}
         <div style={styles.header}>
-          <button style={styles.backBtn} onClick={() => navigate(-1)}>
-            <FaArrowLeft /> Back
+          <button style={styles.backBtn} onClick={() => step === 2 ? setStep(1) : navigate(-1)}>
+            <FaArrowLeft /> {step === 2 ? 'Edit Address' : 'Back'}
           </button>
-          <h1 style={styles.pageTitle}>Order Checkout</h1>
+          <h1 style={styles.pageTitle}>
+            {step === 1 ? 'Delivery Address' : 'Review Order'}
+          </h1>
         </div>
 
-        <div style={styles.grid}>
-          {/* ── Address Form ── */}
-          <div style={styles.card}>
-            <h2 style={styles.cardTitle}>
-              <FaMapMarkerAlt /> Delivery Address
-            </h2>
+        <StepBar />
 
-            {/* Full Name */}
-            <div style={styles.formGroup}>
-              <label style={styles.label} htmlFor="fullName">
-                <FaUser /> Full Name *
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                placeholder="Enter your full name"
-                value={form.fullName}
-                onChange={handleChange}
-                onFocus={() => setFocusedField('fullName')}
-                onBlur={() => setFocusedField(null)}
-                style={inputStyle('fullName')}
-              />
-              {errors.fullName && <p style={styles.errorText}>{errors.fullName}</p>}
-            </div>
+        {/* ════════════════ STEP 1: Address Form ════════════════ */}
+        {step === 1 && (
+          <div style={{ maxWidth: 560, margin: '0 auto' }}>
+            <div style={styles.card}>
+              <h2 style={styles.cardTitle}><FaMapMarkerAlt /> Where should we deliver?</h2>
 
-            {/* Phone */}
-            <div style={styles.formGroup}>
-              <label style={styles.label} htmlFor="phone">
-                <FaPhone /> Phone Number *
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                placeholder="10-digit mobile number"
-                value={form.phone}
-                onChange={handleChange}
-                onFocus={() => setFocusedField('phone')}
-                onBlur={() => setFocusedField(null)}
-                style={inputStyle('phone')}
-                maxLength={10}
-              />
-              {errors.phone && <p style={styles.errorText}>{errors.phone}</p>}
-            </div>
-
-            {/* Street */}
-            <div style={styles.formGroup}>
-              <label style={styles.label} htmlFor="street">
-                <FaRoad /> Street Address *
-              </label>
-              <input
-                id="street"
-                name="street"
-                type="text"
-                placeholder="House No., Street, Locality"
-                value={form.street}
-                onChange={handleChange}
-                onFocus={() => setFocusedField('street')}
-                onBlur={() => setFocusedField(null)}
-                style={inputStyle('street')}
-              />
-              {errors.street && <p style={styles.errorText}>{errors.street}</p>}
-            </div>
-
-            {/* City + Pincode */}
-            <div style={styles.inputRow}>
+              {/* Full Name */}
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="city">
-                  <FaCity /> City *
-                </label>
-                <input
-                  id="city"
-                  name="city"
-                  type="text"
-                  placeholder="City"
-                  value={form.city}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField('city')}
-                  onBlur={() => setFocusedField(null)}
-                  style={inputStyle('city')}
-                />
-                {errors.city && <p style={styles.errorText}>{errors.city}</p>}
+                <label style={styles.label} htmlFor="fullName"><FaUser /> Full Name *</label>
+                <input id="fullName" name="fullName" type="text" placeholder="Enter your full name"
+                  value={form.fullName} onChange={handleChange}
+                  onFocus={() => setFocusedField('fullName')} onBlur={() => setFocusedField(null)}
+                  style={inputStyle('fullName')} />
+                {errors.fullName && <p style={styles.errorText}>{errors.fullName}</p>}
               </div>
+
+              {/* Phone */}
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="pincode">
-                  <FaHashtag /> Pincode *
-                </label>
-                <input
-                  id="pincode"
-                  name="pincode"
-                  type="text"
-                  placeholder="6-digit pincode"
-                  value={form.pincode}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField('pincode')}
-                  onBlur={() => setFocusedField(null)}
-                  style={inputStyle('pincode')}
-                  maxLength={6}
-                />
-                {errors.pincode && <p style={styles.errorText}>{errors.pincode}</p>}
+                <label style={styles.label} htmlFor="phone"><FaPhone /> Phone Number *</label>
+                <input id="phone" name="phone" type="tel" placeholder="10-digit mobile number"
+                  value={form.phone} onChange={handleChange} maxLength={10}
+                  onFocus={() => setFocusedField('phone')} onBlur={() => setFocusedField(null)}
+                  style={inputStyle('phone')} />
+                {errors.phone && <p style={styles.errorText}>{errors.phone}</p>}
               </div>
-            </div>
-          </div>
 
-          {/* ── Order Summary ── */}
-          <div style={styles.card}>
-            <h2 style={styles.cardTitle}>
-              <FaLeaf /> Order Summary
-            </h2>
+              {/* Area / Colony */}
+              <div style={styles.formGroup}>
+                <label style={styles.label} htmlFor="area"><FaRoad /> Area / Colony *</label>
+                <input id="area" name="area" type="text" placeholder="House No., Street, Area, Colony"
+                  value={form.area} onChange={handleChange}
+                  onFocus={() => setFocusedField('area')} onBlur={() => setFocusedField(null)}
+                  style={inputStyle('area')} />
+                {errors.area && <p style={styles.errorText}>{errors.area}</p>}
+              </div>
 
-            {cartItems.map((item, idx) => {
-              const qty = parseInt(item.quantity) || 1;
-              const price = parseFloat(item.price) || 0;
-              return (
-                <div key={item.id || idx} style={styles.orderItem}>
-                  <div>
-                    <p style={styles.itemName}>{item.name || item.crop || 'Product'}</p>
-                    <p style={styles.itemMeta}>
-                      ₹{price.toFixed(2)} × {qty} {item.unit || 'kg'}
-                    </p>
-                  </div>
-                  <p style={styles.itemPrice}>₹{(price * qty).toFixed(2)}</p>
+              {/* City + Pincode */}
+              <div style={styles.inputRow}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label} htmlFor="city"><FaCity /> City *</label>
+                  <input id="city" name="city" type="text" placeholder="City"
+                    value={form.city} onChange={handleChange}
+                    onFocus={() => setFocusedField('city')} onBlur={() => setFocusedField(null)}
+                    style={inputStyle('city')} />
+                  {errors.city && <p style={styles.errorText}>{errors.city}</p>}
                 </div>
-              );
-            })}
+                <div style={styles.formGroup}>
+                  <label style={styles.label} htmlFor="pincode"><FaHashtag /> Pincode *</label>
+                  <input id="pincode" name="pincode" type="text" placeholder="6-digit pincode"
+                    value={form.pincode} onChange={handleChange} maxLength={6}
+                    onFocus={() => setFocusedField('pincode')} onBlur={() => setFocusedField(null)}
+                    style={inputStyle('pincode')} />
+                  {errors.pincode && <p style={styles.errorText}>{errors.pincode}</p>}
+                </div>
+              </div>
 
-            <hr style={styles.divider} />
+              {/* Landmark (optional) */}
+              <div style={styles.formGroup}>
+                <label style={styles.label} htmlFor="landmark"><FaMapMarkerAlt /> Landmark <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
+                <input id="landmark" name="landmark" type="text" placeholder="Nearby landmark (e.g., Near SBI Bank)"
+                  value={form.landmark} onChange={handleChange}
+                  onFocus={() => setFocusedField('landmark')} onBlur={() => setFocusedField(null)}
+                  style={inputStyle('landmark')} />
+              </div>
 
-            <div style={styles.totalRow}>
-              <span>Total</span>
-              <span>₹{calculateTotal().toFixed(2)}</span>
+              <button style={styles.confirmBtn} onClick={handleContinueToReview}>
+                Continue to Review <FaArrowRight style={{ marginLeft: 6 }} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════════ STEP 2: Review + Confirm ════════════════ */}
+        {step === 2 && (
+          <div style={styles.grid}>
+            {/* Address Summary */}
+            <div style={styles.card}>
+              <h2 style={styles.cardTitle}><FaMapMarkerAlt /> Delivery Address</h2>
+              <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '16px 18px', lineHeight: 1.7, fontSize: 14, color: '#1f2937' }}>
+                <p style={{ fontWeight: 700, fontSize: 15, margin: '0 0 4px' }}>{form.fullName}</p>
+                <p style={{ margin: 0 }}>{form.area}</p>
+                {form.landmark && <p style={{ margin: 0, color: '#6b7280' }}>Near: {form.landmark}</p>}
+                <p style={{ margin: 0 }}>{form.city} – {form.pincode}</p>
+                <p style={{ margin: '4px 0 0', color: '#374151' }}>📞 {form.phone}</p>
+              </div>
+              <button
+                onClick={() => setStep(1)}
+                style={{ background: 'none', border: '1.5px solid #16a34a', color: '#16a34a', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <FaEdit /> Change Address
+              </button>
             </div>
 
-            <p
-              style={{
-                fontSize: 12,
-                color: '#6b7280',
-                marginTop: 8,
-                textAlign: 'center',
-              }}
-            >
-              Payment will be collected on delivery (COD)
-            </p>
+            {/* Order Summary + Confirm */}
+            <div style={styles.card}>
+              <h2 style={styles.cardTitle}><FaLeaf /> Order Summary</h2>
 
-            <button
-              style={{
-                ...styles.confirmBtn,
-                ...(loading ? styles.confirmBtnDisabled : {}),
-              }}
-              onClick={handleConfirmOrder}
-              disabled={loading}
-            >
-              {loading ? (
-                'Placing Order...'
-              ) : (
-                <>
-                  <FaCheckCircle /> Confirm Order
-                </>
-              )}
-            </button>
+              {cartItems.map((item, idx) => {
+                const qty = parseInt(item.quantity) || 1;
+                const price = parseFloat(item.price) || 0;
+                return (
+                  <div key={item.id || idx} style={styles.orderItem}>
+                    <div>
+                      <p style={styles.itemName}>{item.name || item.crop || 'Product'}</p>
+                      <p style={styles.itemMeta}>₹{price.toFixed(2)} × {qty} {item.unit || 'kg'}</p>
+                    </div>
+                    <p style={styles.itemPrice}>₹{(price * qty).toFixed(2)}</p>
+                  </div>
+                );
+              })}
+
+              <hr style={styles.divider} />
+
+              <div style={styles.totalRow}>
+                <span>Total</span>
+                <span>₹{calculateTotal().toFixed(2)}</span>
+              </div>
+
+              <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8, textAlign: 'center' }}>
+                Cash on Delivery (COD)
+              </p>
+
+              <button
+                style={{ ...styles.confirmBtn, ...(loading ? styles.confirmBtnDisabled : {}) }}
+                onClick={handleConfirmOrder}
+                disabled={loading}
+              >
+                {loading ? 'Placing Order...' : <><FaCheckCircle /> Confirm Order</>}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── Success Modal ── */}

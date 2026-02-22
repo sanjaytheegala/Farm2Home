@@ -35,7 +35,6 @@ const LoginPage = () => {
     // Mock OTP sending
     setTimeout(() => {
       setConfirmationResult(true);
-      console.log('Mock OTP sent (use any 6 digits)');
       setLoading(false);
     }, 500);
   };
@@ -83,15 +82,11 @@ const LoginPage = () => {
       const isPhoneNumber = /^[\d\s\-+()]+$/.test(emailToUse);
 
       if (isPhoneNumber) {
-        console.log('📱 Phone number detected, calling Cloud Function for email lookup...');
-
         // Call the Cloud Function (runs with Admin SDK — bypasses all Firestore rules)
         const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
         const cleanPhone = emailToUse.replace(/\D/g, '');
         const result = await getEmailByPhone({ phoneNumber: cleanPhone });
         emailToUse = result.data.email;
-
-        console.log('✅ Resolved email for phone number:', emailToUse);
       }
 
       // Sign in with Firebase Auth
@@ -121,11 +116,8 @@ const LoginPage = () => {
       }
 
       localStorage.setItem('currentUser', JSON.stringify(userData));
-      console.log('✅ User logged in successfully:', userData);
-
       navigate(userData.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
     } catch (err) {
-      console.error('Login error:', err);
       let errorMessage = 'Failed to login. Please try again.';
       if (err.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email.';

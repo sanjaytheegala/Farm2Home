@@ -28,14 +28,10 @@ const AddCropForm = () => {
     
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // User is authenticated and auth state is loaded
-        console.log('✅ Firebase Auth ready - User logged in:', user.uid);
         setAuthenticatedUser(user);
         setAuthReady(true);
       } else {
-        // No user signed in
-        console.log('⚠️ No user signed in');
-        setAuthReady(true); // Still set ready, but user is null
+        setAuthReady(true);
         setAuthenticatedUser(null);
       }
     });
@@ -106,8 +102,6 @@ const AddCropForm = () => {
     const userId = authenticatedUser.uid;
     const userEmail = authenticatedUser.email || '';
 
-    console.log('✅ Authenticated user UID:', userId);
-
     setLoading(true);
     setError('');
     setSuccess('');
@@ -127,13 +121,9 @@ const AddCropForm = () => {
         createdAt: serverTimestamp()
       };
 
-      console.log('📤 Sending crop data to Firestore:', cropData);
-
-      // Add document to crops collection
       const cropsRef = collection(db, 'crops');
       const docRef = await addDoc(cropsRef, cropData);
 
-      console.log('✅ Crop added successfully with ID:', docRef.id);
       setSuccess('Crop added successfully! Redirecting...');
 
       // Reset form
@@ -152,22 +142,14 @@ const AddCropForm = () => {
       }, 2000);
 
     } catch (err) {
-      console.error('❌ Error adding crop:', err);
-      console.error('Error code:', err.code);
-      console.error('Error message:', err.message);
-      
       let errorMessage = 'Failed to save crop: ';
-      
       if (err.code === 'permission-denied') {
         errorMessage += 'Permission denied. Please ensure you are logged in.';
       } else if (err.code === 'unauthenticated') {
         errorMessage += 'User not authenticated. Please log in again.';
-      } else if (err.message) {
-        errorMessage += err.message;
       } else {
-        errorMessage += 'Unknown error occurred';
+        errorMessage += err.message || 'Unknown error occurred';
       }
-      
       setError(errorMessage);
     } finally {
       setLoading(false);

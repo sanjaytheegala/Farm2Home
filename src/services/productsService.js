@@ -1,16 +1,19 @@
-/**
- * Products Service - Handle all localStorage operations for products
- */
+import { db } from '../firebase';
+import {
+  collection, getDocs, addDoc, updateDoc, deleteDoc,
+  doc, query, where, orderBy, onSnapshot, serverTimestamp
+} from 'firebase/firestore';
+
+const cropsRef = collection(db, 'crops');
 
 // Get all products
 export const getAllProducts = async () => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    // Sort by createdAt (newest first)
-    allCrops.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    return { success: true, products: allCrops };
+    const q = query(cropsRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { success: true, products };
   } catch (error) {
-    console.error('Error fetching products:', error);
     return { success: false, error: error.message };
   }
 };
@@ -18,13 +21,11 @@ export const getAllProducts = async () => {
 // Get products by category
 export const getProductsByCategory = async (category) => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    const products = allCrops
-      .filter(crop => crop.category === category)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const q = query(cropsRef, where('category', '==', category), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     return { success: true, products };
   } catch (error) {
-    console.error('Error fetching products by category:', error);
     return { success: false, error: error.message };
   }
 };
@@ -32,13 +33,11 @@ export const getProductsByCategory = async (category) => {
 // Get products by state
 export const getProductsByState = async (state) => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    const products = allCrops
-      .filter(crop => crop.state === state)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const q = query(cropsRef, where('state', '==', state), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     return { success: true, products };
   } catch (error) {
-    console.error('Error fetching products by state:', error);
     return { success: false, error: error.message };
   }
 };
@@ -46,18 +45,13 @@ export const getProductsByState = async (state) => {
 // Add new product
 export const addProduct = async (productData) => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    const newProduct = {
+    const docRef = await addDoc(cropsRef, {
       ...productData,
-      id: 'crop_' + Date.now(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    allCrops.push(newProduct);
-    localStorage.setItem('crops', JSON.stringify(allCrops));
-    return { success: true, productId: newProduct.id };
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return { success: true, productId: docRef.id };
   } catch (error) {
-    console.error('Error adding product:', error);
     return { success: false, error: error.message };
   }
 };
@@ -65,14 +59,12 @@ export const addProduct = async (productData) => {
 // Update product
 export const updateProduct = async (productId, productData) => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    const updatedCrops = allCrops.map(crop => 
-      crop.id === productId ? { ...crop, ...productData, updatedAt: new Date().toISOString() } : crop
-    );
-    localStorage.setItem('crops', JSON.stringify(updatedCrops));
+    await updateDoc(doc(db, 'crops', productId), {
+      ...productData,
+      updatedAt: serverTimestamp(),
+    });
     return { success: true };
   } catch (error) {
-    console.error('Error updating product:', error);
     return { success: false, error: error.message };
   }
 };
@@ -80,57 +72,36 @@ export const updateProduct = async (productId, productData) => {
 // Delete product
 export const deleteProduct = async (productId) => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    const updatedCrops = allCrops.filter(crop => crop.id !== productId);
-    localStorage.setItem('crops', JSON.stringify(updatedCrops));
+    await deleteDoc(doc(db, 'crops', productId));
     return { success: true };
   } catch (error) {
-    console.error('Error deleting product:', error);
     return { success: false, error: error.message };
   }
 };
 
-// Real-time listener for products (simulated with polling)
+// Real-time listener for products using Firestore onSnapshot
 export const subscribeToProducts = (callback) => {
-  try {
-    // Initial load
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    allCrops.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    callback(allCrops);
-    
-    // Poll for changes every 5 seconds
-    const interval = setInterval(() => {
-      const updatedCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-      updatedCrops.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      callback(updatedCrops);
-    }, 5000);
-    
-    // Return unsubscribe function
-    return () => clearInterval(interval);
-  } catch (error) {
-    console.error('Error subscribing to products:', error);
-    return () => {};
-  }
+  const q = query(cropsRef, orderBy('createdAt', 'desc'));
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    callback(products);
+  });
+  return unsubscribe;
 };
 
-// Search products
+// Search products (client-side filter after Firestore fetch)
 export const searchProducts = async (searchTerm) => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    
-    const products = allCrops.filter(product => {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        product.name?.toLowerCase().includes(searchLower) ||
-        product.cropName?.toLowerCase().includes(searchLower) ||
-        product.description?.toLowerCase().includes(searchLower) ||
-        product.category?.toLowerCase().includes(searchLower)
-      );
-    });
-    
-    return { success: true, products };
+    const { products } = await getAllProducts();
+    const lower = searchTerm.toLowerCase();
+    const filtered = (products || []).filter(p =>
+      p.name?.toLowerCase().includes(lower) ||
+      p.cropName?.toLowerCase().includes(lower) ||
+      p.description?.toLowerCase().includes(lower) ||
+      p.category?.toLowerCase().includes(lower)
+    );
+    return { success: true, products: filtered };
   } catch (error) {
-    console.error('Error searching products:', error);
     return { success: false, error: error.message };
   }
 };
@@ -138,13 +109,11 @@ export const searchProducts = async (searchTerm) => {
 // Get featured products
 export const getFeaturedProducts = async () => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    const products = allCrops
-      .filter(crop => crop.featured === true)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const q = query(cropsRef, where('featured', '==', true), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     return { success: true, products };
   } catch (error) {
-    console.error('Error fetching featured products:', error);
     return { success: false, error: error.message };
   }
 };
@@ -152,13 +121,11 @@ export const getFeaturedProducts = async () => {
 // Get trending products
 export const getTrendingProducts = async () => {
   try {
-    const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
-    const products = allCrops
-      .filter(crop => crop.trending === true)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const q = query(cropsRef, where('trending', '==', true), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     return { success: true, products };
   } catch (error) {
-    console.error('Error fetching trending products:', error);
     return { success: false, error: error.message };
   }
 };

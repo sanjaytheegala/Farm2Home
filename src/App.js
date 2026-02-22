@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
+import { useAuth } from './context/AuthContext';
 
 // Import styles
 import './App.css';
@@ -23,6 +24,29 @@ const ResourceSharePage = React.lazy(() => import('./pages/ResourceSharePage'));
 const CropRecommendationPage = React.lazy(() => import('./pages/CropRecommendationPage'));
 const OrderCheckout = React.lazy(() => import('./pages/OrderCheckout'));
 
+// Splash screen shown while Firebase resolves auth state
+const AuthSplash = () => (
+  <div style={{
+    position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
+    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+    zIndex: 9999,
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 28 }}>
+      <span style={{ fontSize: 26, fontWeight: 800, color: '#15803d', letterSpacing: 1 }}>FARM</span>
+      <img src={require('./logo/logo3.png')} alt="Farm 2 Home" style={{ height: 52 }} />
+      <span style={{ fontSize: 26, fontWeight: 800, color: '#15803d', letterSpacing: 1 }}>HOME</span>
+    </div>
+    <div style={{
+      width: 40, height: 40, border: '4px solid #d1fae5',
+      borderTop: '4px solid #16a34a', borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite',
+    }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <p style={{ marginTop: 18, color: '#6b7280', fontSize: 14 }}>Checking session...</p>
+  </div>
+);
+
 // Loading component
 const PageLoader = () => (
   <div className="flex justify-center items-center min-h-screen">
@@ -30,10 +54,32 @@ const PageLoader = () => (
   </div>
 );
 
+/**
+ * PublicOnlyRoute — the inverse of ProtectedRoute.
+ * Wraps the landing page ("/") and any auth pages ("/login", etc.).
+ *
+ * Loading     → show splash (Firebase hasn't resolved yet)
+ * Logged in   → redirect to their dashboard (prevents showing login to authed users)
+ * Not logged in → render the public page normally
+ */
+const PublicOnlyRoute = ({ children }) => {
+  const { currentUser, userData, loading } = useAuth();
+
+  if (loading) return <AuthSplash />;
+
+  if (currentUser) {
+    const dest = userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer';
+    return <Navigate to={dest} replace />;
+  }
+
+  return children;
+};
+
 // Navigation wrapper component to handle navbar interactions
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { loading } = useAuth();
   const [activeTab, setActiveTab] = useState('browse');
   const [cartCount, setCartCount] = useState(0);
 
@@ -46,8 +92,7 @@ const AppContent = () => {
         const cart = JSON.parse(localStorage.getItem('cart') || '[]');
         const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
         setCartCount(totalItems);
-      } catch (error) {
-        console.error('Error reading cart:', error);
+      } catch {
         setCartCount(0);
       }
     };
@@ -83,8 +128,7 @@ const AppContent = () => {
         navigate('/consumer');
         break;
       case 'profile':
-        // Handle profile navigation
-        console.log('Profile clicked - implement profile page');
+        navigate('/profile');
         break;
       default:
         break;
@@ -103,6 +147,7 @@ const AppContent = () => {
 
   return (
     <>
+      {loading && <AuthSplash />}
       <Navbar 
         cartCount={cartCount}
         notifications={[]}
@@ -115,12 +160,19 @@ const AppContent = () => {
       />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route
+            path="/"
+            element={
+              <PublicOnlyRoute>
+                <HomePage />
+              </PublicOnlyRoute>
+            }
+          />
           <Route path="/about" element={<AboutPage />} />
-          {/* /login, /signup, /auth removed — auth is handled via modal on the homepage */}
+          {/* /login, /signup, /auth redirect to "/" which PublicOnlyRoute guards */}
           <Route path="/auth" element={<Navigate to="/" replace />} />
           <Route path="/signup" element={<Navigate to="/" replace />} />
-          <Route path="/login" element={<Navigate to="/" state={{ openModal: true, role: 'consumer' }} replace />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route

@@ -127,19 +127,13 @@ const HomePage = () => {
           email: phone || `${userId}@phone.com`,
           uid: userId
         };
-        console.log('OTP verification success - storing user data:', userData);
         localStorage.setItem('mockUserData', JSON.stringify(userData));
-        
-        // Navigate to appropriate dashboard
-        console.log('Navigating to dashboard for role:', selectedRole);
-        console.log('Navigation path:', selectedRole === 'farmer' ? '/farmer' : '/consumer');
         navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
       } else {
         setError('Invalid OTP. Please enter 6 digits.');
       }
     } catch (err) {
       setError('Invalid OTP. Please try again.');
-      console.error(err);
     }
     setLoading(false);
   };
@@ -186,15 +180,11 @@ const HomePage = () => {
       const isPhoneNumber = phonePattern.test(emailToUse);
 
       if (isPhoneNumber) {
-        console.log('📱 Phone number detected, calling Cloud Function for email lookup...');
-
         // Call the Cloud Function (runs with Admin SDK — bypasses all Firestore rules)
         const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
         const cleanPhone = emailToUse.replace(/\D/g, '');
         const result = await getEmailByPhone({ phoneNumber: cleanPhone });
         emailToUse = result.data.email;
-
-        console.log('✅ Found email for phone number:', emailToUse);
       }
 
       // Sign in with Firebase Auth using email
@@ -226,8 +216,6 @@ const HomePage = () => {
         throw new Error('Your account is inactive. Please contact support.');
       }
 
-      console.log('✅ Login successful with UID:', user.uid);
-
       // Store user data in localStorage with uid
       localStorage.setItem('currentUser', JSON.stringify(userData));
 
@@ -238,7 +226,6 @@ const HomePage = () => {
       }, 500);
 
     } catch (err) {
-      console.error('Login error:', err);
       let errorMessage = 'Failed to login. Please try again.';
       
       if (err.code === 'auth/user-not-found') {
@@ -284,8 +271,6 @@ const HomePage = () => {
       // Store user data
       localStorage.setItem('mockUserData', JSON.stringify(userData));
       
-      // Navigate to appropriate dashboard
-      console.log('Navigating to dashboard for role:', selectedRole);
       navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
     } catch (err) {
       setError('Failed to create an account. Please try again.');
@@ -327,11 +312,15 @@ const HomePage = () => {
   };
 
   const openLoginCard = (role) => {
+    // If user is already authenticated, skip the modal and go to their dashboard
+    if (currentUser) {
+      navigate(userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
+      return;
+    }
     setSelectedRole(role)
     setShowLoginCard(true)
-    setFormType('login'); // Ensure it opens in login mode
-    setLoginMethod('email'); // Default to email/password login instead of OTP
-    // Scroll to login section (a bit above statistics)
+    setFormType('login');
+    setLoginMethod('email');
     setTimeout(() => {
       const loginSection = document.getElementById('login-section')
       if (loginSection) {
@@ -534,8 +523,8 @@ const HomePage = () => {
             <div style={ctaButtons} className="cta-buttons">
               <button 
                 onClick={() => {
-                  if (currentUser && userData?.role === 'farmer') {
-                    navigate('/farmer-dashboard');
+                  if (currentUser) {
+                    navigate(userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
                   } else {
                     setShowFarmerSignupModal(true);
                   }
@@ -543,17 +532,15 @@ const HomePage = () => {
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                title={currentUser && userData?.role === 'farmer' ? 'Go to Farmer Dashboard' : 'Sign up as Farmer'}
+                title={currentUser ? 'Go to Dashboard' : 'Sign up as Farmer'}
               >
                 <FaLeaf style={{ marginRight: '8px' }} />
-                {currentUser && userData?.role === 'farmer'
-                  ? 'Go to Dashboard'
-                  : (t('join_as_farmer') || 'Join as Farmer')}
+                {currentUser ? 'Go to Dashboard' : (t('join_as_farmer') || 'Join as Farmer')}
               </button>
               <button 
                 onClick={() => {
-                  if (currentUser && userData?.role === 'consumer') {
-                    navigate('/consumer');
+                  if (currentUser) {
+                    navigate(userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
                   } else {
                     openLoginCard('consumer');
                   }
@@ -561,12 +548,10 @@ const HomePage = () => {
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                title={currentUser && userData?.role === 'consumer' ? 'Go to Consumer Dashboard' : 'Go to Consumer Dashboard'}
+                title={currentUser ? 'Go to Dashboard' : 'Shop Fresh Products'}
               >
                 <FaShoppingCart style={{ marginRight: '8px' }} />
-                {currentUser && userData?.role === 'consumer'
-                  ? 'Go to Dashboard'
-                  : (t('shop_fresh_products') || 'Shop Fresh Products')}
+                {currentUser ? 'Go to Dashboard' : (t('shop_fresh_products') || 'Shop Fresh Products')}
               </button>
             </div>
           </div>
@@ -622,57 +607,77 @@ const HomePage = () => {
             {/* ── Forgot Password View ── */}
             {showForgotPassword && (
               <div style={formContainer}>
-                {forgotMessage && (
-                  <div style={{
-                    background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7',
-                    borderRadius: 8, padding: '10px 14px', fontSize: 14, marginBottom: 14
-                  }}>
-                    {forgotMessage}
-                  </div>
+                {forgotMessage ? (
+                  // ── Success state: hide form, show persistent banner + back button
+                  <>
+                    <div style={{
+                      background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7',
+                      borderRadius: 10, padding: '14px 16px', fontSize: 14, marginBottom: 20,
+                      lineHeight: 1.5, fontWeight: 500
+                    }}>
+                      ✓ {forgotMessage}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setForgotEmail('');
+                        setForgotMessage('');
+                        setForgotError('');
+                      }}
+                      style={submitButton}
+                    >
+                      ← Back to Login
+                    </button>
+                  </>
+                ) : (
+                  // ── Normal state: show form
+                  <>
+                    {forgotError && (
+                      <div style={{
+                        background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5',
+                        borderRadius: 8, padding: '10px 14px', fontSize: 14, marginBottom: 14
+                      }}>
+                        {forgotError}
+                      </div>
+                    )}
+                    <form onSubmit={handleForgotPassword}>
+                      <div style={inputGroup}>
+                        <input
+                          type="email"
+                          placeholder="Enter your email address"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          style={inputField}
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={forgotLoading}
+                        style={{...submitButton, opacity: forgotLoading ? 0.7 : 1}}
+                      >
+                        {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                      </button>
+                    </form>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setForgotEmail('');
+                        setForgotMessage('');
+                        setForgotError('');
+                      }}
+                      style={{
+                        background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer',
+                        fontSize: 13, marginTop: 10, textDecoration: 'underline',
+                        display: 'block', width: '100%', textAlign: 'center'
+                      }}
+                    >
+                      ← Back to Login
+                    </button>
+                  </>
                 )}
-                {forgotError && (
-                  <div style={{
-                    background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5',
-                    borderRadius: 8, padding: '10px 14px', fontSize: 14, marginBottom: 14
-                  }}>
-                    {forgotError}
-                  </div>
-                )}
-                <form onSubmit={handleForgotPassword}>
-                  <div style={inputGroup}>
-                    <input
-                      type="email"
-                      placeholder="Enter your email address"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      style={inputField}
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={forgotLoading}
-                    style={{...submitButton, opacity: forgotLoading ? 0.7 : 1}}
-                  >
-                    {forgotLoading ? 'Sending...' : 'Send Reset Link'}
-                  </button>
-                </form>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForgotPassword(false)
-                    setForgotEmail('')
-                    setForgotMessage('')
-                    setForgotError('')
-                  }}
-                  style={{
-                    background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer',
-                    fontSize: 14, fontWeight: 600, marginTop: 14, textDecoration: 'underline',
-                    display: 'block', width: '100%', textAlign: 'center'
-                  }}
-                >
-                  ← Back to Login
-                </button>
               </div>
             )}
 

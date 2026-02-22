@@ -54,16 +54,10 @@ const SignupPage = () => {
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
-      // Store in localStorage for session
       localStorage.setItem('currentUser', JSON.stringify({ ...userData, createdAt: new Date().toISOString() }));
-
-      console.log('✅ User created successfully:', userData);
-
-      // Redirect to the correct dashboard
       navigate(userType === 'farmer' ? '/farmer-dashboard' : '/consumer');
 
     } catch (err) {
-      console.error('Signup error:', err);
       if (err.code === 'auth/email-already-in-use') {
         setError('This email is already registered. Please login instead.');
       } else if (err.code === 'auth/invalid-email') {
