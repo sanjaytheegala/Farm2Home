@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-// import { auth, db, doc, getDoc, updateDoc } from '../firebase';
-// import { updatePassword, updateEmail, updateProfile } from 'firebase/auth';
+import { auth, db } from '../firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { updatePassword, updateProfile, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaCamera, FaLock } from 'react-icons/fa';
 import './ProfilePage.css';
 
@@ -36,30 +37,26 @@ const ProfilePage = () => {
 
   const fetchUserData = async () => {
     try {
-      // TODO: Uncomment when Firebase is configured
-      // const user = auth.currentUser;
-      // if (user) {
-      //   const userDoc = await getDoc(doc(db, 'users', user.uid));
-      //   const firestoreData = userDoc.exists() ? userDoc.data() : {};
-      //   const data = { ...user data... };
-      //   setUserData(data);
-      //   setOriginalData(data);
-      // }
-      
-      // Mock data for now
-      const mockData = {
-        fullName: 'Demo User',
-        email: 'demo@farm2home.com',
-        phone: '+91 9876543210',
-        addressLine: '123 Main Street',
-        city: 'Hyderabad',
-        state: 'Telangana',
-        pincode: '500001',
-        role: 'consumer',
-        photoURL: ''
+      const user = auth.currentUser;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const firestoreData = userDoc.exists() ? userDoc.data() : {};
+      const data = {
+        fullName: firestoreData.name || user.displayName || '',
+        email: user.email || '',
+        phone: firestoreData.phone || '',
+        addressLine: firestoreData.addressLine || '',
+        city: firestoreData.city || '',
+        state: firestoreData.state || '',
+        pincode: firestoreData.pincode || '',
+        role: firestoreData.role || '',
+        photoURL: user.photoURL || firestoreData.photoURL || ''
       };
-      setUserData(mockData);
-      setOriginalData(mockData);
+      setUserData(data);
+      setOriginalData(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -85,13 +82,24 @@ const ProfilePage = () => {
 
   const handleSaveProfile = async () => {
     try {
-      // TODO: Uncomment when Firebase is configured
-      // const user = auth.currentUser;
-      // if (!user) return;
-      // await updateProfile(user, { displayName: userData.fullName, photoURL: userData.photoURL });
-      // await updateDoc(doc(db, 'users', user.uid), { ...userData, updatedAt: new Date().toISOString() });
-
-      // Mock save for now      setEditing(false);
+      const user = auth.currentUser;
+      if (!user) return;
+      await updateProfile(user, {
+        displayName: userData.fullName,
+        photoURL: userData.photoURL || null
+      });
+      await updateDoc(doc(db, 'users', user.uid), {
+        name: userData.fullName,
+        phone: userData.phone,
+        addressLine: userData.addressLine,
+        city: userData.city,
+        state: userData.state,
+        pincode: userData.pincode,
+        photoURL: userData.photoURL || '',
+        updatedAt: new Date().toISOString()
+      });
+      setOriginalData(userData);
+      setEditing(false);
       showMessage('success', t('profile_updated'));
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -113,24 +121,24 @@ const ProfilePage = () => {
     }
 
     try {
-      // TODO: Uncomment when Firebase is configured
-      // const user = auth.currentUser;
-      // await updatePassword(user, passwordData.newPassword);
-      
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
+      const user = auth.currentUser;
+      if (!user) return;
+      const credential = EmailAuthProvider.credential(user.email, passwordData.currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, passwordData.newPassword);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setChangingPassword(false);
       showMessage('success', t('password_changed'));
     } catch (error) {
       console.error('Error changing password:', error);
-      showMessage('error', t('password_change_error'));
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        showMessage('error', t('current_password_wrong') || 'Current password is incorrect');
+      } else {
+        showMessage('error', t('password_change_error'));
+      }
     }
-  };// TODO: Uncomment when Firebase is configured
-      // const user = auth.currentUser;
-      //
+  };
+
   const handleCancel = () => {
     setUserData(originalData);
     setEditing(false);
