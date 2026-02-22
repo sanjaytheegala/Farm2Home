@@ -910,7 +910,7 @@ const HomePage = () => {
                   </form>
                 )}
               </div>
-            )}
+            ) : null}
 
 
           </div>
