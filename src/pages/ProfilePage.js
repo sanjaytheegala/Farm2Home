@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { auth, db } from '../firebase';
+import { auth, db, storage } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { updatePassword, updateProfile, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaCamera, FaLock } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaEdit, FaSave, FaTimes, FaCamera, FaLock, FaSpinner } from 'react-icons/fa';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -30,6 +31,8 @@ const ProfilePage = () => {
   });
   const [addresses, setAddresses] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchUserData();
@@ -47,7 +50,7 @@ const ProfilePage = () => {
       const data = {
         fullName: firestoreData.name || user.displayName || '',
         email: user.email || '',
-        phone: firestoreData.phone || '',
+        phone: firestoreData.phoneNumber || firestoreData.phone || '',
         addressLine: firestoreData.addressLine || '',
         city: firestoreData.city || '',
         state: firestoreData.state || '',
@@ -91,6 +94,7 @@ const ProfilePage = () => {
       await updateDoc(doc(db, 'users', user.uid), {
         name: userData.fullName,
         phone: userData.phone,
+        phoneNumber: userData.phone,
         addressLine: userData.addressLine,
         city: userData.city,
         state: userData.state,
@@ -144,14 +148,67 @@ const ProfilePage = () => {
     setEditing(false);
   };
 
-  const handlePhotoUpload = (e) => {
+  /* ── Avatar colour helper ─────────────────────── */
+  const getAvatarColor = (name) => {
+    const palette = [
+      '#FFBF00', '#FF6B6B', '#4ECDC4', '#45B7D1',
+      '#96CEB4', '#BE6DB7', '#F7A738', '#2ECC71'
+    ];
+    const idx = ((name || 'U').charCodeAt(0) - 65 + 26) % palette.length;
+    return palette[idx];
+  };
+
+  /* ── Firebase Storage upload ───────────────────── */
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUserData({ ...userData, photoURL: reader.result });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const user = auth.currentUser;
+    if (!user) { showMessage('error', 'Please log in first'); return; }
+
+    // Client-side size guard (5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage('error', 'Image too large. Maximum size is 5 MB.');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setUploadProgress(0);
+
+    try {
+      const storageRef = ref(storage, `profile_photos/${user.uid}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          setUploadProgress(pct);
+        },
+        (error) => {
+          console.error('Upload error:', error);
+          showMessage('error', 'Photo upload failed. Please try again.');
+          setUploadingPhoto(false);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+          // Update Firebase Auth profile
+          await updateProfile(user, { photoURL: downloadURL });
+
+          // Persist to Firestore so it survives page refresh
+          await updateDoc(doc(db, 'users', user.uid), { photoURL: downloadURL });
+
+          setUserData((prev) => ({ ...prev, photoURL: downloadURL }));
+          setOriginalData((prev) => ({ ...prev, photoURL: downloadURL }));
+          showMessage('success', 'Profile photo updated!');
+          setUploadingPhoto(false);
+        }
+      );
+    } catch (err) {
+      console.error('Upload error:', err);
+      showMessage('error', 'Photo upload failed. Please try again.');
+      setUploadingPhoto(false);
     }
   };
 
@@ -183,21 +240,33 @@ const ProfilePage = () => {
             {userData.photoURL ? (
               <img src={userData.photoURL} alt="Profile" className="profile-photo" />
             ) : (
-              <div className="profile-photo-placeholder">
-                <FaUser />
+              <div
+                className="profile-avatar-letter"
+                style={{ background: getAvatarColor(userData.fullName) }}
+              >
+                {(userData.fullName || 'U')[0].toUpperCase()}
               </div>
             )}
-            {editing && (
-              <label className="photo-upload-btn">
-                <FaCamera />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  style={{ display: 'none' }}
-                />
-              </label>
+
+            {/* Upload progress ring overlay */}
+            {uploadingPhoto && (
+              <div className="photo-upload-overlay">
+                <FaSpinner className="spin-icon" />
+                <span>{uploadProgress}%</span>
+              </div>
             )}
+
+            {/* Camera button — always visible, not just during editing */}
+            <label className={`photo-upload-btn ${uploadingPhoto ? 'disabled' : ''}`}>
+              <FaCamera />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                disabled={uploadingPhoto}
+                style={{ display: 'none' }}
+              />
+            </label>
           </div>
           <div className="profile-name">
             <h2>{userData.fullName || 'User'}</h2>

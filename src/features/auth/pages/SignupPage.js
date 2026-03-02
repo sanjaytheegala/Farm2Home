@@ -34,6 +34,27 @@ const SignupPage = () => {
       return;
     }
 
+    const trimmedName = name.trim();
+    const nameRegex = /^[a-zA-Z\s'\-]+$/;
+    if (!trimmedName || trimmedName.length < 2) {
+      setError('Full name must be at least 2 characters.');
+      return;
+    }
+    if (trimmedName.length > 60) {
+      setError('Full name cannot exceed 60 characters.');
+      return;
+    }
+    if (!nameRegex.test(trimmedName)) {
+      setError('Name can only contain letters, spaces, hyphens and apostrophes.');
+      return;
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      setError('Please enter a valid 10-digit phone number.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -46,7 +67,8 @@ const SignupPage = () => {
         uid: user.uid,
         email: email,
         name: name || 'User',
-        phoneNumber: phone.replace(/\D/g, '') || '',
+        phoneNumber: phone.replace(/\D/g, ''),
+        phone: phone.replace(/\D/g, ''),
         role: userType,
         status: 'active',
         createdAt: serverTimestamp(),
@@ -133,9 +155,11 @@ const SignupPage = () => {
           <div style={{ marginBottom: '15px' }}>
             <input
               type="tel"
-              placeholder="Phone Number (optional)"
+              placeholder="Phone Number (10 digits)"
               value={phone}
               onChange={e => setPhone(e.target.value)}
+              required
+              maxLength={15}
               style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
             />
           </div>

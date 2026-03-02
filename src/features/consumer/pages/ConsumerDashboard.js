@@ -1,302 +1,655 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FaShoppingCart, 
-  FaLeaf, 
-  FaHandshake, 
-  FaCertificate, 
-  FaRupeeSign, 
-  FaTruck, 
-  FaSeedling,
-  FaAward,
-  FaShieldAlt,
-  FaArrowRight,
-  FaStar,
-  FaHeart,
-  FaBox,
-  FaUsers,
-  FaCheckCircle
+import { auth, db } from '../../../firebase';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import {
+  FaShoppingCart, FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
+  FaSeedling, FaShieldAlt, FaArrowRight, FaHeart, FaBox,
+  FaUsers, FaCheckCircle, FaClipboardList, FaSearch, FaThLarge,
+  FaList, FaSlidersH, FaPlusCircle, FaMapMarkerAlt, FaCoins,
+  FaStar, FaPhone, FaRobot, FaBell, FaChevronRight,
+  FaRegClock, FaLock, FaFlag, FaEdit, FaSave, FaTimes as FaX,
 } from 'react-icons/fa';
 import ProductCard from '../components/ProductCard/ProductCard';
 import SearchBar from '../components/Filters/SearchBar';
 import FilterSection from '../components/Filters/FilterSection';
 import ShippingAddressModal from '../components/ShippingAddressModal/ShippingAddressModal';
+import RequestCropModal from '../components/RequestCropModal/RequestCropModal';
+import ComplaintModal from '../../../shared/components/ComplaintModal/ComplaintModal';
 import { useCart } from '../hooks/useCart';
 import { useFavorites } from '../hooks/useFavorites';
 import { useFilters } from '../hooks/useFilters';
 import { useProducts } from '../hooks/useProducts';
+import { useMarketDemands } from '../hooks/useMarketDemands';
+import { useToast } from '../../../context/ToastContext';
 import './ConsumerDashboard.css';
 
-/**
- * Consumer Dashboard - Modern Agriculture Marketplace
- * Premium farmer-to-consumer platform for fresh organic produce
- */
+const AVATAR_PALETTE = ['#FFBF00','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#BE6DB7','#F7A738','#2ECC71'];
+const getAvatarColor = (name) => AVATAR_PALETTE[((name||'U').charCodeAt(0)-65+26)%AVATAR_PALETTE.length];
+const getGreeting = () => { const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; };
+
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
-  // Fetch products from Firestore (silently in background)
   const { products: firestoreProducts, loading } = useProducts({ realtime: true });
-  
-  // Use only Firestore products (farmer-uploaded crops)
   const productsToUse = firestoreProducts;
-  
-  // Custom Hooks
   const { addToCart, getTotalItems } = useCart();
   const { favorites, toggleFavorite, isFavorite } = useFavorites();
-  const {
-    searchTerm,
-    setSearchTerm,
-    selectedCategory,
-    setSelectedCategory,
-    sortBy,
-    setSortBy,
-    organicOnly,
-    setOrganicOnly,
-    filteredProducts,
-    resetFilters
-  } = useFilters(productsToUse);
-
-  // Local state
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const { searchTerm, setSearchTerm, selectedCategory, setSelectedCategory, sortBy, setSortBy, organicOnly, setOrganicOnly, filteredProducts, resetFilters } = useFilters(productsToUse);
+  const [userProfile, setUserProfile] = useState({ name:'', photoURL:'', email:'', phone:'' });
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editProfileData, setEditProfileData] = useState({ name:'', phone:'' });
+  const [editProfileSaving, setEditProfileSaving] = useState(false);
+  const [viewMode, setViewMode] = useState('grid');
   const [showSidebar, setShowSidebar] = useState(false);
-  const [buyNowProduct, setBuyNowProduct] = useState(null); // product to purchase instantly
-  
-  // Ref for category section and footer
+  const [buyNowProduct, setBuyNowProduct] = useState(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const { myDemands, submitDemand, acceptOffer, markReceived, submitReview } = useMarketDemands();
+  const { success: toastSuccess, error: toastError } = useToast();
+  const [complaintTarget, setComplaintTarget] = useState(null);
+  const [reviewData, setReviewData] = useState({}); // { [demandId]: { rating, comment, submitting, error } }
   const categorySectionRef = useRef(null);
-  const footerRef = useRef(null);
 
-  // Scroll detection for sidebar - hide when touching footer
+  useEffect(() => {
+    let unsub;
+    const user = auth.currentUser;
+    if (user) {
+      unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+        const d = snap.data() || {};
+        setUserProfile({ name: d.name||user.displayName||user.email?.split('@')[0]||'there', photoURL: d.photoURL||user.photoURL||'', email: user.email||'', phone: d.phoneNumber||d.phone||'' });
+      });
+    }
+    return () => unsub && unsub();
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
-      if (categorySectionRef.current) {
-        const categoryBottom = categorySectionRef.current.getBoundingClientRect().bottom;
-        
-        // Check if footer is in view
-        const footer = document.querySelector('.footer-modern');
-        if (footer) {
-          const footerTop = footer.getBoundingClientRect().top;
-          const windowHeight = window.innerHeight;
-          
-          // Hide sidebar if footer is approaching (within 200px of sidebar bottom)
-          const sidebarBottomThreshold = windowHeight - 120; // 120px is approximate sidebar bottom margin
-          const shouldHideSidebar = footerTop <= sidebarBottomThreshold;
-          
-          // Show sidebar when category section is scrolled past AND footer is not near
-          setShowSidebar(categoryBottom <= 100 && !shouldHideSidebar);
-        } else {
-          // Fallback if footer not found
-          setShowSidebar(categoryBottom <= 100);
-        }
-      }
+      setNavScrolled(window.scrollY > 20);
+      if (!categorySectionRef.current) return;
+      const catBottom = categorySectionRef.current.getBoundingClientRect().bottom;
+      const cta = document.querySelector('.cd-cta');
+      const ctaVisible = cta ? cta.getBoundingClientRect().top <= window.innerHeight - 60 : false;
+      setShowSidebar(catBottom <= 100 && !ctaVisible);
     };
-
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check initial state
-
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Agriculture Categories with images
   const categories = [
-    { name: 'All', image: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=300', id: 'all' },
-    { name: 'Vegetables', image: 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300', id: 'vegetables' },
-    { name: 'Leafy Greens', image: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=300', id: 'leafy-greens' },
-    { name: 'Grains & Pulses', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300', id: 'grains-pulses' },
-    { name: 'Fruits', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300', id: 'fruits' },
-    { name: 'Spices', image: 'https://images.unsplash.com/photo-1596040033229-a0b83fd2f6dd?w=300', id: 'spices' }
+    { name:'All',             image:'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=400', id:'all' },
+    { name:'Vegetables',      image:'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=400', id:'vegetables' },
+    { name:'Leafy Greens',    image:'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400', id:'leafy-greens' },
+    { name:'Grains & Pulses', image:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', id:'grains-pulses' },
+    { name:'Fruits',          image:'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400', id:'fruits' },
+    { name:'Spices',          image:'https://images.unsplash.com/photo-1596040033229-a0b83fd2f6dd?w=400', id:'spices' },
   ];
 
-  // Handle adding product to cart
-  const handleAddToCart = (product) => {
-    addToCart(product, 1);
+  const handleOpenEditProfile = () => {
+    setEditProfileData({ name: userProfile.name, phone: userProfile.phone });
+    setShowEditProfile(true);
   };
 
-  // Handle Buy Now — open shipping address modal
-  const handleBuyNow = (product) => {
-    setBuyNowProduct(product);
+  const handleSaveEditProfile = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const cleanPhone = editProfileData.phone.replace(/\D/g, '');
+    if (!editProfileData.name.trim()) { toastError('Name cannot be empty'); return; }
+    if (!cleanPhone || cleanPhone.length !== 10) { toastError('Enter a valid 10-digit phone number'); return; }
+    setEditProfileSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        name: editProfileData.name.trim(),
+        phoneNumber: cleanPhone,
+        phone: cleanPhone,
+        updatedAt: new Date().toISOString(),
+      });
+      toastSuccess('Profile updated successfully!');
+      setShowEditProfile(false);
+    } catch (err) {
+      toastError('Failed to save profile: ' + err.message);
+    } finally {
+      setEditProfileSaving(false);
+    }
   };
 
-  // After order is placed successfully, go to My Orders
-  const handleOrderSuccess = () => {
-    navigate('/orders');
-  };
-
-  // Calculate stats
-  const totalProducts = productsToUse.length;
+  const cartCount    = getTotalItems();
+  const favCount     = favorites.length;
   const organicCount = productsToUse.filter(p => p.organic).length;
-  const cartCount = getTotalItems();
-  const activeFarmers = 150; // This would come from backend
+  const firstName    = (userProfile.name||'').split(' ')[0] || 'there';
+  const activeDemandsCount = myDemands.filter(d => d.status === 'open' || d.status === 'quoted' || d.status === 'in_progress').length;
+
+  const STATUS_CONFIG = {
+    open:        { label:'Waiting for Offer',     bg:'#eff6ff', color:'#1d4ed8', dot:'#3b82f6', icon:'', step:1 },
+    quoted:      { label:'Offer Received',        bg:'#fef3c7', color:'#b45309', dot:'#f59e0b', icon:'', step:2 },
+    deal_closed: { label:'Deal Accepted',         bg:'#d1fae5', color:'#065f46', dot:'#10b981', icon:'', step:3 },
+    in_progress: { label:'On the Way',            bg:'#ede9fe', color:'#6d28d9', dot:'#7c3aed', icon:'', step:4 },
+    completed:   { label:'Received & Completed',  bg:'#dcfce7', color:'#15803d', dot:'#16a34a', icon:'', step:5 },
+  };
 
   return (
-    <div className="consumer-dashboard">
-      {/* Buy Now — Shipping Address Modal */}
-      {buyNowProduct && (
-        <ShippingAddressModal
-          product={buyNowProduct}
-          onClose={() => setBuyNowProduct(null)}
-          onSuccess={handleOrderSuccess}
+    <div className="cd-root">
+      {buyNowProduct && <ShippingAddressModal product={buyNowProduct} onClose={() => setBuyNowProduct(null)} onSuccess={() => navigate('/orders')} />}
+      {showRequestModal && <RequestCropModal onClose={() => setShowRequestModal(false)} onSubmit={submitDemand} />}
+      {complaintTarget && (
+        <ComplaintModal
+          reportedUser={{ id: complaintTarget.id, name: complaintTarget.name, role: 'farmer' }}
+          contextId={complaintTarget.demandId}
+          onClose={() => setComplaintTarget(null)}
         />
       )}
-      {/* Hero Section - Redesigned */}
-      <section className="hero-section-modern">
-        <div className="hero-overlay"></div>
-        <div className="hero-content-modern">
-          <h1 className="hero-title-modern">
-            Farm Fresh to Your
-            <span className="hero-highlight"> Doorstep</span>
+
+      {/* EDIT PROFILE MODAL */}
+      {showEditProfile && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setShowEditProfile(false)}>
+          <div style={{ background:'white', borderRadius:16, padding:28, width:'100%', maxWidth:420, boxShadow:'0 20px 40px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+              <h3 style={{ margin:0, fontSize:20, fontWeight:700, color:'#1f2937' }}>Edit Profile</h3>
+              <button onClick={() => setShowEditProfile(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#6b7280', fontSize:18 }}><FaX /></button>
+            </div>
+            <div style={{ marginBottom:14 }}>
+              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>Email (read-only)</label>
+              <input type="email" value={userProfile.email} readOnly style={{ width:'100%', padding:'9px 12px', border:'1px solid #e5e7eb', borderRadius:8, fontSize:14, background:'#f9fafb', color:'#6b7280', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ marginBottom:14 }}>
+              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>Full Name</label>
+              <input
+                type="text"
+                value={editProfileData.name}
+                onChange={e => setEditProfileData(p => ({ ...p, name: e.target.value }))}
+                style={{ width:'100%', padding:'9px 12px', border:'1px solid #d1d5db', borderRadius:8, fontSize:14, boxSizing:'border-box' }}
+                placeholder="Your full name"
+              />
+            </div>
+            <div style={{ marginBottom:22 }}>
+              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>Phone Number <span style={{color:'#dc2626'}}>*</span></label>
+              <input
+                type="tel"
+                value={editProfileData.phone}
+                onChange={e => setEditProfileData(p => ({ ...p, phone: e.target.value }))}
+                style={{ width:'100%', padding:'9px 12px', border:'1px solid #d1d5db', borderRadius:8, fontSize:14, boxSizing:'border-box' }}
+                placeholder="10-digit mobile number"
+                maxLength={15}
+              />
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button
+                onClick={handleSaveEditProfile}
+                disabled={editProfileSaving}
+                style={{ flex:1, padding:'10px', background: editProfileSaving ? '#9ca3af' : '#16a34a', color:'white', border:'none', borderRadius:8, fontWeight:600, cursor: editProfileSaving ? 'not-allowed' : 'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
+              >
+                <FaSave style={{ fontSize:13 }} /> {editProfileSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button onClick={() => setShowEditProfile(false)} style={{ padding:'10px 16px', background:'#f3f4f6', color:'#374151', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer', fontSize:14 }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STICKY NAVBAR */}}
+      <nav className={`cd-navbar ${navScrolled ? 'cd-navbar--scrolled' : ''}`}>
+        <div className="cd-navbar-inner">
+          <div className="cd-navbar-brand" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>
+            <div className="cd-navbar-logo"><FaLeaf /></div>
+            <span className="cd-navbar-brand-name">Farm2Home</span>
+          </div>
+
+          <div className="cd-navbar-search">
+            <FaSearch className="cd-ns-icon" />
+            <input className="cd-ns-input" placeholder="Search crops, fruits, spices..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          </div>
+
+          <div className="cd-navbar-actions">
+            <button className="cd-na-btn" onClick={() => navigate('/cart')}>
+              <FaShoppingCart />
+              {cartCount > 0 && <span className="cd-na-badge">{cartCount}</span>}
+              <span>Cart</span>
+            </button>
+            <button className="cd-na-btn" onClick={() => navigate('/orders')}>
+              <FaClipboardList />
+              <span>Orders</span>
+            </button>
+            <button className="cd-na-btn cd-na-request" onClick={() => setShowRequestModal(true)}>
+              <FaPlusCircle />
+              {activeDemandsCount > 0 && <span className="cd-na-badge cd-na-badge--amber">{activeDemandsCount}</span>}
+              <span>Request</span>
+            </button>
+            <button className="cd-na-avatar" onClick={handleOpenEditProfile} title="Edit Profile">
+              {userProfile.photoURL
+                ? <img src={userProfile.photoURL} alt="avatar" className="cd-na-avatar-img" />
+                : <div className="cd-na-avatar-letter" style={{background: getAvatarColor(userProfile.name)}}>{(userProfile.name||'U')[0].toUpperCase()}</div>
+              }
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <section className="cd-hero">
+        <div className="cd-hero-bg"></div>
+        <div className="cd-hero-overlay"></div>
+        <div className="cd-hero-content">
+          <h1 className="cd-hero-title">
+            Fresh from the Farm,<br />
+            <span className="cd-hero-highlight">Straight to Your Door</span>
           </h1>
+          <p className="cd-hero-sub">
+            {getGreeting()}, <strong>{firstName}</strong>! Discover locally-sourced produce from farmers near you -- no middlemen, pure freshness.
+          </p>
+          <div className="cd-hero-search">
+            <FaSearch className="cd-hs-icon" />
+            <input className="cd-hs-input" placeholder="Search rice, tomato, mango, wheat..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <button className="cd-hs-btn">Search</button>
+          </div>
+          <div className="cd-hero-pills">
+            {['Tomato','Onion','Rice','Mango','Wheat'].map(q => (
+              <button key={q} className="cd-hero-pill" onClick={() => setSearchTerm(q)}>{q}</button>
+            ))}
+          </div>
+        </div>
+        <div className="cd-hero-stats">
+          <div className="cd-hs-stat"><span className="cd-hs-num">{productsToUse.length}+</span><span className="cd-hs-lbl">Products</span></div>
+          <div className="cd-hs-divider"></div>
+          <div className="cd-hs-stat"><span className="cd-hs-num">{organicCount}</span><span className="cd-hs-lbl">Organic</span></div>
+          <div className="cd-hs-divider"></div>
+          <div className="cd-hs-stat"><span className="cd-hs-num">150+</span><span className="cd-hs-lbl">Farmers</span></div>
+          <div className="cd-hs-divider"></div>
+          <div className="cd-hs-stat"><span className="cd-hs-num">Rs.500+</span><span className="cd-hs-lbl">Free Delivery</span></div>
         </div>
       </section>
 
-      <div className="container">
-        {/* Category Section - Redesigned */}
-        <section className="category-section" ref={categorySectionRef}>
-          <div className="section-header">
-            <h2 className="section-title">Shop by Category</h2>
-            <p className="section-subtitle">Explore our fresh produce collection</p>
+      {/* TRUST STRIP */}
+      <div className="cd-trust">
+        {[
+          {icon:<FaShieldAlt/>, label:'Safe & Hygienic',   color:'#16a34a'},
+          {icon:<FaLeaf/>,      label:'Farm Fresh Daily',  color:'#16a34a'},
+          {icon:<FaTruck/>,     label:'Fast Delivery',     color:'#ea580c'},
+          {icon:<FaRupeeSign/>, label:'Best Prices',       color:'#2563eb'},
+          {icon:<FaHandshake/>, label:'Support Farmers',   color:'#7c3aed'},
+          {icon:<FaStar/>,      label:'Quality Assured',   color:'#d97706'},
+        ].map((t,i) => (
+          <div key={i} className="cd-trust-item">
+            <span className="cd-trust-icon" style={{color:t.color}}>{t.icon}</span>
+            <span className="cd-trust-label">{t.label}</span>
           </div>
-          <div className="category-grid-modern">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                className={`category-card-modern ${selectedCategory === category.id ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(category.id)}
-              >
-                <div className="category-image">
-                  <img src={category.image} alt={category.name} />
-                </div>
-                <div className="category-name">{category.name}</div>
-                {selectedCategory === category.id && (
-                  <div className="category-check">
-                    <FaCheckCircle />
+        ))}
+      </div>
+
+      <div className="cd-container">
+
+        {/* CROP REQUEST SECTION */}
+        <section className="cd-request-section">
+          <div className="cd-section-header">
+            <div className="cd-section-title-wrap">
+              <div>
+                <h2 className="cd-section-title">Request a Crop</h2>
+                <p className="cd-section-sub">Can't find what you need? Ask farmers directly</p>
+              </div>
+            </div>
+            <button className="cd-request-btn" onClick={() => setShowRequestModal(true)}>
+              <FaPlusCircle /> New Request
+            </button>
+          </div>
+
+          {myDemands.length === 0 ? (
+            <div className="cd-empty-requests">
+              <h3>No requests yet</h3>
+              <p>Submit your first request -- farmers in your area will bid with their best price.</p>
+              <button className="cd-request-btn cd-request-btn--lg" onClick={() => setShowRequestModal(true)}>
+                <FaPlusCircle /> Request a Crop Now
+              </button>
+            </div>
+          ) : (
+            <div className="cd-demand-cards">
+              {myDemands.map(demand => {
+                const sc = STATUS_CONFIG[demand.status] || {label:demand.status, bg:'#f3f4f6', color:'#374151', dot:'#9ca3af', icon:'•', step:0};
+                return (
+                  <div key={demand.id} className={`cd-demand-card cd-demand-card--${demand.status}`}>
+
+                    {/* Progress bar */}
+                    <div className="cd-demand-progress">
+                      {[1,2,3,4].map(s => (
+                        <div key={s} className={`cd-dp-step ${sc.step >= s ? 'cd-dp-step--done' : ''}`}>
+                          <div className="cd-dp-dot"></div>
+                          {s < 4 && <div className={`cd-dp-line ${sc.step > s ? 'cd-dp-line--done' : ''}`}></div>}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Header */}
+                    <div className="cd-demand-head">
+                      <div className="cd-demand-crop-info">
+                        <div className="cd-demand-icon"><FaLeaf style={{color:'#16a34a',fontSize:18}}/></div>
+                        <div>
+                          <div className="cd-demand-name">{demand.cropName}</div>
+                          <div className="cd-demand-meta">
+                            <FaBox style={{marginRight:4,fontSize:10}}/>{demand.quantityKg} kg &nbsp;·&nbsp;
+                            <FaMapMarkerAlt style={{marginRight:4,fontSize:10}}/>{demand.location}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="cd-demand-chip" style={{background:sc.bg, color:sc.color}}>
+                        <span>{sc.icon}</span> {sc.label}
+                      </div>
+                    </div>
+
+                    {/* AI price */}
+                    {demand.suggestedPriceMin && demand.suggestedPriceMax && (
+                      <div className="cd-ai-badge">
+                        <FaRobot className="cd-ai-icon" />
+                        <span>AI Fair Price: <strong>Rs.{demand.suggestedPriceMin}--Rs.{demand.suggestedPriceMax}/kg</strong></span>
+                        {demand.suggestedPriceNote && <span className="cd-ai-note"> · {demand.suggestedPriceNote}</span>}
+                      </div>
+                    )}
+
+                    {/* Farmer offer box */}
+                    {demand.status === 'quoted' && demand.farmerOfferPrice && (
+                      <div className="cd-offer-panel">
+                        <div className="cd-offer-panel-title"><FaCoins /> Farmer's Offer</div>
+                        <div className="cd-offer-panel-body">
+                          <div className="cd-offer-farmer">{demand.committedFarmerName || 'A farmer'}</div>
+                          <div className="cd-offer-price-big">Rs.{demand.farmerOfferPrice}<span>/kg</span></div>
+                          <div className="cd-offer-total">Total: Rs.{(demand.quantityKg * demand.farmerOfferPrice).toLocaleString()}</div>
+                        </div>
+                        <button className="cd-accept-btn" onClick={async () => {
+                          const res = await acceptOffer(demand.id);
+                          if (!res.success) toastError(res.error || 'Failed to accept offer');
+                        }}>
+                          <FaCheckCircle /> Accept Offer -- Close Deal
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Contact reveal — shown once deal is accepted */}
+                    {['deal_closed','in_progress','completed'].includes(demand.status) && (
+                      <div className="cd-contact-panel">
+                        <div className="cd-contact-panel-title"><FaLock style={{marginRight:6,color:'#16a34a'}}/> Farmer Contact Revealed</div>
+                        <div className="cd-contact-farmer">{demand.committedFarmerName}</div>
+                        <a className="cd-contact-phone" href={`tel:${demand.farmerPhone}`}>
+                          <FaPhone style={{marginRight:8}}/>{demand.farmerPhone || 'Not provided'}
+                        </a>
+                        <div className="cd-contact-agreed">Agreed price: Rs.{demand.farmerOfferPrice}/kg · Total Rs.{((demand.quantityKg||0)*(demand.farmerOfferPrice||0)).toLocaleString()}</div>
+                      </div>
+                    )}
+
+                    {/* Mark as Received — shown when farmer marks in_progress */}
+                    {demand.status === 'in_progress' && (
+                      <button
+                        className="cd-received-btn"
+                        onClick={async () => {
+                          const res = await markReceived(demand.id);
+                          if (!res.success) toastError(res.error || 'Failed to update status');
+                        }}
+                      >
+                        <FaCheckCircle style={{marginRight:8}}/> Mark as Received
+                      </button>
+                    )}
+
+                    {/* Review form — shown only after completed */}
+                    {demand.status === 'completed' && !demand.reviewed && (() => {
+                      const rd = reviewData[demand.id] || {};
+                      return (
+                        <div className="cd-review-panel">
+                          <div className="cd-review-title">Rate Your Experience</div>
+                          <div className="cd-review-stars">
+                            {[1,2,3,4,5].map(star => (
+                              <button
+                                key={star}
+                                className={`cd-star-btn ${(rd.rating || 0) >= star ? 'cd-star-btn--active' : ''}`}
+                                onClick={() => setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], rating: star } }))}
+                              >
+                                <FaStar />
+                              </button>
+                            ))}
+                          </div>
+                          <textarea
+                            className="cd-review-textarea"
+                            placeholder="How was the crop quality and farmer's service? (optional)"
+                            rows={3}
+                            value={rd.comment || ''}
+                            onChange={e => setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], comment: e.target.value } }))}
+                          />
+                          {rd.error && <div className="cd-review-error">{rd.error}</div>}
+                          <button
+                            className="cd-review-submit-btn"
+                            disabled={rd.submitting}
+                            onClick={async () => {
+                              if (!rd.rating) return setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], error: 'Please select a star rating.' } }));
+                              setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], submitting: true, error: '' } }));
+                              const res = await submitReview(
+                                demand.id,
+                                demand.committedFarmerId,
+                                demand.committedFarmerName,
+                                demand.cropName,
+                                rd.rating,
+                                rd.comment || ''
+                              );
+                              setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], submitting: false, error: res.success ? '' : (res.error || 'Failed') } }));
+                            }}
+                          >
+                            {rd.submitting ? <span className="cd-spinner"/> : <><FaStar style={{marginRight:6}}/> Submit Review</>}
+                          </button>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Review submitted badge */}
+                    {demand.status === 'completed' && demand.reviewed && (
+                      <div className="cd-review-submitted">
+                        <FaCheckCircle style={{marginRight:6, color:'#16a34a'}}/>
+                        Review submitted — {'\u2605'.repeat(demand.reviewRating)}
+                        {demand.reviewComment && <div className="cd-review-submitted-comment">"{demand.reviewComment}"</div>}
+                      </div>
+                    )}
+
+                    {/* Footer meta */}
+                    <div className="cd-demand-foot">
+                      <FaRegClock style={{marginRight:5,fontSize:10}}/>
+                      {demand.createdAt?.seconds ? new Date(demand.createdAt.seconds*1000).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Just now'}
+                      {demand.committedFarmerId && (
+                        <button
+                          className="report-trigger-btn"
+                          style={{ marginLeft: 'auto' }}
+                          onClick={() => setComplaintTarget({
+                            id: demand.committedFarmerId,
+                            name: demand.committedFarmerName || 'Farmer',
+                            role: 'farmer',
+                            demandId: demand.id,
+                          })}
+                        >
+                          <FaFlag style={{ fontSize: 10 }} /> Report Farmer
+                        </button>
+                      )}
+                    </div>
                   </div>
-                )}
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* CATEGORIES */}
+        <section className="cd-cats-section" ref={categorySectionRef}>
+          <div className="cd-section-header">
+            <div className="cd-section-title-wrap">
+              <div>
+                <h2 className="cd-section-title">Shop by Category</h2>
+                <p className="cd-section-sub">Browse our freshest produce</p>
+              </div>
+            </div>
+          </div>
+          <div className="cd-cat-grid">
+            {categories.map(cat => (
+              <button key={cat.id} className={`cd-cat-card ${selectedCategory===cat.id?'cd-cat-card--active':''}`} onClick={() => setSelectedCategory(cat.id)}>
+                <div className="cd-cat-img-wrap">
+                  <img src={cat.image} alt={cat.name} loading="lazy" />
+                  <div className="cd-cat-overlay"></div>
+
+                </div>
+                <span className="cd-cat-name">{cat.name}</span>
+                {selectedCategory === cat.id && <span className="cd-cat-check"><FaCheckCircle /></span>}
               </button>
             ))}
           </div>
         </section>
 
-        {/* Main Content with Sidebar Layout */}
-        <section className="main-content-section">
-          {/* Sidebar Filters */}
+        {/* PRODUCTS */}
+        <section className={`cd-products-section${showSidebar ? ' sidebar-open' : ''}`}>
           <aside className={`filters-sidebar ${showSidebar ? 'visible' : ''}`}>
-            <div className="sidebar-header">
-              <h3>Filters</h3>
-            </div>
-            <FilterSection
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              organicOnly={organicOnly}
-              onOrganicToggle={setOrganicOnly}
-              onResetFilters={resetFilters}
-            />
+            <div className="sidebar-header"><FaSlidersH style={{marginRight:8}}/><h3>Filters</h3></div>
+            <FilterSection selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} sortBy={sortBy} onSortChange={setSortBy} organicOnly={organicOnly} onOrganicToggle={setOrganicOnly} onResetFilters={resetFilters} />
           </aside>
 
-          {/* Products Area */}
-          <div className="products-area">
-            {/* Products Info */}
-            <div className="products-info-header">
-              <h3>Discover Products</h3>
-              <p className="products-count-badge">
-                {filteredProducts.length} products available
-              </p>
+          <div className="cd-products-area">
+            {/* Products toolbar */}
+            <div className="cd-products-toolbar">
+              <div className="cd-pt-left">
+                <h3 className="cd-pt-title">
+                  {selectedCategory==='all' ? 'All Products' : (categories.find(c=>c.id===selectedCategory)?.name ?? 'Products')}
+                </h3>
+                <span className="cd-pt-count">{filteredProducts.length} items</span>
+                {organicOnly && <span className="cd-pt-tag cd-pt-tag--organic"><FaLeaf /> Organic Only</span>}
+              </div>
+              <div className="cd-pt-right">
+                <div className="cd-pt-search">
+                  <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Filter results..." />
+                </div>
+                <div className="cd-view-btns">
+                  <button className={`cd-view-btn ${viewMode==='grid'?'active':''}`} onClick={() => setViewMode('grid')} title="Grid"><FaThLarge /></button>
+                  <button className={`cd-view-btn ${viewMode==='list'?'active':''}`} onClick={() => setViewMode('list')} title="List"><FaList /></button>
+                </div>
+              </div>
             </div>
 
-            {/* Products Grid */}
             {loading ? (
-              <div className="loading-state-modern">
-                <div className="loading-spinner-modern"></div>
-                <p className="loading-text-modern">Loading fresh products...</p>
+              <div className="cd-loading">
+                <div className="cd-loading-spinner"></div>
+                <p>Fetching fresh products from farmers...</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div className={viewMode==='list' ? 'products-list-modern' : 'products-grid-modern'}>
+                {filteredProducts.map(product => (
+                  <ProductCard key={product.id} product={product} onAddToCart={p => addToCart(p,1)} onToggleFavorite={toggleFavorite} isFavorite={isFavorite(product.id)} onBuyNow={p => setBuyNowProduct(p)} />
+                ))}
               </div>
             ) : (
-              <div className="products-grid-modern">
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                      onToggleFavorite={toggleFavorite}
-                      isFavorite={isFavorite(product.id)}
-                      onBuyNow={handleBuyNow}
-                    />
-                  ))
+              <div className="cd-no-products">
+                <div className="cd-no-products-art"><FaLeaf style={{fontSize:48,color:'#16a34a'}}/></div>
+                {productsToUse.length === 0 ? (
+                  <><h3>No Crops Listed Yet</h3><p>Farmers haven't added crops yet -- check back soon, or request one above!</p></>
                 ) : (
-                  <div className="no-products-modern">
-                    <div className="no-products-illustration">
-                      <FaBox />
-                    </div>
-                    {productsToUse.length === 0 ? (
-                      <>
-                        <h3>No Crops Available Yet</h3>
-                        <p>Farmers haven't added any crops yet. Check back soon for fresh produce!</p>
-                      </>
-                    ) : (
-                      <>
-                        <h3>No Products Found</h3>
-                        <p>Try adjusting your filters or browse different categories</p>
-                        <button className="reset-btn" onClick={resetFilters}>
-                          Reset Filters
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  <><h3>No Products Found</h3><p>Try adjusting your filters or search term.</p><button className="cd-reset-btn" onClick={resetFilters}>Reset Filters</button></>
                 )}
               </div>
             )}
           </div>
         </section>
-      </div>
 
-      {/* Footer - Redesigned */}
-      <footer className="footer-modern">
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-col footer-brand">
-              <div className="brand-logo">
-                <FaLeaf className="brand-icon" />
-                <span className="brand-name">FARM2HOME</span>
-              </div>
-              <p className="brand-tagline">
-                Connecting farmers and consumers for a healthier, sustainable future.
-              </p>
-              <div className="social-links">
-                {/* Add social media icons here if needed */}
+        {/* CTA BANNER */}
+        <section className="cd-cta">
+          <div className="cd-cta-inner">
+            <div className="cd-cta-left">
+              <div className="cd-cta-icon"><FaSeedling /></div>
+              <div>
+                <h2 className="cd-cta-title">Are You a Farmer?</h2>
+                <p className="cd-cta-desc">List your crops, receive direct consumer requests, zero commission -- maximum profit.</p>
               </div>
             </div>
-            <div className="footer-col">
-              <h4 className="footer-heading">Shop</h4>
-              <ul className="footer-links">
-                <li><a href="#vegetables">Vegetables</a></li>
-                <li><a href="#fruits">Fruits</a></li>
-                <li><a href="#grains">Grains & Pulses</a></li>
-                <li><a href="#spices">Spices</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4 className="footer-heading">Company</h4>
-              <ul className="footer-links">
-                <li><a href="#about">About Us</a></li>
-                <li><a href="#farmers">Our Farmers</a></li>
-                <li><a href="#careers">Careers</a></li>
-                <li><a href="#contact">Contact</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4 className="footer-heading">Support</h4>
-              <ul className="footer-links">
-                <li><a href="#faq">FAQ</a></li>
-                <li><a href="#shipping">Shipping Policy</a></li>
-                <li><a href="#returns">Returns & Refunds</a></li>
-                <li><a href="#privacy">Privacy Policy</a></li>
-              </ul>
-            </div>
+            <button className="cd-cta-btn" onClick={() => navigate('/')}>
+              Join as Farmer <FaArrowRight />
+            </button>
           </div>
-          <div className="footer-bottom">
-            <p>&copy; 2026 Farm2Home. All rights reserved. Built with ❤️ for Indian Farmers</p>
+        </section>
+
+      </div>{/* /cd-container */}
+
+      {/* FOOTER */}
+      <footer className="cd-footer">
+
+        {/* Newsletter strip */}
+        <div className="cd-footer-newsletter">
+          <div className="cd-fn-inner">
+            <div className="cd-fn-text">
+              <h3 className="cd-fn-title">Get Fresh Deals in Your Inbox</h3>
+              <p className="cd-fn-sub">Seasonal offers, new farmer arrivals & harvest alerts -- weekly, no spam.</p>
+            </div>
+            <form className="cd-fn-form" onSubmit={e => e.preventDefault()}>
+              <input className="cd-fn-input" type="email" placeholder="Enter your email address" />
+              <button className="cd-fn-btn" type="submit">Subscribe</button>
+            </form>
           </div>
         </div>
+
+        {/* Main columns */}
+        <div className="cd-footer-inner">
+
+          {/* Brand */}
+          <div className="cd-footer-brand">
+            <div className="cd-footer-logo"><FaLeaf /><span>Farm2Home</span></div>
+            <p className="cd-footer-tagline">Connecting farmers and consumers for a healthier, sustainable India -- no middlemen, pure freshness.</p>
+
+            <div className="cd-footer-contact">
+              <div className="cd-fc-row"><FaPhone className="cd-fc-icon"/><span>+91 98765 43210</span></div>
+              <div className="cd-fc-row"><FaMapMarkerAlt className="cd-fc-icon"/><span>Hyderabad, Telangana, India</span></div>
+            </div>
+
+            <div className="cd-footer-badges">
+              <div className="cd-fb-badge"><FaShieldAlt className="cd-fb-icon"/><span>100% Secure</span></div>
+              <div className="cd-fb-badge"><FaStar className="cd-fb-icon cd-fb-star"/><span>Rated 4.8/5</span></div>
+              <div className="cd-fb-badge"><FaUsers className="cd-fb-icon"/><span>10k+ Users</span></div>
+            </div>
+          </div>
+
+          {/* Shop */}
+          <div className="cd-footer-col">
+            <h4><FaLeaf className="cd-fcol-icon"/> Shop</h4>
+            <ul>
+              <li><a href="#vegetables"><FaChevronRight className="cd-flink-arr"/>Vegetables</a></li>
+              <li><a href="#fruits"><FaChevronRight className="cd-flink-arr"/>Fruits</a></li>
+              <li><a href="#grains"><FaChevronRight className="cd-flink-arr"/>Grains &amp; Pulses</a></li>
+              <li><a href="#spices"><FaChevronRight className="cd-flink-arr"/>Spices</a></li>
+              <li><a href="#organic"><FaChevronRight className="cd-flink-arr"/>Organic</a></li>
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div className="cd-footer-col">
+            <h4><FaHandshake className="cd-fcol-icon"/> Company</h4>
+            <ul>
+              <li><a href="#about"><FaChevronRight className="cd-flink-arr"/>About Us</a></li>
+              <li><a href="#farmers"><FaChevronRight className="cd-flink-arr"/>Our Farmers</a></li>
+              <li><a href="#careers"><FaChevronRight className="cd-flink-arr"/>Careers</a></li>
+              <li><a href="#blog"><FaChevronRight className="cd-flink-arr"/>Blog</a></li>
+              <li><a href="#contact"><FaChevronRight className="cd-flink-arr"/>Contact</a></li>
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div className="cd-footer-col">
+            <h4><FaShieldAlt className="cd-fcol-icon"/> Support</h4>
+            <ul>
+              <li><a href="#faq"><FaChevronRight className="cd-flink-arr"/>FAQ</a></li>
+              <li><a href="#shipping"><FaChevronRight className="cd-flink-arr"/>Shipping Policy</a></li>
+              <li><a href="#returns"><FaChevronRight className="cd-flink-arr"/>Returns</a></li>
+              <li><a href="#privacy"><FaChevronRight className="cd-flink-arr"/>Privacy Policy</a></li>
+              <li><a href="#terms"><FaChevronRight className="cd-flink-arr"/>Terms of Service</a></li>
+            </ul>
+          </div>
+
+        </div>
+
+        {/* Bottom bar */}
+        <div className="cd-footer-bottom">
+          <p className="cd-fb-copy">&copy; 2026 Farm2Home. All rights reserved.</p>
+          <div className="cd-fb-links">
+            <a href="#privacy">Privacy</a>
+            <span className="cd-fb-dot"></span>
+            <a href="#terms">Terms</a>
+            <span className="cd-fb-dot"></span>
+            <a href="#sitemap">Sitemap</a>
+          </div>
+        </div>
+
       </footer>
     </div>
   );

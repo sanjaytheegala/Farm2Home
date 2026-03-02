@@ -715,76 +715,16 @@ const HomePage = () => {
 
             {!showForgotPassword && formType === 'login' ? (
               <div style={formContainer}>
-                {/* Login Method Toggle */}
-                <div style={methodToggleContainer}>
-                  <button 
-                    onClick={() => setLoginMethod('phone')}
-                    style={{...methodToggleButton, ...(loginMethod === 'phone' ? activeMethodButton : {})}}
-                  >
-                    <FaPhone style={{ marginRight: '5px' }} />
-                    {t('phone')}
-                  </button>
-                  <button 
-                    onClick={() => setLoginMethod('email')}
-                    style={{...methodToggleButton, ...(loginMethod === 'email' ? activeMethodButton : {})}}
-                  >
-                    <FaEnvelope style={{ marginRight: '5px' }} />
-                    {t('email')}
-                  </button>
-                </div>
-
-                {loginMethod === 'phone' ? (
-                  <div>
-                    {!confirmationResult ? (
-                      <div>
-                        <div style={inputGroup}>
-                          <input
-                            type="tel"
-                            placeholder={t('phone_placeholder')}
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            style={inputField}
-                          />
-                        </div>
-                        <button 
-                          onClick={handleSendOTP}
-                          disabled={loading}
-                          style={{...submitButton, opacity: loading ? 0.7 : 1}}
-                        >
-                          {loading ? t('sending') : t('send_otp')}
-                        </button>
-                      </div>
-                    ) : (
-                      <div>
-                        <div style={inputGroup}>
-                          <input
-                            type="text"
-                            placeholder={t('enter_otp')}
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            style={inputField}
-                          />
-                        </div>
-                        <button 
-                          onClick={handleVerifyOTP}
-                          disabled={loading}
-                          style={{...submitButton, opacity: loading ? 0.7 : 1}}
-                        >
-                          {loading ? t('verifying') : t('verify_otp')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                  <form onSubmit={handleEmailLogin}>
-                    <div style={inputGroup}>
+                {/* Email Login with icon */}
+                <form onSubmit={handleEmailLogin}>
+                    <div style={{...inputGroup, position: 'relative'}}>
+                      <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
                       <input
-                        type="text"
-                        placeholder="Email or Phone Number"
+                        type="email"
+                        placeholder="Email Address"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        style={inputField}
+                        style={{...inputField, paddingLeft: 32}}
                         required
                       />
                     </div>
@@ -831,80 +771,19 @@ const HomePage = () => {
                   >
                     Forgot Password?
                   </button>
-                  </>
-                )}
               </div>
             ) : !showForgotPassword ? (
               <div style={formContainer}>
-                {/* Register Method Toggle */}
-                <div style={methodToggleContainer}>
-                  <button 
-                    onClick={() => setLoginMethod('phone')}
-                    style={{...methodToggleButton, ...(loginMethod === 'phone' ? activeMethodButton : {})}}
-                  >
-                    <FaPhone style={{ marginRight: '5px' }} />
-                    {t('phone')}
-                  </button>
-                  <button 
-                    onClick={() => setLoginMethod('email')}
-                    style={{...methodToggleButton, ...(loginMethod === 'email' ? activeMethodButton : {})}}
-                  >
-                    <FaEnvelope style={{ marginRight: '5px' }} />
-                    {t('email')}
-                  </button>
-                </div>
-
-                {loginMethod === 'phone' ? (
-                  <div>
-                    {!confirmationResult ? (
-                      <div>
-                        <div style={inputGroup}>
-                          <input
-                            type="tel"
-                            placeholder={t('phone_placeholder')}
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            style={inputField}
-                          />
-                        </div>
-                        <button 
-                          onClick={handleSendOTP}
-                          disabled={loading}
-                          style={{...submitButton, opacity: loading ? 0.7 : 1}}
-                        >
-                          {loading ? t('sending') : t('send_otp')}
-                        </button>
-                      </div>
-                    ) : (
-                      <div>
-                        <div style={inputGroup}>
-                          <input
-                            type="text"
-                            placeholder={t('enter_otp')}
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            style={inputField}
-                          />
-                        </div>
-                        <button 
-                          onClick={handleVerifyOTP}
-                          disabled={loading}
-                          style={{...submitButton, opacity: loading ? 0.7 : 1}}
-                        >
-                          {loading ? t('verifying') : t('create_account')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
+                {/* Email Signup with icon */}
                   <form onSubmit={handleSignup}>
-                    <div style={inputGroup}>
+                    <div style={{...inputGroup, position: 'relative'}}>
+                      <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
                       <input
                         type="email"
                         placeholder={t('email_placeholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        style={inputField}
+                        style={{...inputField, paddingLeft: 32}}
                         required
                       />
                     </div>
@@ -945,7 +824,6 @@ const HomePage = () => {
                       {loading ? t('creating_account') : t('create_account')}
                     </button>
                   </form>
-                )}
               </div>
             ) : null}
 

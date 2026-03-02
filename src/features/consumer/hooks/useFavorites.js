@@ -1,49 +1,71 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { auth, db } from '../../../firebase';
+import { doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+
+const LOCAL_KEY = 'favorites';
+
+const localGet = () => {
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY)) || []; } catch { return []; }
+};
 
 /**
- * Custom hook to manage favorite products
- * Handles favorites list and localStorage persistence
+ * useFavorites — Firestore-backed favourites (/users/{uid}/favorites/{productId}).
+ * Falls back to localStorage for guests.
  */
 export const useFavorites = () => {
-  const [favorites, setFavorites] = useState([]);
+  const [favorites, setFavorites] = useState([]); // array of productId strings
+  const [uid, setUid] = useState(null);
 
-  // Load favorites from localStorage on mount
+  // Watch auth state
   useEffect(() => {
-    const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
-    setFavorites(savedFavorites);
+    const unsub = onAuthStateChanged(auth, (user) => setUid(user?.uid || null));
+    return () => unsub();
   }, []);
 
-  // Save favorites to localStorage whenever it changes
+  // Firestore real-time listener (signed-in) / localStorage (guest)
   useEffect(() => {
-    localStorage.setItem('favorites', JSON.stringify(favorites));
-  }, [favorites]);
+    if (!uid) {
+      setFavorites(localGet());
+      return;
+    }
 
-  // Toggle favorite status
-  const toggleFavorite = (productId) => {
-    setFavorites(prevFavorites => {
-      if (prevFavorites.includes(productId)) {
-        return prevFavorites.filter(id => id !== productId);
-      } else {
-        return [...prevFavorites, productId];
-      }
+    const favRef = collection(db, 'users', uid, 'favorites');
+    const unsub = onSnapshot(favRef, (snap) => {
+      const ids = snap.docs.map(d => d.id);
+      setFavorites(ids);
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(ids));
     });
-  };
+    return () => unsub();
+  }, [uid]);
 
-  // Check if product is favorite
-  const isFavorite = (productId) => {
-    return favorites.includes(productId);
-  };
+  const toggleFavorite = useCallback(async (productId) => {
+    const isFav = favorites.includes(productId);
+    if (!uid) {
+      // Guest: localStorage only
+      const updated = isFav
+        ? favorites.filter(id => id !== productId)
+        : [...favorites, productId];
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(updated));
+      setFavorites(updated);
+      return;
+    }
+    const ref = doc(db, 'users', uid, 'favorites', String(productId));
+    if (isFav) await deleteDoc(ref);
+    else await setDoc(ref, { productId, savedAt: new Date() });
+  }, [uid, favorites]);
 
-  // Clear all favorites
-  const clearFavorites = () => {
-    setFavorites([]);
-    localStorage.removeItem('favorites');
-  };
+  const isFavorite = useCallback((productId) => favorites.includes(productId), [favorites]);
 
-  return {
-    favorites,
-    toggleFavorite,
-    isFavorite,
-    clearFavorites
-  };
+  const clearFavorites = useCallback(async () => {
+    if (!uid) {
+      localStorage.removeItem(LOCAL_KEY);
+      setFavorites([]);
+      return;
+    }
+    // onSnapshot will update state automatically after each delete
+    favorites.forEach(id => deleteDoc(doc(db, 'users', uid, 'favorites', String(id))));
+  }, [uid, favorites]);
+
+  return { favorites, toggleFavorite, isFavorite, clearFavorites };
 };

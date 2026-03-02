@@ -3,7 +3,7 @@ import { db, auth } from '../../../firebase';
 import { 
   collection, 
   addDoc, 
-  getDocs, 
+  onSnapshot,
   updateDoc, 
   deleteDoc, 
   doc, 
@@ -42,78 +42,33 @@ export const useCrops = () => {
     });
   }, [savedCrops]);
 
-  // Load all crops from Firebase Firestore
-  const loadCrops = async () => {
+  // Real-time Firestore listener — replaces loadCrops + getDocs
+  const subscribeToCrops = useCallback((userId) => {
     setLoading(true);
-    try {
-      // Wait for Firebase Auth to be ready and get current user
-      const user = auth.currentUser;
-      
-      if (!user) {
-        // Try to get from localStorage as fallback
-        const localUser = localStorage.getItem('currentUser');
-        if (localUser) {
-          try {
-            const parsedUser = JSON.parse(localUser);
-            const userId = parsedUser.uid || parsedUser.id;
-            
-            if (userId) {
-              await queryFirestoreForCrops(userId);
-            } else {
-              setSavedCrops([]);
-            }
-          } catch (err) {
-            setSavedCrops([]);
-          }
-        } else {
-          setSavedCrops([]);
-        }
+    const q = query(
+      collection(db, 'crops'),
+      where('farmerId', '==', userId)
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const farmerCrops = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        // Sort newest-first client-side (no composite index needed)
+        farmerCrops.sort((a, b) => {
+          const ta = a.createdAt?.toMillis?.() ?? (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+          const tb = b.createdAt?.toMillis?.() ?? (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+          return tb - ta;
+        });
+        setSavedCrops(farmerCrops);
         setLoading(false);
-        return;
+      },
+      () => {
+        setSavedCrops([]);
+        setLoading(false);
       }
-
-      // User is authenticated via Firebase Auth
-      const userId = user.uid;
-
-      await queryFirestoreForCrops(userId);
-      
-    } catch (error) {
-
-      setSavedCrops([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Helper function to query Firestore
-  const queryFirestoreForCrops = async (userId) => {
-    try {
-      // Simple single-field query — no composite index needed
-      const cropsRef = collection(db, 'crops');
-      const q = query(
-        cropsRef,
-        where('farmerId', '==', userId)
-      );
-
-      const querySnapshot = await getDocs(q);
-      const farmerCrops = [];
-
-      querySnapshot.forEach((docSnap) => {
-        farmerCrops.push({ id: docSnap.id, ...docSnap.data() });
-      });
-
-      // Sort newest-first client-side so no composite index is required
-      farmerCrops.sort((a, b) => {
-        const ta = a.createdAt?.toMillis?.() ?? (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-        const tb = b.createdAt?.toMillis?.() ?? (b.createdAt ? new Date(b.createdAt).getTime() : 0);
-        return tb - ta;
-      });
-
-      setSavedCrops(farmerCrops);
-    } catch (error) {
-      throw error;
-    }
-  };
+    );
+    return unsubscribe;
+  }, []);
 
   // Add new crop to Firebase Firestore
   const addCrop = async (cropData) => {
@@ -123,9 +78,7 @@ export const useCrops = () => {
       const user = auth.currentUser;
       
       if (!user) {
-
-        alert('⚠️ Please log in first to add crops.\n\nGo to Login page and sign in with your account.');
-        return { success: false, error: 'User not authenticated' };
+        return { success: false, error: 'Please log in first to add crops.' };
       }
 
       // Use uid directly from Firebase Auth user
@@ -136,8 +89,7 @@ export const useCrops = () => {
       // Validate required fields
       const cropNameField = cropData.cropName || cropData.crop;
       if (!cropNameField || !cropData.price || !cropData.quantity) {
-        alert('⚠️ Please fill in all required fields: Crop Name, Price, and Quantity');
-        return { success: false, error: 'Missing required fields' };
+        return { success: false, error: 'Please fill in all required fields: Crop Name, Price, and Quantity' };
       }
       
       // Create new crop data with exact schema: farmerId (uid), status: 'pending'
@@ -152,6 +104,7 @@ export const useCrops = () => {
         farmerEmail: userEmail,
         state: cropData.state || '',
         district: cropData.district || '',
+        image: cropData.image || '',   // Farmer-selected image from CROP_DICTIONARY
         createdAt: serverTimestamp()
       };
       
@@ -177,7 +130,6 @@ export const useCrops = () => {
       } else {
         errorMessage += error.message || 'Unknown error';
       }
-      alert('❌ ' + errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
@@ -189,11 +141,9 @@ export const useCrops = () => {
     try {
       const cropDocRef = doc(db, 'crops', cropId);
       await deleteDoc(cropDocRef);
-      
       setSavedCrops(savedCrops.filter(crop => crop.id !== cropId));
       return { success: true };
     } catch (error) {
-      alert('❌ Failed to delete crop: ' + (error.message || 'Unknown error'));
       return { success: false, error: error.message };
     }
   };
@@ -201,25 +151,13 @@ export const useCrops = () => {
   // Update crop status in Firebase Firestore
   const updateCropStatus = async (cropId, newStatus) => {
     try {
-      console.log('♻️ Attempting to update crop status:', cropId, newStatus);
-      
-      // Update in Firestore
       const cropDocRef = doc(db, 'crops', cropId);
-      await updateDoc(cropDocRef, {
-        status: newStatus,
-        updatedAt: serverTimestamp()
-      });
-      
-      // Update local state
-      setSavedCrops(savedCrops.map(crop => 
+      await updateDoc(cropDocRef, { status: newStatus, updatedAt: serverTimestamp() });
+      setSavedCrops(savedCrops.map(crop =>
         crop.id === cropId ? { ...crop, status: newStatus } : crop
       ));
-      console.log('✅ Crop status updated successfully in Firestore');
-      
       return { success: true };
     } catch (error) {
-      console.error('❌ Failed to update status:', error);
-      alert('❌ Failed to update status: ' + (error.message || 'Unknown error'));
       return { success: false, error: error.message };
     }
   };
@@ -227,42 +165,35 @@ export const useCrops = () => {
   // Update entire crop in Firebase Firestore
   const updateCrop = async (cropId, cropData) => {
     try {
-      console.log('🔄 Attempting to update crop:', cropId);
-      
-      // Update in Firestore
       const cropDocRef = doc(db, 'crops', cropId);
-      await updateDoc(cropDocRef, {
-        ...cropData,
-        updatedAt: serverTimestamp()
-      });
-      
-      // Update local state
-      setSavedCrops(savedCrops.map(crop => 
+      await updateDoc(cropDocRef, { ...cropData, updatedAt: serverTimestamp() });
+      setSavedCrops(savedCrops.map(crop =>
         crop.id === cropId ? { ...crop, ...cropData } : crop
       ));
-      console.log('✅ Crop updated successfully in Firestore');
-      
       return { success: true };
     } catch (error) {
-      console.error('❌ Failed to update crop:', error);
-      alert('❌ Failed to update crop: ' + (error.message || 'Unknown error'));
       return { success: false, error: error.message };
     }
   };
 
-  // Load crops on mount — wait for Firebase Auth to be ready first
+  // Mount: wait for auth then subscribe to real-time crops
   useEffect(() => {
-    // onAuthStateChanged guarantees we have the real auth state
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    let cropUnsub = null;
+    const authUnsub = onAuthStateChanged(auth, (user) => {
+      // Clean up previous crop listener before attaching a new one
+      if (cropUnsub) { cropUnsub(); cropUnsub = null; }
       if (user) {
-        loadCrops();
+        cropUnsub = subscribeToCrops(user.uid);
       } else {
         setSavedCrops([]);
+        setLoading(false);
       }
     });
-    return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      authUnsub();
+      if (cropUnsub) cropUnsub();
+    };
+  }, [subscribeToCrops]);
 
   // Recalculate analytics when crops change
   useEffect(() => {
@@ -277,6 +208,5 @@ export const useCrops = () => {
     deleteCrop,
     updateCropStatus,
     updateCrop,
-    loadCrops
   };
 };

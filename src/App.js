@@ -22,7 +22,8 @@ const OrdersPage = React.lazy(() => import('./pages/OrdersPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ResourceSharePage = React.lazy(() => import('./pages/ResourceSharePage'));
 const CropRecommendationPage = React.lazy(() => import('./pages/CropRecommendationPage'));
-const OrderCheckout = React.lazy(() => import('./pages/OrderCheckout'));
+const OrderCheckout = React.lazy(() => import('./pages/OrderCheckout'))
+const AdminDashboard = React.lazy(() => import('./features/admin/pages/AdminDashboard'));
 
 // Splash screen shown while Firebase resolves auth state
 const AuthSplash = () => (
@@ -68,7 +69,10 @@ const PublicOnlyRoute = ({ children }) => {
   if (loading) return <AuthSplash />;
 
   if (currentUser) {
-    const dest = userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer';
+    const role = userData?.role
+    const dest = role === 'farmer' ? '/farmer-dashboard'
+               : role === 'admin'  ? '/admin'
+               : '/consumer'
     return <Navigate to={dest} replace />;
   }
 
@@ -219,6 +223,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={['consumer']}>
                 <ConsumerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
               </ProtectedRoute>
             }
           />

@@ -89,8 +89,7 @@ export const initiatePayment = async (orderDetails, customerDetails) => {
   // Load Razorpay script
   const res = await loadRazorpayScript();
   if (!res) {
-    alert('Razorpay SDK failed to load. Please check your internet connection.');
-    return { success: false, error: 'Script load failed' };
+    return { success: false, error: 'Razorpay SDK failed to load. Please check your internet connection.' };
   }
 
   // Create order in localStorage first

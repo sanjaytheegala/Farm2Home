@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useToast } from '../context/ToastContext'
 import Navbar from '../components/Navbar'
 import { FaShoppingCart, FaTrash, FaPlus, FaMinus, FaCheckCircle, FaCreditCard, FaWallet, FaUniversity } from 'react-icons/fa'
+import { useCart } from '../features/consumer/hooks/useCart'
+import { auth, db } from '../firebase'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 
 const CartPage = () => {
-  const [cartItems, setCartItems] = useState([])
+  const { cartItems, removeFromCart, updateQuantity: updateQty, clearCart } = useCart()
   const [checkoutStep, setCheckoutStep] = useState('cart') // 'cart', 'address', 'payment', 'confirmation'
   const [deliveryAddress, setDeliveryAddress] = useState({
     fullName: '',
@@ -16,35 +20,25 @@ const CartPage = () => {
     pincode: ''
   })
   const [paymentMethod, setPaymentMethod] = useState('cod') // 'cod', 'upi', 'card', 'netbanking'
-  const [orderId, setOrderId] = useState(null)
+  const [batchOrderId, setBatchOrderId] = useState(null)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast()
 
-  useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem('cart')) || []
-    setCartItems(savedCart)
-  }, [])
-
-  const updateQuantity = (index, change) => {
-    const updatedCart = [...cartItems]
-    const newQuantity = (parseInt(updatedCart[index].quantity) || 1) + change
-    if (newQuantity > 0) {
-      updatedCart[index].quantity = newQuantity.toString()
-      setCartItems(updatedCart)
-      localStorage.setItem('cart', JSON.stringify(updatedCart))
-    }
+  const updateQuantity = (item, change) => {
+    const newQuantity = (parseInt(item.quantity) || 1) + change
+    if (newQuantity > 0) updateQty(item.id, newQuantity)
+    else removeFromCart(item.id)
   }
 
-  const removeItem = (index) => {
-    const updatedCart = cartItems.filter((_, i) => i !== index)
-    setCartItems(updatedCart)
-    localStorage.setItem('cart', JSON.stringify(updatedCart))
+  const removeItem = (item) => {
+    removeFromCart(item.id)
   }
 
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => {
-      const price = parseFloat(item.price) || 0
+      const price = parseFloat(item.pricePerKg || item.price) || 0
       const quantity = parseInt(item.quantity) || 1
       return total + (price * quantity)
     }, 0)
@@ -59,17 +53,13 @@ const CartPage = () => {
     return calculateTotal() + calculateDeliveryCharge()
   }
 
-  const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000)
-  }
-
   const generateOrderId = () => {
     return 'ORD' + Date.now() + Math.floor(Math.random() * 1000)
   }
 
   const proceedToAddress = () => {
     if (cartItems.length === 0) {
-      alert(t('cart_empty') || 'Your cart is empty!')
+      toastWarning(t('cart_empty') || 'Your cart is empty!')
       return
     }
     setCheckoutStep('address')
@@ -78,11 +68,11 @@ const CartPage = () => {
   const proceedToPayment = () => {
     if (!deliveryAddress.fullName || !deliveryAddress.phone || !deliveryAddress.addressLine || 
         !deliveryAddress.city || !deliveryAddress.state || !deliveryAddress.pincode) {
-      alert(t('fill_address') || 'Please fill all address fields')
+      toastWarning(t('fill_address') || 'Please fill all address fields')
       return
     }
     if (deliveryAddress.phone.length !== 10) {
-      alert(t('valid_phone') || 'Please enter a valid 10-digit phone number')
+      toastWarning(t('valid_phone') || 'Please enter a valid 10-digit phone number')
       return
     }
     setCheckoutStep('payment')
@@ -90,44 +80,46 @@ const CartPage = () => {
 
   const placeOrder = async () => {
     setLoading(true)
-    const otp = generateOTP()
-    const newOrderId = generateOrderId()
-    
-    // Get current user from localStorage
-    const currentUser = JSON.parse(localStorage.getItem('mockUserData') || '{}')
-    
-    const orderData = {
-      orderId: newOrderId,
-      userId: currentUser.uid || 'guest',
-      items: cartItems,
-      deliveryAddress,
-      paymentMethod,
-      totalAmount: calculateGrandTotal(),
-      deliveryCharge: calculateDeliveryCharge(),
-      otp,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      timestamp: Date.now(),
-      estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days
-    }
-
     try {
-      // Save order to localStorage
-      const orders = JSON.parse(localStorage.getItem('orders') || '[]')
-      orders.push(orderData)
-      localStorage.setItem('orders', JSON.stringify(orders))
-      
-      setOrderId(newOrderId)
+      const user = auth.currentUser
+      if (!user) {
+        toastWarning('Please sign in to place an order.')
+        setLoading(false)
+        return
+      }
+
+      const sharedBatchId = generateOrderId()
+
+      // Create one Firestore order per cart item (consistent with Buy Now flow)
+      await Promise.all(
+        cartItems.map(item => {
+          const price = item.pricePerKg || item.price || 0
+          const qty   = parseInt(item.quantity) || 1
+          return addDoc(collection(db, 'orders'), {
+            customerId:      user.uid,
+            farmerId:        item.farmerId || '',
+            cropName:        item.name || item.cropName || item.crop || 'Product',
+            quantity:        qty,
+            pricePerKg:      price,
+            totalPrice:      price * qty,
+            totalAmount:     price * qty,
+            unit:            item.unit || 'kg',
+            shippingAddress: deliveryAddress,
+            paymentMethod,
+            status:          'pending',
+            batchOrderId:    sharedBatchId,
+            createdAt:       serverTimestamp(),
+          })
+        })
+      )
+
+      await clearCart()
+      setBatchOrderId(sharedBatchId)
       setCheckoutStep('confirmation')
-      localStorage.removeItem('cart')
-      setLoading(false)
-      
-      // Simulate payment processing
-      setTimeout(() => {
-        // order placed
-      }, 1000)
     } catch (error) {
-      alert(t('order_failed') || 'Failed to place order. Please try again.')
+      console.error('placeOrder error:', error)
+      toastError(t('order_failed') || 'Failed to place order. Please try again.')
+    } finally {
       setLoading(false)
     }
   }
@@ -151,23 +143,23 @@ const CartPage = () => {
         <div style={cartContent}>
           <div style={itemsSection}>
             {cartItems.map((item, index) => (
-              <div key={index} style={cartItem}>
+              <div key={item.id || index} style={cartItem}>
                 <div style={itemDetails}>
-                  <h3 style={itemName}>{item.crop}</h3>
-                  <p style={itemPrice}>₹{item.price} / kg</p>
+                  <h3 style={itemName}>{item.name || item.cropName || item.crop}</h3>
+                  <p style={itemPrice}>₹{item.pricePerKg || item.price} / {item.unit || 'kg'}</p>
                 </div>
                 <div style={quantityControls}>
-                  <button onClick={() => updateQuantity(index, -1)} style={qtyBtn}>
+                  <button onClick={() => updateQuantity(item, -1)} style={qtyBtn}>
                     <FaMinus />
                   </button>
-                  <span style={qtyDisplay}>{item.quantity || 1} kg</span>
-                  <button onClick={() => updateQuantity(index, 1)} style={qtyBtn}>
+                  <span style={qtyDisplay}>{item.quantity || 1} {item.unit || 'kg'}</span>
+                  <button onClick={() => updateQuantity(item, 1)} style={qtyBtn}>
                     <FaPlus />
                   </button>
                 </div>
                 <div style={itemTotal}>
-                  <p style={totalPrice}>₹{(parseFloat(item.price) * (parseInt(item.quantity) || 1)).toFixed(2)}</p>
-                  <button onClick={() => removeItem(index)} style={removeBtn}>
+                  <p style={totalPrice}>₹{(parseFloat(item.pricePerKg || item.price) * (parseInt(item.quantity) || 1)).toFixed(2)}</p>
+                  <button onClick={() => removeItem(item)} style={removeBtn}>
                     <FaTrash /> {t('remove') || 'Remove'}
                   </button>
                 </div>
@@ -193,7 +185,7 @@ const CartPage = () => {
               <strong>₹{calculateGrandTotal().toFixed(2)}</strong>
             </div>
             <button
-              onClick={() => navigate('/checkout', { state: { items: cartItems } })}
+              onClick={proceedToAddress}
               style={checkoutBtn}
             >
               {t('proceed_checkout') || 'Proceed to Checkout'}
@@ -342,7 +334,7 @@ const CartPage = () => {
         <FaCheckCircle size={80} color="#28a745" />
       </div>
       <h2 style={successHeading}>{t('order_placed') || 'Order Placed Successfully!'}</h2>
-      <p style={orderIdText}>{t('order_id') || 'Order ID'}: <strong>{orderId}</strong></p>
+      <p style={orderIdText}>{t('order_id') || 'Order ID'}: <strong>#{batchOrderId}</strong></p>
       <div style={confirmationBox}>
         <p><strong>{t('payment_method') || 'Payment Method'}:</strong> {paymentMethod.toUpperCase()}</p>
         <p><strong>{t('total_amount') || 'Total Amount'}:</strong> ₹{calculateGrandTotal().toFixed(2)}</p>

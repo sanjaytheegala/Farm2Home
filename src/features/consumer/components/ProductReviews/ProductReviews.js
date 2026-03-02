@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../../../../context/ToastContext';
 // import { db, collection, addDoc, getDocs, query, where, orderBy, auth } from '../../../../firebase';
 import { FaStar, FaThumbsUp, FaThumbsDown, FaFlag, FaCheckCircle } from 'react-icons/fa';
 import './ProductReviews.css';
 
 const ProductReviews = ({ productId, productName }) => {
   const { t } = useTranslation();
+  const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -48,7 +50,7 @@ const ProductReviews = ({ productId, productName }) => {
     // Check if user is logged in using localStorage
     const currentUser = JSON.parse(localStorage.getItem('mockUserData') || '{}');
     if (!currentUser.uid) {
-      alert(t('please_login_to_review'));
+      toastWarning(t('please_login_to_review'));
       return;
     }
 
@@ -69,10 +71,9 @@ const ProductReviews = ({ productId, productName }) => {
       
       // Refresh reviews
       fetchReviews();
-      
-      alert(t('review_submitted') || 'Review submitted successfully! (Firebase not configured yet)');
+      toastSuccess(t('review_submitted') || 'Review submitted successfully!');
     } catch (error) {
-      alert(t('review_error') || 'Error submitting review');
+      toastError(t('review_error') || 'Error submitting review');
     }
   };
 

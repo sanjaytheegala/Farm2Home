@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../../context/ToastContext';
 import { CROP_DICTIONARY } from '../../../data/cropData';
 
 const AddCrop = () => {
   const navigate = useNavigate();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [cropName, setCropName] = useState('');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -139,7 +141,7 @@ const AddCrop = () => {
       console.log('✅ Crop added successfully with ID:', newCrop.id);
 
       // Success message
-      alert('✅ Crop Added Successfully!\n\nCrop ID: ' + newCrop.id);
+      toastSuccess('Crop added successfully!');
 
       // Clear form
       setCropName('');
@@ -151,8 +153,8 @@ const AddCrop = () => {
         navigate('/farmer');
       }, 500);
     } catch (error) {
-      console.error('❌ Error adding crop:', error);
-      alert('❌ Failed to add crop: ' + error.message + '\n\nCheck console for details.');
+      console.error('Error adding crop:', error);
+      toastError('Failed to add crop: ' + error.message);
     } finally {
       setLoading(false);
     }

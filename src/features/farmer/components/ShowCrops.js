@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '../../../context/ToastContext';
 import './ShowCrops.css';
 import { FaSearch, FaMapMarkerAlt, FaSort, FaLeaf, FaRupeeSign, FaCalendarAlt, FaEdit, FaTrash } from 'react-icons/fa';
 
 const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
+  const { success: toastSuccess, error: toastError } = useToast();
   const [crops, setCrops] = useState([]);
   const [filteredCrops, setFilteredCrops] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,8 +60,7 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
       setFilteredCrops(farmerCrops);
     } catch (error) {
       console.error('❌ Error fetching crops:', error);
-      alert('Error fetching crops: ' + error.message);
-      // Fallback to empty array if error
+      toastError('Error fetching crops: ' + error.message);
       setCrops([]);
       setFilteredCrops([]);
     } finally {
@@ -104,15 +105,14 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
       );
       localStorage.setItem('crops', JSON.stringify(updatedCrops));
       
-      console.log('✅ Crop updated successfully');
-      alert('✅ Crop updated successfully!');
-      
+      console.log('Crop updated successfully');
+      toastSuccess('Crop updated successfully!');
       setEditingCrop(null);
       setEditForm({});
-      fetchCrops(); // Refresh the list
+      fetchCrops();
     } catch (error) {
-      console.error('❌ Error updating crop:', error);
-      alert('❌ Failed to update crop: ' + error.message);
+      console.error('Error updating crop:', error);
+      toastError('Failed to update crop: ' + error.message);
     }
   };
 
@@ -136,13 +136,12 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
       const updatedCrops = allCrops.filter(crop => crop.id !== cropId);
       localStorage.setItem('crops', JSON.stringify(updatedCrops));
       
-      console.log('✅ Crop deleted successfully');
-      alert('✅ Crop deleted successfully!');
-      
-      fetchCrops(); // Refresh the list
+      console.log('Crop deleted successfully');
+      toastSuccess('Crop deleted successfully!');
+      fetchCrops();
     } catch (error) {
-      console.error('❌ Error deleting crop:', error);
-      alert('❌ Failed to delete crop: ' + error.message);
+      console.error('Error deleting crop:', error);
+      toastError('Failed to delete crop: ' + error.message);
     }
   };
 

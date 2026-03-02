@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { useToast } from '../context/ToastContext';
 import Navbar from '../components/Navbar';
 import {
   FaCheckCircle,
@@ -240,6 +241,7 @@ const validate = (form) => {
 const OrderCheckout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { error: toastError } = useToast();
 
   // Items can be passed via route state (from cart or Buy Now)
   const passedItems = location.state?.items || [];
@@ -344,7 +346,7 @@ const OrderCheckout = () => {
       setPlacedOrderId(orderRefs[0]);
       setShowSuccess(true);
     } catch (err) {
-      alert('Failed to place order. Please try again.');
+      toastError('Failed to place order. Please try again.');
     } finally {
       setLoading(false);
     }

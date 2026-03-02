@@ -9,7 +9,7 @@ import {
   updateProfile 
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { FaUserAlt, FaEnvelope, FaLock, FaUserTie, FaSeedling } from 'react-icons/fa';
+import { FaUserAlt, FaEnvelope, FaLock, FaUserTie, FaSeedling, FaPhone } from 'react-icons/fa';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ const AuthPage = () => {
     lastName: '',
     email: '',
     password: '',
+    phone: '',
     role: roleParam === 'farmer' ? 'farmer' : 'consumer'
   });
   
@@ -57,8 +58,29 @@ const AuthPage = () => {
         throw new Error('Please fill in all fields');
       }
 
+      const nameRegex = /^[a-zA-Z\s'\-]+$/;
+      const trimmedFirst = formData.firstName.trim();
+      const trimmedLast  = formData.lastName.trim();
+      if (trimmedFirst.length < 2 || trimmedFirst.length > 30) {
+        throw new Error('First name must be between 2 and 30 characters');
+      }
+      if (!nameRegex.test(trimmedFirst)) {
+        throw new Error('First name can only contain letters, spaces, hyphens and apostrophes');
+      }
+      if (trimmedLast.length < 2 || trimmedLast.length > 30) {
+        throw new Error('Last name must be between 2 and 30 characters');
+      }
+      if (!nameRegex.test(trimmedLast)) {
+        throw new Error('Last name can only contain letters, spaces, hyphens and apostrophes');
+      }
+
       if (formData.password.length < 6) {
         throw new Error('Password must be at least 6 characters');
+      }
+
+      const cleanPhone = formData.phone.replace(/\D/g, '');
+      if (!cleanPhone || cleanPhone.length !== 10) {
+        throw new Error('Please enter a valid 10-digit phone number');
       }
 
       // Create user with Firebase Auth
@@ -82,7 +104,10 @@ const AuthPage = () => {
         id: user.uid,        // Keep id for backwards compatibility
         firstName: formData.firstName,
         lastName: formData.lastName,
+        name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
+        phoneNumber: formData.phone.replace(/\D/g, ''),
+        phone: formData.phone.replace(/\D/g, ''),
         role: formData.role,
         status: 'active',
         createdAt: new Date().toISOString()
@@ -231,6 +256,7 @@ const AuthPage = () => {
       lastName: '',
       email: '',
       password: '',
+      phone: '',
       role: 'consumer'
     });
     setError('');
@@ -430,6 +456,57 @@ const AuthPage = () => {
                         }}
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Phone Number */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    Phone Number <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '12px',
+                      transform: 'translateY(-50%)',
+                      pointerEvents: 'none'
+                    }}>
+                      <FaPhone style={{ color: '#9ca3af', fontSize: '14px' }} />
+                    </div>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required={!isLogin}
+                      placeholder="10-digit mobile number"
+                      maxLength={15}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px 10px 36px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        outline: 'none',
+                        transition: 'all 0.2s',
+                        boxSizing: 'border-box'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#16a34a';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(22, 163, 74, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#d1d5db';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
                   </div>
                 </div>
 

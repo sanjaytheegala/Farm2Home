@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db, auth } from '../../../firebase';
+import { useToast } from '../../../context/ToastContext';
 import { 
   collection, 
   query, 
@@ -13,6 +14,7 @@ import {
 import { FaSeedling, FaRupeeSign, FaEdit, FaTrash, FaCheckCircle, FaClock, FaTimes } from 'react-icons/fa';
 
 const FarmerCropsList = () => {
+  const { success: toastSuccess, error: toastError } = useToast();
   const [crops, setCrops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,13 +72,10 @@ const FarmerCropsList = () => {
       
       // Remove from state
       setCrops(crops.filter(crop => crop.id !== cropId));
-      console.log('✅ Crop deleted successfully');
-      
-      // Show success message
-      alert('Crop deleted successfully!');
+      toastSuccess('Crop deleted successfully!');
     } catch (err) {
       console.error('Error deleting crop:', err);
-      alert('Failed to delete crop. Please try again.');
+      toastError('Failed to delete crop. Please try again.');
     }
   };
 
@@ -102,11 +101,11 @@ const FarmerCropsList = () => {
     try {
       // Validate inputs
       if (!editForm.price || parseFloat(editForm.price) <= 0) {
-        alert('Please enter a valid price');
+        toastError('Please enter a valid price');
         return;
       }
       if (!editForm.quantity.trim()) {
-        alert('Please enter quantity');
+        toastError('Please enter quantity');
         return;
       }
 
@@ -125,11 +124,10 @@ const FarmerCropsList = () => {
       ));
 
       setEditingCrop(null);
-      console.log('✅ Crop updated successfully');
-      alert('Crop updated successfully!');
+      toastSuccess('Crop updated successfully!');
     } catch (err) {
       console.error('Error updating crop:', err);
-      alert('Failed to update crop. Please try again.');
+      toastError('Failed to update crop. Please try again.');
     }
   };
 

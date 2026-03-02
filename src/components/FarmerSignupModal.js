@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { FaTimes } from 'react-icons/fa';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { FaTimes, FaEnvelope, FaLock, FaUser, FaPhone } from 'react-icons/fa';
 
 const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const navigate = useNavigate();
-  const [formType, setFormType] = useState('register'); // 'login' or 'register'
-  const [inputMethod, setInputMethod] = useState('email'); // 'phone' or 'email'
+  const [formType, setFormType] = useState('login'); // 'login' or 'register'
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -127,35 +126,11 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     setSuccess('');
 
     try {
-      let emailToUse = inputMethod === 'email' ? formData.email : formData.phoneNumber;
+      const emailToUse = formData.email.trim();
 
       // Validate inputs
       if (!emailToUse || !formData.password) {
-        throw new Error('Please enter email/phone and password');
-      }
-
-      // Check if input is a phone number (for phone method)
-      if (inputMethod === 'phone') {
-        console.log('📱 Phone number login, querying Firestore for email...');
-        
-        // Clean phone number - remove all non-digit characters
-        const cleanPhone = emailToUse.replace(/\D/g, '');
-        
-        // Query Firestore for user with this phone number
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('phoneNumber', '==', cleanPhone));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          throw new Error('No account found with this phone number.');
-        }
-
-        // Get the email from the first matching document
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data();
-        emailToUse = userData.email;
-        
-        console.log('✅ Found email for phone number');
+        throw new Error('Please enter your email and password');
       }
 
       // Ensure session persists across page-reload and browser-restart
@@ -467,29 +442,7 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
             </button>
           </div>
 
-          {/* Phone/Email Toggle */}
-          <div style={inputMethodContainerStyle}>
-            <button
-              type="button"
-              style={inputMethodButtonStyle(inputMethod === 'phone')}
-              onClick={() => {
-                setInputMethod('phone');
-                setError('');
-              }}
-            >
-              📱 Phone
-            </button>
-            <button
-              type="button"
-              style={inputMethodButtonStyle(inputMethod === 'email')}
-              onClick={() => {
-                setInputMethod('email');
-                setError('');
-              }}
-            >
-              ✉️ Email
-            </button>
-          </div>
+
 
           {/* Error Message */}
           {error && <div style={errorStyle}>{error}</div>}
@@ -502,164 +455,123 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
             <>
               {/* Name Field - Only for Register */}
               <div style={fieldStyle}>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Full Name"
-                  style={inputStyle}
-                  disabled={loading}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#16a34a';
-                    e.target.style.backgroundColor = 'white';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.backgroundColor = '#fafafa';
-                  }}
-                  required
-                />
+                <div style={{ position: 'relative' }}>
+                  <FaUser style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Full Name"
+                    style={{ ...inputStyle, paddingLeft: 38 }}
+                    disabled={loading}
+                    onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+                    required
+                  />
+                </div>
               </div>
 
               {/* Email Field */}
               <div style={fieldStyle}>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Email"
-                  style={inputStyle}
-                  disabled={loading}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#16a34a';
-                    e.target.style.backgroundColor = 'white';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.backgroundColor = '#fafafa';
-                  }}
-                  required
-                />
-              </div>
-
-              {/* Phone Number Field */}
-              <div style={fieldStyle}>
-                <input
-                  type="tel"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  placeholder="Phone Number (10 digits)"
-                  style={inputStyle}
-                  disabled={loading}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#16a34a';
-                    e.target.style.backgroundColor = 'white';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.backgroundColor = '#fafafa';
-                  }}
-                  required
-                />
-              </div>
-            </>
-          )}
-
-          {/* Login Fields - Email or Phone based on input method */}
-          {formType === 'login' && (
-            <>
-              {inputMethod === 'email' ? (
-                <div style={fieldStyle}>
+                <div style={{ position: 'relative' }}>
+                  <FaEnvelope style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Email"
-                    style={inputStyle}
+                    placeholder="Email Address"
+                    style={{ ...inputStyle, paddingLeft: 38 }}
                     disabled={loading}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = '#16a34a';
-                      e.target.style.backgroundColor = 'white';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.backgroundColor = '#fafafa';
-                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
                     required
                   />
                 </div>
-              ) : (
-                <div style={fieldStyle}>
+              </div>
+
+              {/* Phone Number Field */}
+              <div style={fieldStyle}>
+                <div style={{ position: 'relative' }}>
+                  <FaPhone style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
                   <input
                     type="tel"
                     name="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={handleChange}
-                    placeholder="Phone Number"
-                    style={inputStyle}
+                    placeholder="Phone Number (10 digits)"
+                    style={{ ...inputStyle, paddingLeft: 38 }}
                     disabled={loading}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = '#16a34a';
-                      e.target.style.backgroundColor = 'white';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.backgroundColor = '#fafafa';
-                    }}
+                    onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
                     required
                   />
                 </div>
-              )}
+              </div>
+            </>
+          )}
+
+          {/* Login Fields - Email only */}
+          {formType === 'login' && (
+            <>
+              <div style={fieldStyle}>
+                <div style={{ position: 'relative' }}>
+                  <FaEnvelope style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Email Address"
+                    style={{ ...inputStyle, paddingLeft: 38 }}
+                    disabled={loading}
+                    onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+                    required
+                  />
+                </div>
+              </div>
             </>
           )}
 
           {/* Password Field - Always shown */}
           <div style={fieldStyle}>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Password"
-              style={inputStyle}
-              disabled={loading}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#16a34a';
-                e.target.style.backgroundColor = 'white';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.backgroundColor = '#fafafa';
-              }}
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <FaLock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Password"
+                style={{ ...inputStyle, paddingLeft: 38 }}
+                disabled={loading}
+                onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}
+                onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+                required
+              />
+            </div>
           </div>
 
           {/* Confirm Password Field - Only for Register */}
           {formType === 'register' && (
             <div style={fieldStyle}>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Confirm Password"
-                style={inputStyle}
-                disabled={loading}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#16a34a';
-                  e.target.style.backgroundColor = 'white';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e5e7eb';
-                  e.target.style.backgroundColor = '#fafafa';
-                }}
-                required
-              />
+              <div style={{ position: 'relative' }}>
+                <FaLock style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm Password"
+                  style={{ ...inputStyle, paddingLeft: 38 }}
+                  disabled={loading}
+                  onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+                  required
+                />
+              </div>
             </div>
           )}
 

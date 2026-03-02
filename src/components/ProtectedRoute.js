@@ -41,7 +41,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   // ③ Authenticated but wrong role (e.g. consumer typing /farmer-dashboard in URL bar)
   if (allowedRoles && !allowedRoles.includes(userData?.role)) {
-    const dest = userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer';
+    const role = userData?.role
+    const dest = role === 'farmer' ? '/farmer-dashboard'
+               : role === 'admin'  ? '/admin'
+               : '/consumer'
     return <Navigate to={dest} replace />;
   }
 
