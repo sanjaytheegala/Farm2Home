@@ -107,11 +107,11 @@ const Navbar = React.memo(({
           {isConsumerPage && (
             <>
               <button 
-                className={`nav-item ${activeTab === 'deals' ? 'active' : ''}`}
-                onClick={() => onTabChange('deals')}
+                className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+                onClick={() => onTabChange('profile')}
               >
-                <FaGift className="nav-icon" />
-                <span className="nav-text">Deals</span>
+                <FaUserCircle className="nav-icon" />
+                <span className="nav-text">Profile</span>
               </button>
               <button 
                 className={`nav-item ${activeTab === 'cart' ? 'active' : ''}`}
@@ -127,13 +127,6 @@ const Navbar = React.memo(({
               >
                 <FaHistory className="nav-icon" />
                 <span className="nav-text">Orders</span>
-              </button>
-              <button 
-                className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-                onClick={() => onTabChange('profile')}
-              >
-                <FaUserCircle className="nav-icon" />
-                <span className="nav-text">Profile</span>
               </button>
               <button 
                 className="nav-item"
@@ -211,9 +204,9 @@ const Navbar = React.memo(({
         <div className="mobile-menu">
           {isConsumerPage && (
             <>
-              <button className="mobile-menu-item" onClick={() => { onTabChange('deals'); setShowMobileMenu(false); }}>
-                <FaGift className="nav-icon" />
-                <span>Deals</span>
+              <button className="mobile-menu-item" onClick={() => { onTabChange('profile'); setShowMobileMenu(false); }}>
+                <FaUserCircle className="nav-icon" />
+                <span>Profile</span>
               </button>
               <button className="mobile-menu-item" onClick={() => { onTabChange('cart'); setShowMobileMenu(false); }}>
                 <FaShoppingCart className="nav-icon" />
@@ -223,14 +216,6 @@ const Navbar = React.memo(({
               <button className="mobile-menu-item" onClick={() => { onTabChange('orders'); setShowMobileMenu(false); }}>
                 <FaHistory className="nav-icon" />
                 <span>Orders</span>
-              </button>
-              <button className="mobile-menu-item" onClick={() => { onTabChange('profile'); setShowMobileMenu(false); }}>
-                <FaUserCircle className="nav-icon" />
-                <span>Profile</span>
-              </button>
-              <button className="mobile-menu-item" onClick={() => { onSearchClick(); setShowMobileMenu(false); }}>
-                <FaSearch className="nav-icon" />
-                <span>Search</span>
               </button>
               <button className="mobile-menu-item mobile-menu-item--logout" onClick={() => { handleLogout(); setShowMobileMenu(false); }}>
                 <FaSignOutAlt className="nav-icon" />

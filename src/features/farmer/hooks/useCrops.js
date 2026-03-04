@@ -98,6 +98,7 @@ export const useCrops = () => {
         crop: cropNameField, // For backwards compatibility
         price: parseFloat(cropData.price) || 0,
         quantity: cropData.quantity,
+        category: cropData.category || '',
         notes: cropData.notes || '',
         status: 'pending',  // Exactly as required
         farmerId: userId,   // Use uid from Firebase Auth
@@ -190,8 +191,8 @@ export const useCrops = () => {
       }
     });
     return () => {
-      authUnsub();
-      if (cropUnsub) cropUnsub();
+      try { authUnsub(); } catch (_) {}
+      if (cropUnsub) { try { cropUnsub(); } catch (_) {} }
     };
   }, [subscribeToCrops]);
 

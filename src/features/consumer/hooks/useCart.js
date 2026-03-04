@@ -54,7 +54,7 @@ export const useCart = () => {
       batch.commit().then(() => localStorage.removeItem(LOCAL_KEY)).catch(() => {});
     }
 
-    return () => unsub();
+    return () => { try { unsub(); } catch (_) {} };
   }, [uid]);
 
   /* ── Helpers ── */

@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { db, auth } from '../../../firebase'
 import {
   collection, onSnapshot, query,
-  where, orderBy, doc, updateDoc, getDoc, serverTimestamp,
-  arrayUnion, arrayRemove
+  where, doc, updateDoc, getDoc, serverTimestamp,
+  arrayUnion, arrayRemove, deleteField
 } from 'firebase/firestore'
 
 /**
@@ -19,33 +19,56 @@ export const useMarketOpportunities = () => {
   useEffect(() => {
     const q = query(
       collection(db, 'market_demands'),
-      where('status', '==', 'open'),
-      orderBy('createdAt', 'desc')
+      where('status', '==', 'open')
     )
-    const unsub = onSnapshot(q, (snap) => {
-      setOpenDemands(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-      setLoading(false)
-    })
-    return () => unsub()
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        docs.sort((a, b) => {
+          const ta = a.createdAt?.toMillis?.() ?? 0
+          const tb = b.createdAt?.toMillis?.() ?? 0
+          return tb - ta
+        })
+        setOpenDemands(docs)
+        setLoading(false)
+      },
+      (err) => {
+        console.warn('useMarketOpportunities openDemands error:', err.message)
+        setLoading(false)
+      }
+    )
+    return () => { try { unsub() } catch (_) {} }
   }, [])
 
   /* ── Deals where this farmer submitted a quote ── */
   useEffect(() => {
-    const user = auth.currentUser
-    if (!user) return
-    const q = query(
-      collection(db, 'market_demands'),
-      where('committedFarmerId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    )
-    const unsub = onSnapshot(q, (snap) => {
-      setMyQuotes(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    let unsubSnap = null
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      if (unsubSnap) { unsubSnap(); unsubSnap = null }
+      if (!user) return
+      const q = query(
+        collection(db, 'market_demands'),
+        where('committedFarmerId', '==', user.uid)
+      )
+      unsubSnap = onSnapshot(q, (snap) => {
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        docs.sort((a, b) => {
+          const ta = a.createdAt?.toMillis?.() ?? 0
+          const tb = b.createdAt?.toMillis?.() ?? 0
+          return tb - ta
+        })
+        setMyQuotes(docs)
+      })
     })
-    return () => unsub()
+    return () => {
+      if (unsubSnap) { try { unsubSnap() } catch (_) {} }
+      try { unsubAuth() } catch (_) {}
+    }
   }, [])
 
   /* ── Submit a price offer for a demand ── */
-  const submitOffer = useCallback(async (demandId, offerPrice) => {
+  const submitOffer = useCallback(async (demandId, offerPrice, offerUnit = 'kg') => {
     const user = auth.currentUser
     if (!user) return { success: false, error: 'Not logged in' }
     const price = parseFloat(offerPrice)
@@ -57,13 +80,38 @@ export const useMarketOpportunities = () => {
         ? (profileSnap.data().phone || profileSnap.data().phoneNumber || 'Not provided')
         : 'Not provided'
 
+      // Normalise to per-kg for calculation, but store original display unit
+      const unitMultiplier = offerUnit === 'quintal' ? 100 : offerUnit === 'ton' ? 1000 : 1
+      const pricePerKg = price / unitMultiplier
+
       await updateDoc(doc(db, 'market_demands', demandId), {
         status:              'quoted',
         committedFarmerId:   user.uid,
         committedFarmerName: user.displayName || user.email || 'Farmer',
-        farmerOfferPrice:    price,
+        farmerOfferPrice:    pricePerKg,        // always stored per-kg
+        farmerOfferDisplay:  price,             // original number entered
+        farmerOfferUnit:     offerUnit,         // 'kg' | 'quintal' | 'ton'
         farmerPhone,
         quotedAt:            serverTimestamp(),
+      })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
+  /* ── Withdraw offer (reset to open so others can quote) ── */
+  const withdrawOffer = useCallback(async (demandId) => {
+    try {
+      await updateDoc(doc(db, 'market_demands', demandId), {
+        status:              'open',
+        committedFarmerId:   null,
+        committedFarmerName: null,
+        farmerOfferPrice:    null,
+        farmerOfferDisplay:  deleteField(),
+        farmerOfferUnit:     deleteField(),
+        farmerPhone:         null,
+        quotedAt:            deleteField(),
       })
       return { success: true }
     } catch (err) {
@@ -98,5 +146,5 @@ export const useMarketOpportunities = () => {
     }
   }, [])
 
-  return { openDemands, myQuotes, loading, submitOffer, markInProgress, toggleFulfilling }
+  return { openDemands, myQuotes, loading, submitOffer, withdrawOffer, markInProgress, toggleFulfilling }
 }

@@ -156,8 +156,13 @@ function LocationPicker({ onChange }) {
 }
 
 /* -- Modal */
-const RequestCropModal = ({ onClose, onSubmit }) => {
-  const [form, setForm]       = useState(INITIAL)
+const RequestCropModal = ({ onClose, onSubmit, initialData = null, editMode = false }) => {
+  const [form, setForm]       = useState(initialData ? {
+    cropName:   initialData.cropName   || '',
+    quantityKg: initialData.quantityKg || '',
+    location:   initialData.location   || '',
+    notes:      initialData.notes      || '',
+  } : INITIAL)
   const [submitting, setSub]  = useState(false)
   const [error, setError]     = useState('')
   const [success, setSuccess] = useState(false)
@@ -194,8 +199,8 @@ const RequestCropModal = ({ onClose, onSubmit }) => {
         <div className="rcm-header">
           <div className="rcm-header-icon"><FaLeaf /></div>
           <div>
-            <h2 className="rcm-title">Request a Crop</h2>
-            <p className="rcm-subtitle">Tell farmers exactly what you need</p>
+            <h2 className="rcm-title">{editMode ? 'Edit Request' : 'Request a Crop'}</h2>
+            <p className="rcm-subtitle">{editMode ? 'Update your crop request details' : 'Tell farmers exactly what you need'}</p>
           </div>
           <button className="rcm-close" onClick={onClose}><FaTimes /></button>
         </div>
@@ -204,7 +209,7 @@ const RequestCropModal = ({ onClose, onSubmit }) => {
           <div className="rcm-success">
             <div className="rcm-success-icon">&#10003;</div>
             <h3>Request Submitted!</h3>
-            <p>Farmers near you will see your request. Our AI will suggest a fair price, and farmers will send you their offer!</p>
+            <p>{editMode ? 'Request updated successfully!' : 'Farmers near you will see your request. Our AI will suggest a fair price, and farmers will send you their offer!'}</p>
           </div>
         ) : (
           <form className="rcm-form" onSubmit={submit}>
@@ -250,7 +255,7 @@ const RequestCropModal = ({ onClose, onSubmit }) => {
             <button type="submit" className="rcm-submit" disabled={submitting}>
               {submitting
                 ? <span className="rcm-spinner" />
-                : <><FaPaperPlane style={{ marginRight: 8 }} />Submit Request</>
+                : <>{editMode ? 'Save Changes' : 'Submit Request'}</>
               }
             </button>
           </form>

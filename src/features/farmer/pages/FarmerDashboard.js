@@ -11,15 +11,15 @@ import { db } from '../../../firebase'
 import { doc, onSnapshot, collection, query, where, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore'
 import './FarmerDashboard.css'
 
-import {
-  FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave,
+import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave,
   FaTruck, FaMoneyBillWave, FaCalendarAlt, FaBell, FaShoppingBag,
   FaMapMarkerAlt, FaSeedling, FaTimes, FaCheckCircle, FaClock, FaTag, FaSearch, FaPhone,
-  FaCoins, FaUsers, FaBullseye, FaFlag
+  FaCoins, FaUsers, FaBullseye, FaFlag, FaComments, FaWeightHanging
 } from 'react-icons/fa'
 import { findCropByKeyword, CROP_DICTIONARY } from '../../../data/cropData'
 import { geoData } from '../../../locale/geoData'
 import ComplaintModal from '../../../shared/components/ComplaintModal/ComplaintModal'
+import ChatModal from '../../../shared/components/ChatModal/ChatModal'
 
 // Avatar palette — deterministic color per farmer name first letter
 const AVATAR_PALETTE = ['#FFBF00','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#BE6DB7','#F7A738','#2ECC71']
@@ -41,11 +41,15 @@ const fmt = (key) =>
 // Get crop image from dictionary
 const getCropImage = (cropName) => {
   if (!cropName) return null
-  const match = CROP_DICTIONARY.find(c =>
+  // Exact match first
+  const exact = CROP_DICTIONARY.find(c =>
     c.name.toLowerCase() === cropName.toLowerCase() ||
     c.keywords.some(k => k.toLowerCase() === cropName.toLowerCase())
   )
-  return match ? match.image : null
+  if (exact) return exact.image
+  // Fuzzy fallback via findCropByKeyword
+  const fuzzy = findCropByKeyword(cropName.toLowerCase())
+  return fuzzy ? fuzzy.image : null
 }
 
 // Status display config
@@ -69,19 +73,37 @@ const stateDistricts = {
 /* ─────────────────────────────────────────────────────────────
    DemandCard — one consumer request card in the market tab
 ───────────────────────────────────────────────────────────── */
-const DemandCard = ({ demand, isPriority, currentUid, onToggleFulfilling, onToastError, onToastSuccess }) => {
+const UNIT_OPTIONS = [
+  { value: 'kg',      label: 'per kg' },
+  { value: 'quintal', label: 'per Quintal (100 kg)' },
+  { value: 'ton',     label: 'per Ton (1000 kg)' },
+]
+
+const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastError, onToastSuccess }) => {
   const [showComplaint, setShowComplaint] = useState(false)
-  const isFulfilling = Array.isArray(demand.fulfillingFarmerIds) && demand.fulfillingFarmerIds.includes(currentUid)
+  const [showOfferForm, setShowOfferForm] = useState(false)
+  const [offerPrice, setOfferPrice]       = useState('')
+  const [offerUnit,  setOfferUnit]        = useState('kg')
+  const [submitting, setSubmitting]       = useState(false)
   const hasPhone = demand.consumerPhone && demand.consumerPhone !== 'Not provided'
 
-  const handleToggle = async () => {
-    const res = await onToggleFulfilling(demand.id, isFulfilling)
+  const handleSubmitOffer = async () => {
+    if (!offerPrice || parseFloat(offerPrice) <= 0) { onToastError('Enter a valid price'); return }
+    setSubmitting(true)
+    const res = await onSubmitOffer(demand.id, offerPrice, offerUnit)
+    setSubmitting(false)
     if (res.success) {
-      onToastSuccess(isFulfilling ? 'Removed from fulfilling list.' : 'Marked as fulfilling! Admin notified.')
+      onToastSuccess('Offer submitted! Consumer will be notified.')
+      setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg')
     } else {
-      onToastError(res.error || 'Could not update status')
+      onToastError(res.error || 'Could not submit offer')
     }
   }
+
+  const unitMult = offerUnit === 'quintal' ? 100 : offerUnit === 'ton' ? 1000 : 1
+  const totalEst = offerPrice
+    ? (demand.quantityKg * parseFloat(offerPrice) / unitMult).toFixed(0)
+    : null
 
   return (
     <div className={`fd-demand-card${isPriority ? ' fd-demand-card--priority' : ''}`}>
@@ -91,8 +113,7 @@ const DemandCard = ({ demand, isPriority, currentUid, onToggleFulfilling, onToas
         <div className="fd-demand-info">
           <span className="fd-demand-cropname">{demand.cropName}</span>
           <span className="fd-demand-consumer">
-            <FaUsers style={{ marginRight: 4, fontSize: 11 }} />
-            {demand.consumerName}
+            <FaUsers style={{ marginRight: 4, fontSize: 11 }} />{demand.consumerName}
           </span>
         </div>
         <div className="fd-demand-new-badge">OPEN</div>
@@ -113,11 +134,13 @@ const DemandCard = ({ demand, isPriority, currentUid, onToggleFulfilling, onToas
 
       {demand.notes && <p className="fd-demand-notes">"{demand.notes}"</p>}
 
-      {/* Direct contact — phone always visible */}
+      {/* Consumer phone */}
       <div className="fd-direct-contact">
         <div className="fd-direct-phone">
           <FaPhone style={{ marginRight: 6, color: '#16a34a' }} />
-          <span>{hasPhone ? demand.consumerPhone : 'Phone not added'}</span>
+          {hasPhone
+            ? <a href={`tel:${demand.consumerPhone}`} style={{ color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>{demand.consumerPhone}</a>
+            : <span>Phone not added</span>}
         </div>
         {hasPhone && (
           <a href={`tel:${demand.consumerPhone}`} className="fd-call-btn">
@@ -126,20 +149,62 @@ const DemandCard = ({ demand, isPriority, currentUid, onToggleFulfilling, onToas
         )}
       </div>
 
-      {/* Fulfilling toggle */}
-      <button
-        className={`fd-fulfilling-btn${isFulfilling ? ' fd-fulfilling-btn--active' : ''}`}
-        onClick={handleToggle}
-      >
-        {isFulfilling
-          ? <><FaCheckCircle style={{ marginRight: 6 }} /> I'm Handling This</>
-          : <><FaSeedling style={{ marginRight: 6 }} /> I Am Fulfilling This</>}
-      </button>
+      {/* Offer form */}
+      {!showOfferForm ? (
+        <button
+          className="fd-fulfilling-btn"
+          style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', border: 'none' }}
+          onClick={() => setShowOfferForm(true)}
+        >
+          <FaCoins style={{ marginRight: 6 }} /> Submit Price Offer
+        </button>
+      ) : (
+        <div style={{ marginTop: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '12px' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FaWeightHanging /> Enter Your Price
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <input
+              type="number" min="1" step="0.01"
+              placeholder="Amount (e.g. 30)"
+              value={offerPrice}
+              onChange={e => setOfferPrice(e.target.value)}
+              style={{ flex: 1, padding: '8px 10px', border: '1px solid #86efac', borderRadius: 8, fontSize: 14, outline: 'none' }}
+            />
+            <select
+              value={offerUnit}
+              onChange={e => setOfferUnit(e.target.value)}
+              style={{ padding: '8px 10px', border: '1px solid #86efac', borderRadius: 8, fontSize: 13, background: 'white', cursor: 'pointer' }}
+            >
+              {UNIT_OPTIONS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+            </select>
+          </div>
+          {totalEst && (
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+              Total estimate: ₹{parseInt(totalEst).toLocaleString()} for {demand.quantityKg} kg
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleSubmitOffer} disabled={submitting}
+              style={{ flex: 1, padding: '8px', background: submitting ? '#9ca3af' : '#16a34a', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontSize: 13 }}
+            >
+              {submitting ? 'Submitting…' : <><FaCheckCircle style={{marginRight:6}}/>Send Offer</>}
+            </button>
+            <button
+              onClick={() => { setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg') }}
+              style={{ padding: '8px 12px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Report consumer */}
-      <div style={{ display:'flex', justifyContent:'flex-end', marginTop: 8 }}>
-        <button className="report-trigger-btn" onClick={() => setShowComplaint(true)}>
-          <FaFlag style={{ fontSize: 10 }} /> Report Consumer
+      {/* Chat + Report row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+        <button className="chat-trigger-btn" onClick={() => onOpenChat(demand)}>
+          <FaComments /> Chat
         </button>
       </div>
 
@@ -165,6 +230,7 @@ const FarmerDashboard = () => {
   const [editProfileData, setEditProfileData] = useState({ name: '', phone: '', state: '', district: '' })
   const [editProfileSaving, setEditProfileSaving] = useState(false)
   const [userLocation, setUserLocation] = useState({ state: '', district: '' })
+  const [activeChatDemand, setActiveChatDemand] = useState(null)
   const [cropSearch, setCropSearch] = useState('')
   const [cropPickerStep, setCropPickerStep] = useState('pick') // 'pick' | 'details'
 
@@ -178,21 +244,25 @@ const FarmerDashboard = () => {
       if (seed.state && seed.district) setUserLocation({ state: seed.state, district: seed.district })
     }
     if (!currentUser?.uid) return
-    const unsub = onSnapshot(doc(db, 'users', currentUser.uid), (snap) => {
-      if (snap.exists()) {
-        const d = snap.data()
-        setFarmerName(d.name || d.displayName || d.email || currentUser.email || 'Farmer')
-        setFarmerPhoto(d.photoURL || currentUser.photoURL || null)
-        setFarmerPhone(d.phoneNumber || d.phone || '')
-        if (d.state && d.district) setUserLocation({ state: d.state, district: d.district })
-      }
-    })
-    return () => unsub()
+    const unsub = onSnapshot(
+      doc(db, 'users', currentUser.uid),
+      (snap) => {
+        if (snap.exists()) {
+          const d = snap.data()
+          setFarmerName(d.name || d.displayName || d.email || currentUser.email || 'Farmer')
+          setFarmerPhoto(d.photoURL || currentUser.photoURL || null)
+          setFarmerPhone(d.phoneNumber || d.phone || '')
+          if (d.state && d.district) setUserLocation({ state: d.state, district: d.district })
+        }
+      },
+      (err) => console.warn('FarmerDashboard profile snapshot error:', err.message)
+    )
+    return () => { try { unsub() } catch (_) {} }
   }, [currentUser, userData, navigate])
 
   const { savedCrops, loading, analytics, addCrop, deleteCrop, updateCropStatus, updateCrop } = useCrops()
   const { orders, loading: ordersLoading, updateOrderStatus } = useOrders()
-  const { openDemands, myQuotes, submitOffer, markInProgress, toggleFulfilling } = useMarketOpportunities()
+  const { openDemands, myQuotes, submitOffer, withdrawOffer, markInProgress, toggleFulfilling } = useMarketOpportunities()
   const { success: toastSuccess, error: toastError } = useToast()
 
   // Farmer's display location for smart sorting
@@ -201,12 +271,20 @@ const FarmerDashboard = () => {
   const farmerDistrictDisplay = userLocation?.state && userLocation?.district
     ? ((geoData.en.districts[userLocation.state] || {})[userLocation.district] || '') : ''
 
-  const isLocationMatch = (loc = '') =>
-    (farmerDistrictDisplay && loc.includes(farmerDistrictDisplay)) ||
-    (farmerStateDisplay    && loc.includes(farmerStateDisplay))
+  const isDistrictMatch = (loc = '') => farmerDistrictDisplay && loc.includes(farmerDistrictDisplay)
+  const isStateMatch    = (loc = '') => farmerStateDisplay    && loc.includes(farmerStateDisplay)
+  const isLocationMatch = (loc = '') => isDistrictMatch(loc) || isStateMatch(loc)
 
-  const priorityDemands = openDemands.filter(d => isLocationMatch(d.location))
-  const otherDemands    = openDemands.filter(d => !isLocationMatch(d.location))
+  const priorityDemands = openDemands
+    .filter(d => isLocationMatch(d.location))
+    .sort((a, b) => {
+      const aScore = isDistrictMatch(a.location) ? 2 : isStateMatch(a.location) ? 1 : 0
+      const bScore = isDistrictMatch(b.location) ? 2 : isStateMatch(b.location) ? 1 : 0
+      return bScore - aScore
+    })
+  const otherDemands = openDemands
+    .filter(d => !isLocationMatch(d.location))
+    .sort((a, b) => (a.location || '').localeCompare(b.location || ''))
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [offerPrices, setOfferPrices] = useState({})      // { [demandId]: string }
@@ -254,6 +332,7 @@ const FarmerDashboard = () => {
     const cropData = getRowData(index)
     cropData.cropName = matchedCrop.name
     cropData.crop = matchedCrop.name
+    cropData.category = matchedCrop.category || ''
     cropData.image = matchedCrop.image || getCropImage(matchedCrop.name) || ''
 
     if (editingCropId) {
@@ -261,6 +340,7 @@ const FarmerDashboard = () => {
       const result = await updateCrop(editingCropId, {
         crop: cropData.crop,
         cropName: cropData.cropName,
+        category: cropData.category,
         price: parseFloat(cropData.price),
         quantity: cropData.quantity,
         status: cropData.status,
@@ -348,6 +428,15 @@ const FarmerDashboard = () => {
 
   return (
     <div className="fd-root">
+
+      {/* ─── Chat Modal ─── */}
+      {activeChatDemand && (
+        <ChatModal
+          demand={activeChatDemand}
+          currentRole="farmer"
+          onClose={() => setActiveChatDemand(null)}
+        />
+      )}
 
       {/* ─── Edit Profile Modal ─── */}
       {showEditProfile && (
@@ -491,9 +580,9 @@ const FarmerDashboard = () => {
         <div className="fd-tabbar">
           {[
             { key: 'crops',         icon: <FaLeaf />,        label: 'Manage Crops' },
+            { key: 'market',        icon: <FaBullseye />,    label: 'Crop Requests', badge: openDemands.length },
             { key: 'analytics',     icon: <FaChartLine />,   label: 'Analytics' },
             { key: 'orders',        icon: <FaShoppingBag />, label: 'Orders' },
-            { key: 'market',        icon: <FaBullseye />,    label: 'Crop Requests', badge: openDemands.length },
             { key: 'notifications', icon: <FaBell />,        label: 'Notifications' },
           ].map(tab => (
             <button
@@ -690,50 +779,71 @@ const FarmerDashboard = () => {
                 const totalVal = (parseFloat(crop.price) || 0) * (parseFloat(crop.quantity) || 0)
                 return (
                   <div key={crop.id} className="fd-crop-card">
-                    <div className="fd-card-accent" />
-                    <div className="fd-card-header">
-                      <div className="fd-card-img-wrap">
-                        {img
-                          ? <img src={img} alt={crop.crop} className="fd-card-img" />
-                          : <FaLeaf style={{ fontSize: 30, color: '#2e7d32' }} />
-                        }
-                      </div>
-                      <div className="fd-card-titleblock">
-                        <h4 className="fd-card-name">{crop.crop || crop.cropName}</h4>
-                        <span className="fd-status-badge" style={{ background: sm.bg, color: sm.color }}>
-                          <span style={{ marginRight: 4, fontSize: 11 }}>{sm.icon}</span>{sm.label}
-                        </span>
+                    {/* Banner image */}
+                    <div className="fd-card-banner" style={{ background: img ? 'transparent' : 'linear-gradient(135deg,#e8f5e9,#c8e6c9)' }}>
+                      {img
+                        ? <img src={img} alt={crop.crop || crop.cropName} className="fd-card-banner-img" />
+                        : <FaLeaf style={{ fontSize: 54, color: '#4caf50', opacity: 0.45 }} />}
+                      {/* Top-right: status select + edit/delete side by side */}
+                      <div className="fd-banner-actions">
+                        <select
+                          value={crop.status}
+                          onChange={e => updateCropStatus(crop.id, e.target.value)}
+                          className="fd-status-badge fd-status-badge--select fd-status-badge--overlay"
+                          style={{ background: sm.bg, color: sm.color }}
+                        >
+                          <option value="available">Available</option>
+                          <option value="sold">Sold</option>
+                          <option value="reserved">Reserved</option>
+                        </select>
+                        <button onClick={() => handleEdit(crop)} className="fd-banner-btn fd-banner-btn--edit" title="Edit">
+                          <FaEdit />
+                        </button>
+                        <button onClick={() => handleDelete(crop.id)} className="fd-banner-btn fd-banner-btn--del" title="Delete">
+                          <FaTrash />
+                        </button>
                       </div>
                     </div>
 
                     <div className="fd-card-body">
-                      <div className="fd-info-row">
-                        <span className="fd-info-label">Quantity</span>
-                        <span className="fd-info-val">{crop.quantity} kg</span>
+                      <h4 className="fd-card-name">{crop.crop || crop.cropName}</h4>
+
+                      {/* Stats row: qty | price | total — all side by side */}
+                      <div className="fd-quick-stats">
+                        <div className="fd-quick-stat">
+                          <span className="fd-qs-label">Qty</span>
+                          <span className="fd-qs-val">{parseFloat(crop.quantity).toLocaleString()} kg</span>
+                        </div>
+                        <div className="fd-qs-divider" />
+                        <div className="fd-quick-stat">
+                          <span className="fd-qs-label">Price/kg</span>
+                          <span className="fd-qs-val fd-price-val">₹{parseFloat(crop.price).toLocaleString()}</span>
+                        </div>
+                        <div className="fd-qs-divider" />
+                        <div className="fd-quick-stat">
+                          <span className="fd-qs-label">Total</span>
+                          <span className="fd-qs-val fd-total-qs">₹{totalVal.toLocaleString()}</span>
+                        </div>
                       </div>
-                      <div className="fd-info-row">
-                        <span className="fd-info-label">Price / kg</span>
-                        <span className="fd-info-val fd-price-val">₹{parseFloat(crop.price).toLocaleString()}</span>
+
+                      {/* Location */}
+                      <div className="fd-meta-row">
+                        <FaMapMarkerAlt className="fd-meta-icon fd-meta-icon--red" />
+                        <span className="fd-meta-text">{fmt(crop.district)}, {fmt(crop.state)}</span>
                       </div>
-                      <div className="fd-info-row fd-info-row--highlight">
-                        <span className="fd-info-label">Total Value</span>
-                        <span className="fd-info-val fd-total-val">₹{totalVal.toLocaleString()}</span>
-                      </div>
-                      <div className="fd-info-row">
-                        <span className="fd-info-label">
-                          <FaMapMarkerAlt style={{ color: '#e53935', marginRight: 4 }} />Location
-                        </span>
-                        <span className="fd-info-val">{fmt(crop.district)}, {fmt(crop.state)}</span>
-                      </div>
+
+                      {/* Notes */}
                       {crop.notes && (
-                        <div className="fd-notes-row">
-                          <FaTag style={{ color: '#888', marginRight: 6, fontSize: 11 }} />
+                        <div className="fd-meta-row fd-notes-row">
+                          <FaTag className="fd-meta-icon" />
                           <span className="fd-notes-text">{crop.notes}</span>
                         </div>
                       )}
+
+                      {/* Date */}
                       {crop.createdAt && (
-                        <div className="fd-date-row">
-                          <FaCalendarAlt style={{ color: '#aaa', marginRight: 5, fontSize: 11 }} />
+                        <div className="fd-meta-row fd-date-row">
+                          <FaCalendarAlt className="fd-meta-icon" />
                           <span className="fd-date-text">
                             {crop.createdAt?.toDate
                               ? crop.createdAt.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -741,24 +851,6 @@ const FarmerDashboard = () => {
                           </span>
                         </div>
                       )}
-                    </div>
-
-                    <div className="fd-card-footer">
-                      <select
-                        value={crop.status}
-                        onChange={e => updateCropStatus(crop.id, e.target.value)}
-                        className="fd-status-select"
-                      >
-                        <option value="available">Available</option>
-                        <option value="sold">Sold</option>
-                        <option value="reserved">Reserved</option>
-                      </select>
-                      <button onClick={() => handleEdit(crop)} className="fd-edit-btn" title="Edit">
-                        <FaEdit />
-                      </button>
-                      <button onClick={() => handleDelete(crop.id)} className="fd-del-btn" title="Delete">
-                        <FaTrash />
-                      </button>
                     </div>
                   </div>
                 )
@@ -1002,8 +1094,8 @@ const FarmerDashboard = () => {
                         key={demand.id}
                         demand={demand}
                         isPriority
-                        currentUid={currentUser?.uid}
-                        onToggleFulfilling={toggleFulfilling}
+                        onSubmitOffer={submitOffer}
+                        onOpenChat={setActiveChatDemand}
                         onToastError={toastError}
                         onToastSuccess={toastSuccess}
                       />
@@ -1026,8 +1118,8 @@ const FarmerDashboard = () => {
                         key={demand.id}
                         demand={demand}
                         isPriority={false}
-                        currentUid={currentUser?.uid}
-                        onToggleFulfilling={toggleFulfilling}
+                        onSubmitOffer={submitOffer}
+                        onOpenChat={setActiveChatDemand}
                         onToastError={toastError}
                         onToastSuccess={toastSuccess}
                       />
@@ -1038,15 +1130,15 @@ const FarmerDashboard = () => {
             </>
           )}
 
-          {/* My Quotes & Active Deals */}
-          {myQuotes.length > 0 && (
+          {/* My Quotes & Active Deals — exclude completed */}
+          {myQuotes.filter(d => d.status !== 'completed').length > 0 && (
             <>
               <h3 className="fd-market-section-title" style={{ marginTop: 32 }}>
                 <FaCoins style={{ color: '#f59e0b', marginRight: 8 }} />
-                My Quotes & Active Deals ({myQuotes.length})
+                My Quotes & Active Deals ({myQuotes.filter(d => d.status !== 'completed').length})
               </h3>
               <div className="fd-market-grid">
-                {myQuotes.map(deal => {
+                {myQuotes.filter(d => d.status !== 'completed').map(deal => {
                   const statusColors = {
                     quoted:      { bg: '#fef3c7', color: '#b45309' },
                     deal_closed: { bg: '#d1fae5', color: '#065f46' },
@@ -1082,7 +1174,10 @@ const FarmerDashboard = () => {
                         </div>
                         <div className="fd-demand-detail">
                           <span className="fd-dd-label">Your Offer</span>
-                          <span className="fd-dd-value fd-dd-price">Rs.{deal.farmerOfferPrice}/kg</span>
+                          <span className="fd-dd-value fd-dd-price">
+                            ₹{deal.farmerOfferDisplay || deal.farmerOfferPrice}/{deal.farmerOfferUnit || 'kg'}
+                            <span style={{fontSize:11,color:'#6b7280',marginLeft:4}}>(₹{deal.farmerOfferPrice?.toFixed(2)}/kg)</span>
+                          </span>
                         </div>
                         <div className="fd-demand-detail">
                           <span className="fd-dd-label">Location</span>
@@ -1133,6 +1228,28 @@ const FarmerDashboard = () => {
                           <FaCheckCircle style={{ marginRight: 8 }} /> Deal Complete! Consumer confirmed receipt.
                         </div>
                       )}
+
+                      {/* Withdraw offer (only when still waiting for consumer) */}
+                      {deal.status === 'quoted' && (
+                        <button
+                          className="fd-fulfilling-btn"
+                          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', marginTop: 8 }}
+                          onClick={async () => {
+                            const res = await withdrawOffer(deal.id)
+                            if (res.success) toastSuccess('Offer withdrawn. Request is open again.')
+                            else toastError(res.error || 'Failed to withdraw offer')
+                          }}
+                        >
+                          <FaTimes style={{ marginRight: 6 }} /> Withdraw Offer
+                        </button>
+                      )}
+
+                      {/* Chat button — available on all active deals */}
+                      <div style={{ marginTop: 8 }}>
+                        <button className="chat-trigger-btn" onClick={() => setActiveChatDemand(deal)}>
+                          <FaComments /> Chat with Consumer
+                        </button>
+                      </div>
                     </div>
                   )
                 })}

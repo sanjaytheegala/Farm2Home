@@ -656,7 +656,7 @@
   border: 2.5px solid #16a34a;
   border-radius: var(--radius-lg);
   box-shadow: 0 8px 32px rgba(22,163,74,0.18);
-  overflow-x: hidden;
+  overflow-x: visible;
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -683,6 +683,8 @@
   color: white;
   padding: var(--spacing-lg);
   border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
 }
 
 .sidebar-header h3 {
@@ -692,11 +694,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.sidebar-header h3::before {
-  content: '🔍';
-  font-size: 1.25rem;
 }
 
 /* Override filter section styles for sidebar */
@@ -788,7 +785,6 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-lg);
-  animation: fadeInUp 0.8s ease;
 }
 
 /* ========== LOADING STATE ========== */
@@ -2526,15 +2522,15 @@
 /* Demand Cards */
 .cd-demand-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 24px;
 }
 .cd-demand-card {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 18px;
   border: 1.5px solid #e2e8f0;
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 14px;
+  padding: 24px;
+  display: flex; flex-direction: column; gap: 16px;
   transition: box-shadow 0.2s, transform 0.2s;
   position: relative;
   overflow: hidden;

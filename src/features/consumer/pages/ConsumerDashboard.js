@@ -1,15 +1,17 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../firebase';
+import { findCropByKeyword } from '../../../data/cropData';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import {
   FaShoppingCart, FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
-  FaSeedling, FaShieldAlt, FaArrowRight, FaHeart, FaBox,
-  FaUsers, FaCheckCircle, FaClipboardList, FaSearch, FaThLarge,
-  FaList, FaSlidersH, FaPlusCircle, FaMapMarkerAlt, FaCoins,
+  FaShieldAlt, FaHeart, FaBox,
+  FaUsers, FaCheckCircle, FaSearch, FaThLarge,
+  FaSlidersH, FaPlusCircle, FaMapMarkerAlt, FaCoins,
   FaStar, FaPhone, FaRobot, FaBell, FaChevronRight,
-  FaRegClock, FaLock, FaFlag, FaEdit, FaSave, FaTimes as FaX,
+  FaRegClock, FaLock, FaFlag, FaEdit, FaTrash, FaSave, FaTimes as FaX, FaComments,
 } from 'react-icons/fa';
+import ChatModal from '../../../shared/components/ChatModal/ChatModal';
 import ProductCard from '../components/ProductCard/ProductCard';
 import SearchBar from '../components/Filters/SearchBar';
 import FilterSection from '../components/Filters/FilterSection';
@@ -39,27 +41,48 @@ const ConsumerDashboard = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState({ name:'', phone:'' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
-  const [viewMode, setViewMode] = useState('grid');
   const [showSidebar, setShowSidebar] = useState(false);
   const [buyNowProduct, setBuyNowProduct] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [editingDemand, setEditingDemand] = useState(null);
   const [navScrolled, setNavScrolled] = useState(false);
-  const { myDemands, submitDemand, acceptOffer, markReceived, submitReview } = useMarketDemands();
+  const { myDemands, submitDemand, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand } = useMarketDemands();
   const { success: toastSuccess, error: toastError } = useToast();
   const [complaintTarget, setComplaintTarget] = useState(null);
   const [reviewData, setReviewData] = useState({}); // { [demandId]: { rating, comment, submitting, error } }
+  const [activeChatDemand, setActiveChatDemand] = useState(null);
   const categorySectionRef = useRef(null);
+  const prevDemandsRef = useRef({});
+
+  // Notify consumer when farmer submits an offer
+  useEffect(() => {
+    myDemands.forEach(d => {
+      const prev = prevDemandsRef.current[d.id];
+      if (prev && prev.status === 'open' && d.status === 'quoted') {
+        toastSuccess(`🎉 A farmer submitted an offer for your "${d.cropName}" request! Review it below.`);
+      }
+      prevDemandsRef.current[d.id] = { status: d.status };
+    });
+  }, [myDemands]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    let unsub;
-    const user = auth.currentUser;
-    if (user) {
-      unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-        const d = snap.data() || {};
-        setUserProfile({ name: d.name||user.displayName||user.email?.split('@')[0]||'there', photoURL: d.photoURL||user.photoURL||'', email: user.email||'', phone: d.phoneNumber||d.phone||'' });
-      });
-    }
-    return () => unsub && unsub();
+    let unsubSnap = null;
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      if (unsubSnap) { try { unsubSnap(); } catch (_) {} unsubSnap = null; }
+      if (!user) return;
+      unsubSnap = onSnapshot(
+        doc(db, 'users', user.uid),
+        (snap) => {
+          const d = snap.data() || {};
+          setUserProfile({ name: d.name||user.displayName||user.email?.split('@')[0]||'there', photoURL: d.photoURL||user.photoURL||'', email: user.email||'', phone: d.phoneNumber||d.phone||'' });
+        },
+        (err) => console.warn('ConsumerDashboard profile snapshot error:', err.message)
+      );
+    });
+    return () => {
+      try { unsubAuth(); } catch (_) {}
+      if (unsubSnap) { try { unsubSnap(); } catch (_) {} }
+    };
   }, []);
 
   useEffect(() => {
@@ -67,9 +90,9 @@ const ConsumerDashboard = () => {
       setNavScrolled(window.scrollY > 20);
       if (!categorySectionRef.current) return;
       const catBottom = categorySectionRef.current.getBoundingClientRect().bottom;
-      const cta = document.querySelector('.cd-cta');
-      const ctaVisible = cta ? cta.getBoundingClientRect().top <= window.innerHeight - 60 : false;
-      setShowSidebar(catBottom <= 100 && !ctaVisible);
+      const footer = document.querySelector('.cd-footer');
+      const footerVisible = footer ? footer.getBoundingClientRect().top <= window.innerHeight - 60 : false;
+      setShowSidebar(catBottom <= 100 && !footerVisible);
     };
     window.addEventListener('scroll', handleScroll);
     handleScroll();
@@ -78,11 +101,11 @@ const ConsumerDashboard = () => {
 
   const categories = [
     { name:'All',             image:'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=400', id:'all' },
-    { name:'Vegetables',      image:'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=400', id:'vegetables' },
-    { name:'Leafy Greens',    image:'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400', id:'leafy-greens' },
-    { name:'Grains & Pulses', image:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', id:'grains-pulses' },
     { name:'Fruits',          image:'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400', id:'fruits' },
+    { name:'Grains & Pulses', image:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', id:'grains-pulses' },
+    { name:'Leafy Greens',    image:'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400', id:'leafy-greens' },
     { name:'Spices',          image:'https://images.unsplash.com/photo-1596040033229-a0b83fd2f6dd?w=400', id:'spices' },
+    { name:'Vegetables',      image:'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=400', id:'vegetables' },
   ];
 
   const handleOpenEditProfile = () => {
@@ -131,12 +154,27 @@ const ConsumerDashboard = () => {
     <div className="cd-root">
       {buyNowProduct && <ShippingAddressModal product={buyNowProduct} onClose={() => setBuyNowProduct(null)} onSuccess={() => navigate('/orders')} />}
       {showRequestModal && <RequestCropModal onClose={() => setShowRequestModal(false)} onSubmit={submitDemand} />}
+      {editingDemand && (
+        <RequestCropModal
+          editMode
+          initialData={editingDemand}
+          onClose={() => setEditingDemand(null)}
+          onSubmit={async (formData) => {
+            const res = await updateDemand(editingDemand.id, formData);
+            if (res.success) setEditingDemand(null);
+            return res;
+          }}
+        />
+      )}
       {complaintTarget && (
         <ComplaintModal
           reportedUser={{ id: complaintTarget.id, name: complaintTarget.name, role: 'farmer' }}
           contextId={complaintTarget.demandId}
           onClose={() => setComplaintTarget(null)}
         />
+      )}
+      {activeChatDemand && (
+        <ChatModal demand={activeChatDemand} currentRole="consumer" onClose={() => setActiveChatDemand(null)} />
       )}
 
       {/* EDIT PROFILE MODAL */}
@@ -194,31 +232,22 @@ const ConsumerDashboard = () => {
             <span className="cd-navbar-brand-name">Farm2Home</span>
           </div>
 
-          <div className="cd-navbar-search">
-            <FaSearch className="cd-ns-icon" />
-            <input className="cd-ns-input" placeholder="Search crops, fruits, spices..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-          </div>
-
           <div className="cd-navbar-actions">
-            <button className="cd-na-btn" onClick={() => navigate('/cart')}>
-              <FaShoppingCart />
-              {cartCount > 0 && <span className="cd-na-badge">{cartCount}</span>}
-              <span>Cart</span>
-            </button>
-            <button className="cd-na-btn" onClick={() => navigate('/orders')}>
-              <FaClipboardList />
-              <span>Orders</span>
-            </button>
-            <button className="cd-na-btn cd-na-request" onClick={() => setShowRequestModal(true)}>
-              <FaPlusCircle />
-              {activeDemandsCount > 0 && <span className="cd-na-badge cd-na-badge--amber">{activeDemandsCount}</span>}
-              <span>Request</span>
-            </button>
             <button className="cd-na-avatar" onClick={handleOpenEditProfile} title="Edit Profile">
               {userProfile.photoURL
                 ? <img src={userProfile.photoURL} alt="avatar" className="cd-na-avatar-img" />
                 : <div className="cd-na-avatar-letter" style={{background: getAvatarColor(userProfile.name)}}>{(userProfile.name||'U')[0].toUpperCase()}</div>
               }
+            </button>
+            <button className="cd-na-btn" onClick={() => navigate('/cart')}>
+              <FaShoppingCart />
+              {cartCount > 0 && <span className="cd-na-badge">{cartCount}</span>}
+              <span>Cart</span>
+            </button>
+            <button className="cd-na-btn cd-na-request" onClick={() => setShowRequestModal(true)}>
+              <FaPlusCircle />
+              {activeDemandsCount > 0 && <span className="cd-na-badge cd-na-badge--amber">{activeDemandsCount}</span>}
+              <span>Request</span>
             </button>
           </div>
         </div>
@@ -239,7 +268,6 @@ const ConsumerDashboard = () => {
           <div className="cd-hero-search">
             <FaSearch className="cd-hs-icon" />
             <input className="cd-hs-input" placeholder="Search rice, tomato, mango, wheat..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            <button className="cd-hs-btn">Search</button>
           </div>
           <div className="cd-hero-pills">
             {['Tomato','Onion','Rice','Mango','Wheat'].map(q => (
@@ -263,8 +291,6 @@ const ConsumerDashboard = () => {
         {[
           {icon:<FaShieldAlt/>, label:'Safe & Hygienic',   color:'#16a34a'},
           {icon:<FaLeaf/>,      label:'Farm Fresh Daily',  color:'#16a34a'},
-          {icon:<FaTruck/>,     label:'Fast Delivery',     color:'#ea580c'},
-          {icon:<FaRupeeSign/>, label:'Best Prices',       color:'#2563eb'},
           {icon:<FaHandshake/>, label:'Support Farmers',   color:'#7c3aed'},
           {icon:<FaStar/>,      label:'Quality Assured',   color:'#d97706'},
         ].map((t,i) => (
@@ -319,9 +345,41 @@ const ConsumerDashboard = () => {
                     {/* Header */}
                     <div className="cd-demand-head">
                       <div className="cd-demand-crop-info">
-                        <div className="cd-demand-icon"><FaLeaf style={{color:'#16a34a',fontSize:18}}/></div>
+                        <div className="cd-demand-icon">
+                          {(() => {
+                            const cropEntry = findCropByKeyword(demand.cropName?.toLowerCase?.() || '');
+                            const imgSrc = cropEntry?.image;
+                            return imgSrc
+                              ? <img src={imgSrc} alt={demand.cropName} style={{width:44,height:44,borderRadius:10,objectFit:'cover',display:'block'}} />
+                              : <FaLeaf style={{color:'#16a34a',fontSize:22}} />;
+                          })()}
+                        </div>
                         <div>
-                          <div className="cd-demand-name">{demand.cropName}</div>
+                          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                            <div className="cd-demand-name">{demand.cropName}</div>
+                            {demand.status === 'open' && (
+                              <>
+                                <button
+                                  title="Edit Request"
+                                  onClick={() => setEditingDemand(demand)}
+                                  style={{display:'flex',alignItems:'center',gap:3,background:'#eff6ff',border:'1px solid #bfdbfe',color:'#2563eb',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1}}
+                                >
+                                  <FaEdit style={{fontSize:10}}/> Edit
+                                </button>
+                                <button
+                                  title="Delete Request"
+                                  onClick={async () => {
+                                    if (!window.confirm('Delete this request?')) return;
+                                    const res = await deleteDemand(demand.id);
+                                    if (!res.success) toastError(res.error || 'Failed to delete');
+                                  }}
+                                  style={{display:'flex',alignItems:'center',gap:3,background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1}}
+                                >
+                                  <FaTrash style={{fontSize:10}}/> Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
                           <div className="cd-demand-meta">
                             <FaBox style={{marginRight:4,fontSize:10}}/>{demand.quantityKg} kg &nbsp;·&nbsp;
                             <FaMapMarkerAlt style={{marginRight:4,fontSize:10}}/>{demand.location}
@@ -348,14 +406,20 @@ const ConsumerDashboard = () => {
                         <div className="cd-offer-panel-title"><FaCoins /> Farmer's Offer</div>
                         <div className="cd-offer-panel-body">
                           <div className="cd-offer-farmer">{demand.committedFarmerName || 'A farmer'}</div>
-                          <div className="cd-offer-price-big">Rs.{demand.farmerOfferPrice}<span>/kg</span></div>
-                          <div className="cd-offer-total">Total: Rs.{(demand.quantityKg * demand.farmerOfferPrice).toLocaleString()}</div>
+                          <div className="cd-offer-price-big">
+                            ₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}
+                            <span>/{demand.farmerOfferUnit || 'kg'}</span>
+                          </div>
+                          <div className="cd-offer-total">Total: ₹{(demand.quantityKg * demand.farmerOfferPrice).toLocaleString()}</div>
                         </div>
                         <button className="cd-accept-btn" onClick={async () => {
                           const res = await acceptOffer(demand.id);
                           if (!res.success) toastError(res.error || 'Failed to accept offer');
                         }}>
-                          <FaCheckCircle /> Accept Offer -- Close Deal
+                          <FaCheckCircle /> Accept Offer &mdash; Close Deal
+                        </button>
+                        <button className="chat-trigger-btn" style={{marginTop:8,width:'100%',justifyContent:'center'}} onClick={() => setActiveChatDemand(demand)}>
+                          <FaComments /> Chat with Farmer
                         </button>
                       </div>
                     )}
@@ -368,7 +432,12 @@ const ConsumerDashboard = () => {
                         <a className="cd-contact-phone" href={`tel:${demand.farmerPhone}`}>
                           <FaPhone style={{marginRight:8}}/>{demand.farmerPhone || 'Not provided'}
                         </a>
-                        <div className="cd-contact-agreed">Agreed price: Rs.{demand.farmerOfferPrice}/kg · Total Rs.{((demand.quantityKg||0)*(demand.farmerOfferPrice||0)).toLocaleString()}</div>
+                        <div className="cd-contact-agreed">
+                          Agreed: ₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}/{demand.farmerOfferUnit || 'kg'} · Total ₹{((demand.quantityKg||0)*(demand.farmerOfferPrice||0)).toLocaleString()}
+                        </div>
+                        <button className="chat-trigger-btn" style={{marginTop:8,width:'100%',justifyContent:'center'}} onClick={() => setActiveChatDemand(demand)}>
+                          <FaComments /> Chat with Farmer
+                        </button>
                       </div>
                     )}
 
@@ -378,7 +447,8 @@ const ConsumerDashboard = () => {
                         className="cd-received-btn"
                         onClick={async () => {
                           const res = await markReceived(demand.id);
-                          if (!res.success) toastError(res.error || 'Failed to update status');
+                          if (res.success) toastSuccess('Order marked as received!');
+                          else toastError(res.error || 'Failed to update status');
                         }}
                       >
                         <FaCheckCircle style={{marginRight:8}}/> Mark as Received
@@ -446,10 +516,11 @@ const ConsumerDashboard = () => {
                     <div className="cd-demand-foot">
                       <FaRegClock style={{marginRight:5,fontSize:10}}/>
                       {demand.createdAt?.seconds ? new Date(demand.createdAt.seconds*1000).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Just now'}
-                      {demand.committedFarmerId && (
+                      {demand.committedFarmerId && ['deal_closed', 'in_progress', 'completed'].includes(demand.status) && (
                         <button
                           className="report-trigger-btn"
                           style={{ marginLeft: 'auto' }}
+                          title="You can report only after the deal has progressed"
                           onClick={() => setComplaintTarget({
                             id: demand.committedFarmerId,
                             name: demand.committedFarmerName || 'Farmer',
@@ -480,7 +551,7 @@ const ConsumerDashboard = () => {
           </div>
           <div className="cd-cat-grid">
             {categories.map(cat => (
-              <button key={cat.id} className={`cd-cat-card ${selectedCategory===cat.id?'cd-cat-card--active':''}`} onClick={() => setSelectedCategory(cat.id)}>
+              <button type="button" key={cat.id} className={`cd-cat-card ${selectedCategory===cat.id?'cd-cat-card--active':''}`} onClick={() => setSelectedCategory(cat.id)}>
                 <div className="cd-cat-img-wrap">
                   <img src={cat.image} alt={cat.name} loading="lazy" />
                   <div className="cd-cat-overlay"></div>
@@ -496,8 +567,19 @@ const ConsumerDashboard = () => {
         {/* PRODUCTS */}
         <section className={`cd-products-section${showSidebar ? ' sidebar-open' : ''}`}>
           <aside className={`filters-sidebar ${showSidebar ? 'visible' : ''}`}>
-            <div className="sidebar-header"><FaSlidersH style={{marginRight:8}}/><h3>Filters</h3></div>
-            <FilterSection selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} sortBy={sortBy} onSortChange={setSortBy} organicOnly={organicOnly} onOrganicToggle={setOrganicOnly} onResetFilters={resetFilters} />
+            <div className="sidebar-header">
+              <h3>Filters</h3>
+            </div>
+            <FilterSection
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              organicOnly={organicOnly}
+              onOrganicToggle={setOrganicOnly}
+              onResetFilters={resetFilters}
+              categories={categories.map(c => ({ id: c.id, label: c.id === 'all' ? 'All Products' : c.name }))}
+            />
           </aside>
 
           <div className="cd-products-area">
@@ -515,8 +597,7 @@ const ConsumerDashboard = () => {
                   <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Filter results..." />
                 </div>
                 <div className="cd-view-btns">
-                  <button className={`cd-view-btn ${viewMode==='grid'?'active':''}`} onClick={() => setViewMode('grid')} title="Grid"><FaThLarge /></button>
-                  <button className={`cd-view-btn ${viewMode==='list'?'active':''}`} onClick={() => setViewMode('list')} title="List"><FaList /></button>
+                  <button className="cd-view-btn active" title="Grid"><FaThLarge /></button>
                 </div>
               </div>
             </div>
@@ -527,7 +608,7 @@ const ConsumerDashboard = () => {
                 <p>Fetching fresh products from farmers...</p>
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className={viewMode==='list' ? 'products-list-modern' : 'products-grid-modern'}>
+              <div className="products-grid-modern">
                 {filteredProducts.map(product => (
                   <ProductCard key={product.id} product={product} onAddToCart={p => addToCart(p,1)} onToggleFavorite={toggleFavorite} isFavorite={isFavorite(product.id)} onBuyNow={p => setBuyNowProduct(p)} />
                 ))}
@@ -545,40 +626,12 @@ const ConsumerDashboard = () => {
           </div>
         </section>
 
-        {/* CTA BANNER */}
-        <section className="cd-cta">
-          <div className="cd-cta-inner">
-            <div className="cd-cta-left">
-              <div className="cd-cta-icon"><FaSeedling /></div>
-              <div>
-                <h2 className="cd-cta-title">Are You a Farmer?</h2>
-                <p className="cd-cta-desc">List your crops, receive direct consumer requests, zero commission -- maximum profit.</p>
-              </div>
-            </div>
-            <button className="cd-cta-btn" onClick={() => navigate('/')}>
-              Join as Farmer <FaArrowRight />
-            </button>
-          </div>
-        </section>
+
 
       </div>{/* /cd-container */}
 
       {/* FOOTER */}
       <footer className="cd-footer">
-
-        {/* Newsletter strip */}
-        <div className="cd-footer-newsletter">
-          <div className="cd-fn-inner">
-            <div className="cd-fn-text">
-              <h3 className="cd-fn-title">Get Fresh Deals in Your Inbox</h3>
-              <p className="cd-fn-sub">Seasonal offers, new farmer arrivals & harvest alerts -- weekly, no spam.</p>
-            </div>
-            <form className="cd-fn-form" onSubmit={e => e.preventDefault()}>
-              <input className="cd-fn-input" type="email" placeholder="Enter your email address" />
-              <button className="cd-fn-btn" type="submit">Subscribe</button>
-            </form>
-          </div>
-        </div>
 
         {/* Main columns */}
         <div className="cd-footer-inner">

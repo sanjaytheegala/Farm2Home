@@ -31,12 +31,16 @@ export const useFavorites = () => {
     }
 
     const favRef = collection(db, 'users', uid, 'favorites');
-    const unsub = onSnapshot(favRef, (snap) => {
-      const ids = snap.docs.map(d => d.id);
-      setFavorites(ids);
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(ids));
-    });
-    return () => unsub();
+    const unsub = onSnapshot(
+      favRef,
+      (snap) => {
+        const ids = snap.docs.map(d => d.id);
+        setFavorites(ids);
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(ids));
+      },
+      (err) => console.warn('useFavorites snapshot error:', err.message)
+    );
+    return () => { try { unsub(); } catch (_) {} };
   }, [uid]);
 
   const toggleFavorite = useCallback(async (productId) => {

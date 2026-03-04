@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { db, auth } from '../../../firebase'
 import {
   collection, addDoc, onSnapshot, query,
-  where, serverTimestamp, orderBy, doc, updateDoc, getDoc
+  where, serverTimestamp, doc, updateDoc, deleteDoc, getDoc
 } from 'firebase/firestore'
 
 /**
@@ -15,19 +15,33 @@ export const useMarketDemands = () => {
 
   /* ── Real-time listener: consumer's own requests ── */
   useEffect(() => {
-    const user = auth.currentUser
-    if (!user) { setLoading(false); return }
+    let unsubSnap = null
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      if (unsubSnap) { unsubSnap(); unsubSnap = null }
+      if (!user) { setLoading(false); return }
 
-    const q = query(
-      collection(db, 'market_demands'),
-      where('consumerId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    )
-    const unsub = onSnapshot(q, (snap) => {
-      setMyDemands(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-      setLoading(false)
+      const q = query(
+        collection(db, 'market_demands'),
+        where('consumerId', '==', user.uid)
+      )
+      unsubSnap = onSnapshot(q, (snap) => {
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        docs.sort((a, b) => {
+          const ta = a.createdAt?.toMillis?.() ?? 0
+          const tb = b.createdAt?.toMillis?.() ?? 0
+          return tb - ta
+        })
+        setMyDemands(docs)
+        setLoading(false)
+      }, (err) => {
+        console.error('useMarketDemands snapshot error:', err)
+        setLoading(false)
+      })
     })
-    return () => unsub()
+    return () => {
+      if (unsubSnap) { try { unsubSnap() } catch (_) {} }
+      try { unsubAuth() } catch (_) {}
+    }
   }, [])
 
   /* ── Submit a new crop request ── */
@@ -131,5 +145,31 @@ export const useMarketDemands = () => {
     }
   }, [])
 
-  return { myDemands, loading, submitDemand, acceptOffer, markReceived, submitReview }
+  /* ── Consumer deletes an open request ── */
+  const deleteDemand = useCallback(async (demandId) => {
+    try {
+      await deleteDoc(doc(db, 'market_demands', demandId))
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
+  /* ── Consumer edits an open request ── */
+  const updateDemand = useCallback(async (demandId, formData) => {
+    try {
+      await updateDoc(doc(db, 'market_demands', demandId), {
+        cropName:   formData.cropName.trim(),
+        quantityKg: parseFloat(formData.quantityKg),
+        location:   formData.location.trim(),
+        notes:      (formData.notes || '').trim(),
+        updatedAt:  serverTimestamp(),
+      })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
+  return { myDemands, loading, submitDemand, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand }
 }

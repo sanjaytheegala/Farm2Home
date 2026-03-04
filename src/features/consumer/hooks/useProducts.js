@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllProducts, subscribeToProducts, getProductsByCategory, getProductsByState } from '../../../services/productsService';
 import { getSmartCropImage } from '../../../utils/smartImageMapper';
+import { getCropCategory } from '../../../data/cropData';
 
 /**
  * Custom hook for managing products from Firestore
@@ -34,7 +35,7 @@ export const useProducts = (options = {}) => {
         image: product.image || product.imageURL || getSmartCropImage(productName, product.category),
         originalName: productName,
         // Set defaults for missing fields
-        category: product.category || 'vegetables',
+        category: product.category || getCropCategory(productName) || 'vegetables',
         state: product.state || 'Unknown',
         district: product.district || 'Unknown',
         village: product.village || product.district || 'Unknown',

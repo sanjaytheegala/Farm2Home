@@ -51,7 +51,7 @@ const ProductCard = ({
         <div className="product-badges">
           {product.organic && (
             <span className="badge badge-organic">
-              <FaLeaf /> Organic
+              Organic
             </span>
           )}
           {product.featured && (

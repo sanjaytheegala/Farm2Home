@@ -18,16 +18,20 @@ export const useFilters = (products) => {
 
     // Search filter
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        (product.name || '').toLowerCase().includes(term) ||
+        (product.description || '').toLowerCase().includes(term) ||
+        (product.tags || []).some(tag => (tag || '').toLowerCase().includes(term))
       );
     }
 
-    // Category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+    // Category filter (case-insensitive)
+    if (selectedCategory && selectedCategory !== 'all') {
+      const catLower = selectedCategory.toLowerCase();
+      filtered = filtered.filter(product =>
+        (product.category || '').toLowerCase() === catLower
+      );
     }
 
     // Organic filter
@@ -35,32 +39,22 @@ export const useFilters = (products) => {
       filtered = filtered.filter(product => product.organic === true);
     }
 
-    // State filter
-    if (selectedStates.length > 0) {
-      filtered = filtered.filter(product => selectedStates.includes(product.state));
-    }
-
-    // Price range filter
-    filtered = filtered.filter(product => 
-      product.pricePerKg >= priceRange[0] && product.pricePerKg <= priceRange[1]
-    );
-
     // Sorting
     switch (sortBy) {
       case 'price_low':
-        filtered.sort((a, b) => a.pricePerKg - b.pricePerKg);
+        filtered.sort((a, b) => (a.pricePerKg || 0) - (b.pricePerKg || 0));
         break;
       case 'price_high':
-        filtered.sort((a, b) => b.pricePerKg - a.pricePerKg);
+        filtered.sort((a, b) => (b.pricePerKg || 0) - (a.pricePerKg || 0));
         break;
       case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
         break;
       case 'newest':
-        filtered.sort((a, b) => new Date(b.harvestDate) - new Date(a.harvestDate));
+        filtered.sort((a, b) => new Date(b.harvestDate || 0) - new Date(a.harvestDate || 0));
         break;
       case 'popular':
-        filtered.sort((a, b) => b.totalSales - a.totalSales);
+        filtered.sort((a, b) => (b.totalSales || 0) - (a.totalSales || 0));
         break;
       case 'featured':
       default:
@@ -73,7 +67,7 @@ export const useFilters = (products) => {
     }
 
     return filtered;
-  }, [products, searchTerm, selectedCategory, sortBy, organicOnly, selectedStates, priceRange]);
+  }, [products, searchTerm, selectedCategory, sortBy, organicOnly]);
 
   // Reset all filters
   const resetFilters = () => {

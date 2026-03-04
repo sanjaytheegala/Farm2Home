@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaFilter, FaSort, FaLeaf, FaTimes } from 'react-icons/fa';
+import { FaSort } from 'react-icons/fa';
 import './FilterSection.css';
 
 const FilterSection = ({
@@ -10,31 +10,52 @@ const FilterSection = ({
   organicOnly,
   onOrganicToggle,
   onResetFilters,
-  categories = ['all', 'Fruits', 'Vegetables', 'Dry Fruits']
+  categories = [
+    { id: 'all', label: 'All Products' },
+    { id: 'Fruits', label: 'Fruits' },
+    { id: 'Vegetables', label: 'Vegetables' },
+    { id: 'Dry Fruits', label: 'Dry Fruits' },
+  ]
 }) => {
   return (
     <div className="filter-section">
+      {/* Organic Toggle + Reset — above categories */}
+      <div className="filter-group" style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 8 }}>
+        <button
+          type="button"
+          className={`organic-toggle-btn ${organicOnly ? 'organic-toggle-btn--on' : ''}`}
+          onClick={() => onOrganicToggle(!organicOnly)}
+        >
+          Organic Only
+        </button>
+        <button
+          type="button"
+          onClick={onResetFilters}
+          style={{ background: '#ef4444', border: '2px solid #ef4444', color: 'white', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', letterSpacing: '0.2px', boxShadow: '0 3px 10px rgba(239,68,68,0.35)', transition: 'all 0.25s ease' }}
+        >
+          Reset
+        </button>
+      </div>
+
       {/* Category Filter */}
       <div className="filter-group">
-        <label className="filter-label">
-          <FaFilter /> Category
-        </label>
+        <label className="filter-label">Category</label>
         <div className="category-buttons">
-          {categories.map((category) => (
+          {categories.map((cat) => (
             <button
-              key={category}
-              className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
-              onClick={() => onCategoryChange(category)}
+              type="button"
+              key={cat.id}
+              className={`category-btn ${selectedCategory === cat.id ? 'active' : ''}`}
+              onClick={() => onCategoryChange(cat.id)}
             >
-              {category === 'all' ? 'All Products' : category}
+              {cat.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Sort and Filters */}
+      {/* Sort */}
       <div className="filter-controls">
-        {/* Sort Dropdown */}
         <div className="filter-control">
           <label className="filter-label">
             <FaSort /> Sort By
@@ -52,28 +73,6 @@ const FilterSection = ({
             <option value="popular">Most Popular</option>
           </select>
         </div>
-
-        {/* Organic Filter */}
-        <div className="filter-control">
-          <label className="organic-checkbox">
-            <input
-              type="checkbox"
-              checked={organicOnly}
-              onChange={(e) => onOrganicToggle(e.target.checked)}
-            />
-            <FaLeaf className="organic-icon" />
-            <span>Organic Only</span>
-          </label>
-        </div>
-
-        {/* Reset Filters */}
-        <button 
-          className="reset-filters-btn"
-          onClick={onResetFilters}
-        >
-          <FaTimes />
-          Reset Filters
-        </button>
       </div>
     </div>
   );

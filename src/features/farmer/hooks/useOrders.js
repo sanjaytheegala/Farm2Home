@@ -4,11 +4,11 @@ import {
   collection,
   query,
   where,
-  orderBy,
   onSnapshot,
   updateDoc,
   doc,
 } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 /**
  * Fetches all orders placed for this farmer's crops in real-time.
@@ -21,38 +21,46 @@ export const useOrders = () => {
   const [error, setError]     = useState(null);
 
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      setOrders([]);
-      setLoading(false);
-      return;
-    }
-
-    const q = query(
-      collection(db, 'orders'),
-      where('farmerId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
-
-    // Real-time listener — order status changes appear instantly
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const fetched = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-          createdAtMs: d.data().createdAt?.toMillis?.() || Date.now(),
-        }));
-        setOrders(fetched);
+    let unsubSnap = null;
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (unsubSnap) { try { unsubSnap(); } catch (_) {} unsubSnap = null; }
+      if (!user) {
+        setOrders([]);
         setLoading(false);
-      },
-      (err) => {
-        setError(err.message);
-        setLoading(false);
+        return;
       }
-    );
 
-    return () => unsubscribe();
+      const q = query(
+        collection(db, 'orders'),
+        where('farmerId', '==', user.uid)
+      );
+
+      // Real-time listener — order status changes appear instantly
+      unsubSnap = onSnapshot(
+        q,
+        (snapshot) => {
+          const fetched = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+            createdAtMs: d.data().createdAt?.toMillis?.() || Date.now(),
+          }));
+          // Sort newest-first client-side (no composite index needed)
+          fetched.sort((a, b) => b.createdAtMs - a.createdAtMs);
+          setOrders(fetched);
+          setLoading(false);
+        },
+        (err) => {
+          console.warn('useOrders snapshot error:', err.message);
+          setError(err.message);
+          setLoading(false);
+        }
+      );
+    });
+
+    return () => {
+      try { unsubAuth(); } catch (_) {}
+      if (unsubSnap) { try { unsubSnap(); } catch (_) {} }
+    };
   }, []);
 
   const updateOrderStatus = useCallback(async (orderId, newStatus, farmerId) => {

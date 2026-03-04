@@ -10,7 +10,6 @@ const SearchBar = ({ searchTerm, onSearchChange, placeholder = "Search products.
   return (
     <div className="search-bar-container">
       <div className="search-bar">
-        <FaSearch className="search-icon" />
         <input
           type="text"
           className="search-input"
