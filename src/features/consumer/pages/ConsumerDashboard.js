@@ -46,7 +46,7 @@ const ConsumerDashboard = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [editingDemand, setEditingDemand] = useState(null);
   const [navScrolled, setNavScrolled] = useState(false);
-  const { myDemands, submitDemand, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand } = useMarketDemands();
+  const { myDemands, submitDemand, rejectOffer, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal } = useMarketDemands();
   const { success: toastSuccess, error: toastError } = useToast();
   const [complaintTarget, setComplaintTarget] = useState(null);
   const [reviewData, setReviewData] = useState({}); // { [demandId]: { rating, comment, submitting, error } }
@@ -326,8 +326,37 @@ const ConsumerDashboard = () => {
               </button>
             </div>
           ) : (
-            <div className="cd-demand-cards">
-              {myDemands.map(demand => {
+            (() => {
+              const PRIORITY = {3:0, 2:1, 1:2, 4:3, 5:4};
+              const GROUP_LABELS = {
+                3: { label:'Deal Accepted', color:'#065f46', bg:'#d1fae5', border:'#6ee7b7' },
+                2: { label:'Offer Received', color:'#b45309', bg:'#fef3c7', border:'#fde68a' },
+                1: { label:'Waiting for Offer', color:'#1d4ed8', bg:'#eff6ff', border:'#bfdbfe' },
+                4: { label:'In Progress / Completed', color:'#6d28d9', bg:'#ede9fe', border:'#c4b5fd' },
+              };
+              const getStep = d => (STATUS_CONFIG[d.status] || {step:0}).step;
+              const getGroup = d => { const s = getStep(d); return s >= 4 ? 4 : s; };
+              const sorted = [...myDemands].sort((a,b) => {
+                const pa = PRIORITY[getGroup(a)] ?? 99;
+                const pb = PRIORITY[getGroup(b)] ?? 99;
+                return pa - pb;
+              });
+              const groups = [3,2,1,4].map(g => ({
+                key: g,
+                meta: GROUP_LABELS[g],
+                items: sorted.filter(d => getGroup(d) === g),
+              })).filter(g => g.items.length > 0);
+              return groups.map((group, gi) => (
+                <div key={group.key}>
+                  <div style={{display:'flex', alignItems:'center', gap:10, margin: gi===0 ? '0 0 10px 0' : '18px 0 10px 0'}}>
+                    <div style={{flex:1, height:1.5, background: group.meta.border, borderRadius:2}}></div>
+                    <span style={{fontSize:11, fontWeight:700, color: group.meta.color, background: group.meta.bg, border:`1px solid ${group.meta.border}`, borderRadius:20, padding:'3px 12px', whiteSpace:'nowrap'}}>
+                      {group.meta.label} ({group.items.length})
+                    </span>
+                    <div style={{flex:1, height:1.5, background: group.meta.border, borderRadius:2}}></div>
+                  </div>
+                  <div className="cd-demand-cards">
+                    {group.items.map(demand => {
                 const sc = STATUS_CONFIG[demand.status] || {label:demand.status, bg:'#f3f4f6', color:'#374151', dot:'#9ca3af', icon:'•', step:0};
                 return (
                   <div key={demand.id} className={`cd-demand-card cd-demand-card--${demand.status}`}>
@@ -343,7 +372,7 @@ const ConsumerDashboard = () => {
                     </div>
 
                     {/* Header */}
-                    <div className="cd-demand-head">
+                    {demand.status !== 'quoted' && <div className="cd-demand-head">
                       <div className="cd-demand-crop-info">
                         <div className="cd-demand-icon">
                           {(() => {
@@ -355,41 +384,38 @@ const ConsumerDashboard = () => {
                           })()}
                         </div>
                         <div>
-                          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                            <div className="cd-demand-name">{demand.cropName}</div>
-                            {demand.status === 'open' && (
-                              <>
-                                <button
-                                  title="Edit Request"
-                                  onClick={() => setEditingDemand(demand)}
-                                  style={{display:'flex',alignItems:'center',gap:3,background:'#eff6ff',border:'1px solid #bfdbfe',color:'#2563eb',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1}}
-                                >
-                                  <FaEdit style={{fontSize:10}}/> Edit
-                                </button>
-                                <button
-                                  title="Delete Request"
-                                  onClick={async () => {
-                                    if (!window.confirm('Delete this request?')) return;
-                                    const res = await deleteDemand(demand.id);
-                                    if (!res.success) toastError(res.error || 'Failed to delete');
-                                  }}
-                                  style={{display:'flex',alignItems:'center',gap:3,background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1}}
-                                >
-                                  <FaTrash style={{fontSize:10}}/> Delete
-                                </button>
-                              </>
-                            )}
-                          </div>
-                          <div className="cd-demand-meta">
-                            <FaBox style={{marginRight:4,fontSize:10}}/>{demand.quantityKg} kg &nbsp;·&nbsp;
-                            <FaMapMarkerAlt style={{marginRight:4,fontSize:10}}/>{demand.location}
-                          </div>
+                          <div className="cd-demand-name">{demand.cropName}</div>
+                          {demand.status === 'open' && (
+                            <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
+                              <button
+                                title="Edit Request"
+                                onClick={() => setEditingDemand(demand)}
+                                style={{display:'flex',alignItems:'center',gap:3,background:'#eff6ff',border:'1px solid #bfdbfe',color:'#2563eb',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1}}
+                              >
+                                <FaEdit style={{fontSize:10}}/> Edit
+                              </button>
+                              <button
+                                title="Delete Request"
+                                onClick={async () => {
+                                  if (!window.confirm('Delete this request?')) return;
+                                  const res = await deleteDemand(demand.id);
+                                  if (!res.success) toastError(res.error || 'Failed to delete');
+                                }}
+                                style={{display:'flex',alignItems:'center',gap:3,background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1}}
+                              >
+                                <FaTrash style={{fontSize:10}}/> Delete
+                              </button>
+                            </div>
+                          )}
+
                         </div>
                       </div>
-                      <div className="cd-demand-chip" style={{background:sc.bg, color:sc.color}}>
-                        <span>{sc.icon}</span> {sc.label}
-                      </div>
-                    </div>
+                      {demand.status !== 'quoted' && (
+                        <div className="cd-demand-chip" style={{background:sc.bg, color:sc.color}}>
+                          <span>{sc.icon}</span> {sc.label}
+                        </div>
+                      )}
+                    </div>}
 
                     {/* AI price */}
                     {demand.suggestedPriceMin && demand.suggestedPriceMax && (
@@ -402,42 +428,121 @@ const ConsumerDashboard = () => {
 
                     {/* Farmer offer box */}
                     {demand.status === 'quoted' && demand.farmerOfferPrice && (
-                      <div className="cd-offer-panel">
-                        <div className="cd-offer-panel-title"><FaCoins /> Farmer's Offer</div>
-                        <div className="cd-offer-panel-body">
-                          <div className="cd-offer-farmer">{demand.committedFarmerName || 'A farmer'}</div>
-                          <div className="cd-offer-price-big">
-                            ₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}
-                            <span>/{demand.farmerOfferUnit || 'kg'}</span>
+                      <div style={{ marginTop:12, background:'#fffbeb', border:'1.5px solid #fde68a', borderRadius:12, padding:'12px' }}>
+
+                        {/* Row 0: crop image + name (left) | location (right) */}
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                            <div style={{ width:44, height:44, borderRadius:10, overflow:'hidden', background:'#f0fdf4', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                              {(() => {
+                                const cropEntry = findCropByKeyword(demand.cropName?.toLowerCase?.() || '');
+                                return cropEntry?.image
+                                  ? <img src={cropEntry.image} alt={demand.cropName} style={{width:44,height:44,objectFit:'cover',display:'block'}} />
+                                  : <FaLeaf style={{color:'#16a34a',fontSize:20}} />;
+                              })()}
+                            </div>
+                            <span style={{ fontSize:15, fontWeight:700, color:'#111827', textTransform:'capitalize' }}>{demand.cropName}</span>
                           </div>
-                          <div className="cd-offer-total">Total: ₹{(demand.quantityKg * demand.farmerOfferPrice).toLocaleString()}</div>
+                          <span style={{ fontSize:12, color:'#6b7280', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
+                            <FaMapMarkerAlt style={{ color:'#ef4444', fontSize:11 }} />{demand.location}
+                          </span>
                         </div>
-                        <button className="cd-accept-btn" onClick={async () => {
-                          const res = await acceptOffer(demand.id);
-                          if (!res.success) toastError(res.error || 'Failed to accept offer');
-                        }}>
-                          <FaCheckCircle /> Accept Offer &mdash; Close Deal
-                        </button>
-                        <button className="chat-trigger-btn" style={{marginTop:8,width:'100%',justifyContent:'center'}} onClick={() => setActiveChatDemand(demand)}>
-                          <FaComments /> Chat with Farmer
-                        </button>
+
+                        {/* Row 2: farmer name (left) | phone (right) */}
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                          <span style={{ fontSize:14, fontWeight:700, color:'#0ea5e9' }}>{demand.committedFarmerName || 'A Farmer'}</span>
+                          <a href={`tel:${demand.farmerPhone}`} style={{ fontSize:12, fontWeight:600, color:'#b45309', display:'flex', alignItems:'center', gap:4, textDecoration:'none' }}>
+                            <FaPhone style={{ fontSize:11 }} />{demand.farmerPhone || 'Not provided'}
+                          </a>
+                        </div>
+                        {/* Row 3: QTY | RATE | TOTAL */}
+                        <div style={{ display:'flex', gap:6, marginBottom:10 }}>
+                          <div style={{ flex:1, background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
+                            <div style={{ fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2 }}>QTY</div>
+                            <div style={{ fontSize:13, fontWeight:700, color:'#1d4ed8' }}>{demand.quantityKg}<span style={{ fontSize:10 }}> kg</span></div>
+                          </div>
+                          <div style={{ flex:1, background:'#fefce8', border:'1px solid #fde68a', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
+                            <div style={{ fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2 }}>RATE</div>
+                            <div style={{ fontSize:13, fontWeight:700, color:'#b45309' }}>₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}<span style={{ fontSize:10 }}>/{demand.farmerOfferUnit || 'kg'}</span></div>
+                          </div>
+                          <div style={{ flex:1, background:'#f0fdf4', border:'1px solid #86efac', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
+                            <div style={{ fontSize:10, color:'#166534', fontWeight:600, marginBottom:2 }}>TOTAL</div>
+                            <div style={{ fontSize:13, fontWeight:700, color:'#15803d' }}>₹{(demand.quantityKg * demand.farmerOfferPrice).toLocaleString()}</div>
+                          </div>
+                        </div>
+                        {/* Row 4: Accept | Chat */}
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button
+                            onClick={async () => {
+                              const res = await acceptOffer(demand.id);
+                              if (!res.success) toastError(res.error || 'Failed to accept offer');
+                            }}
+                            style={{ flex:1, padding:'8px 4px', background:'#f0fdf4', color:'#15803d', border:'1.5px solid #86efac', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}
+                          >
+                            <FaCheckCircle style={{fontSize:11}}/> Accept
+                          </button>
+                          <button
+                            className="chat-trigger-btn"
+                            style={{ flex:1, justifyContent:'center', padding:'8px 4px', fontSize:12 }}
+                            onClick={() => setActiveChatDemand(demand)}
+                          >
+                            <FaComments style={{ fontSize:11, marginRight:3 }} /> Chat
+                          </button>
+                        </div>
                       </div>
                     )}
 
                     {/* Contact reveal — shown once deal is accepted */}
                     {['deal_closed','in_progress','completed'].includes(demand.status) && (
                       <div className="cd-contact-panel">
-                        <div className="cd-contact-panel-title"><FaLock style={{marginRight:6,color:'#16a34a'}}/> Farmer Contact Revealed</div>
-                        <div className="cd-contact-farmer">{demand.committedFarmerName}</div>
-                        <a className="cd-contact-phone" href={`tel:${demand.farmerPhone}`}>
-                          <FaPhone style={{marginRight:8}}/>{demand.farmerPhone || 'Not provided'}
-                        </a>
-                        <div className="cd-contact-agreed">
-                          Agreed: ₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}/{demand.farmerOfferUnit || 'kg'} · Total ₹{((demand.quantityKg||0)*(demand.farmerOfferPrice||0)).toLocaleString()}
+                        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:8}}>
+                          <div className="cd-contact-farmer" style={{margin:0, color:'#0ea5e9', fontWeight:700, fontSize:14}}>{demand.committedFarmerName}</div>
+                          <a className="cd-contact-phone" href={`tel:${demand.farmerPhone}`} style={{margin:0, color:'#b45309', fontWeight:600, fontSize:12}}>
+                            <FaPhone style={{marginRight:6}}/>{demand.farmerPhone || 'Not provided'}
+                          </a>
                         </div>
-                        <button className="chat-trigger-btn" style={{marginTop:8,width:'100%',justifyContent:'center'}} onClick={() => setActiveChatDemand(demand)}>
-                          <FaComments /> Chat with Farmer
-                        </button>
+                        {/* Agreed price partitions */}
+                        <div style={{display:'flex', gap:6, marginBottom:8}}>
+                          <div style={{flex:1, background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
+                            <div style={{fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2}}>QTY</div>
+                            <div style={{fontSize:14, fontWeight:700, color:'#1d4ed8'}}>{demand.quantityKg}<span style={{fontSize:10, fontWeight:500}}> kg</span></div>
+                          </div>
+                          <div style={{flex:1, background:'#fefce8', border:'1px solid #fde68a', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
+                            <div style={{fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2}}>RATE</div>
+                            <div style={{fontSize:14, fontWeight:700, color:'#b45309'}}>₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}<span style={{fontSize:10, fontWeight:500, color:'#78350f'}}>/{demand.farmerOfferUnit || 'kg'}</span></div>
+                          </div>
+                          <div style={{flex:1, background:'#f0fdf4', border:'1px solid #86efac', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
+                            <div style={{fontSize:10, color:'#166534', fontWeight:600, marginBottom:2}}>TOTAL</div>
+                            <div style={{fontSize:14, fontWeight:700, color:'#15803d'}}>₹{((demand.quantityKg||0)*(demand.farmerOfferPrice||0)).toLocaleString()}</div>
+                          </div>
+                        </div>
+                        {demand.status === 'deal_closed' && (
+                        <div style={{display:'flex', gap:6, marginTop:8}}>
+                          <button
+                            onClick={async () => {
+                              const res = await markReceived(demand.id);
+                              if (res.success) toastSuccess('Order marked as received!');
+                              else toastError(res.error || 'Failed');
+                            }}
+                            style={{flex:1, padding:'8px 4px', background:'#f0fdf4', color:'#15803d', border:'1.5px solid #86efac', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4}}
+                          >
+                            <FaBox style={{fontSize:11}}/> Received
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const res = await cancelDeal(demand.id);
+                              if (res.success) toastSuccess('Deal cancelled. Request is open again.');
+                              else toastError(res.error || 'Failed to cancel deal');
+                            }}
+                            style={{flex:1, padding:'8px 4px', background:'#fef2f2', color:'#dc2626', border:'1.5px solid #fca5a5', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4}}
+                          >
+                            <FaX style={{fontSize:11}}/> Reject
+                          </button>
+                          <button className="chat-trigger-btn" style={{flex:1, justifyContent:'center', padding:'8px 4px', fontSize:12}} onClick={() => setActiveChatDemand(demand)}>
+                            <FaComments style={{fontSize:11, marginRight:3}}/> Chat
+                          </button>
+                        </div>
+                        )}
                       </div>
                     )}
 
@@ -534,8 +639,11 @@ const ConsumerDashboard = () => {
                     </div>
                   </div>
                 );
-              })}
-            </div>
+                    })}
+                  </div>
+                </div>
+              ));
+            })()
           )}
         </section>
 
