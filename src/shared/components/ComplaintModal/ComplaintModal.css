@@ -15,13 +15,13 @@
 
 .cmp-modal {
   background: #fff;
-  border-radius: 20px;
+  border-radius: 14px;
   width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
+  max-width: 380px;
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-  animation: cmp-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  animation: cmp-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes cmp-pop {
@@ -33,33 +33,33 @@
 .cmp-header {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 24px 24px 16px;
+  gap: 10px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid #f3f4f6;
 }
 
 .cmp-header-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   color: #b45309;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
 .cmp-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: #111827;
   margin: 0 0 2px;
 }
 
 .cmp-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: #6b7280;
   margin: 0;
 }
@@ -80,10 +80,10 @@
 
 /* Form */
 .cmp-form {
-  padding: 20px 24px 24px;
+  padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .cmp-field {
@@ -203,49 +203,49 @@
 
 /* Success */
 .cmp-success {
-  padding: 40px 24px 32px;
+  padding: 20px 16px 20px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .cmp-success-icon {
-  width: 60px;
-  height: 60px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #d1fae5;
   color: #16a34a;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: 20px;
 }
 
 .cmp-success h3 {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 700;
   color: #111827;
   margin: 0;
 }
 
 .cmp-success p {
-  font-size: 14px;
+  font-size: 12px;
   color: #6b7280;
   margin: 0;
-  max-width: 280px;
+  max-width: 260px;
   line-height: 1.5;
 }
 
 .cmp-done-btn {
-  margin-top: 8px;
+  margin-top: 6px;
   background: linear-gradient(135deg, #16a34a, #15803d);
   color: #fff;
   border: none;
-  border-radius: 10px;
-  padding: 11px 32px;
-  font-size: 14px;
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.2s;

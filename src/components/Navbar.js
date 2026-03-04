@@ -128,13 +128,6 @@ const Navbar = React.memo(({
                 <FaHistory className="nav-icon" />
                 <span className="nav-text">Orders</span>
               </button>
-              <button 
-                className="nav-item"
-                onClick={onSearchClick}
-              >
-                <FaSearch className="nav-icon" />
-                <span className="nav-text">Search</span>
-              </button>
             </>
           )}
 

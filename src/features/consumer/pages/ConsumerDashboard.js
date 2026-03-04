@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../firebase';
 import { findCropByKeyword } from '../../../data/cropData';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import {
   FaShoppingCart, FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
   FaShieldAlt, FaHeart, FaBox,
@@ -12,16 +12,8 @@ import {
   FaRegClock, FaLock, FaFlag, FaEdit, FaTrash, FaSave, FaTimes as FaX, FaComments,
 } from 'react-icons/fa';
 import ChatModal from '../../../shared/components/ChatModal/ChatModal';
-import ProductCard from '../components/ProductCard/ProductCard';
-import SearchBar from '../components/Filters/SearchBar';
-import FilterSection from '../components/Filters/FilterSection';
-import ShippingAddressModal from '../components/ShippingAddressModal/ShippingAddressModal';
 import RequestCropModal from '../components/RequestCropModal/RequestCropModal';
 import ComplaintModal from '../../../shared/components/ComplaintModal/ComplaintModal';
-import { useCart } from '../hooks/useCart';
-import { useFavorites } from '../hooks/useFavorites';
-import { useFilters } from '../hooks/useFilters';
-import { useProducts } from '../hooks/useProducts';
 import { useMarketDemands } from '../hooks/useMarketDemands';
 import { useToast } from '../../../context/ToastContext';
 import './ConsumerDashboard.css';
@@ -32,27 +24,34 @@ const getGreeting = () => { const h=new Date().getHours(); return h<12?'Good mor
 
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
-  const { products: firestoreProducts, loading } = useProducts({ realtime: true });
-  const productsToUse = firestoreProducts;
-  const { addToCart, getTotalItems } = useCart();
-  const { favorites, toggleFavorite, isFavorite } = useFavorites();
-  const { searchTerm, setSearchTerm, selectedCategory, setSelectedCategory, sortBy, setSortBy, organicOnly, setOrganicOnly, filteredProducts, resetFilters } = useFilters(productsToUse);
   const [userProfile, setUserProfile] = useState({ name:'', photoURL:'', email:'', phone:'' });
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState({ name:'', phone:'' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [buyNowProduct, setBuyNowProduct] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [editingDemand, setEditingDemand] = useState(null);
   const [navScrolled, setNavScrolled] = useState(false);
   const { myDemands, submitDemand, rejectOffer, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal } = useMarketDemands();
   const { success: toastSuccess, error: toastError } = useToast();
   const [complaintTarget, setComplaintTarget] = useState(null);
+  const [reportedDemandIds, setReportedDemandIds] = useState(new Set());
   const [reviewData, setReviewData] = useState({}); // { [demandId]: { rating, comment, submitting, error } }
   const [activeChatDemand, setActiveChatDemand] = useState(null);
   const categorySectionRef = useRef(null);
   const prevDemandsRef = useRef({});
+
+  // Fetch already-reported demand IDs for this user
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+    getDocs(query(collection(db, 'complaints'), where('reporterId', '==', user.uid)))
+      .then(snap => {
+        const ids = new Set();
+        snap.forEach(d => { if (d.data().contextId) ids.add(d.data().contextId); });
+        setReportedDemandIds(ids);
+      })
+      .catch(() => {});
+  }, []);
 
   // Notify consumer when farmer submits an offer
   useEffect(() => {
@@ -152,7 +151,6 @@ const ConsumerDashboard = () => {
 
   return (
     <div className="cd-root">
-      {buyNowProduct && <ShippingAddressModal product={buyNowProduct} onClose={() => setBuyNowProduct(null)} onSuccess={() => navigate('/orders')} />}
       {showRequestModal && <RequestCropModal onClose={() => setShowRequestModal(false)} onSubmit={submitDemand} />}
       {editingDemand && (
         <RequestCropModal
@@ -171,6 +169,7 @@ const ConsumerDashboard = () => {
           reportedUser={{ id: complaintTarget.id, name: complaintTarget.name, role: 'farmer' }}
           contextId={complaintTarget.demandId}
           onClose={() => setComplaintTarget(null)}
+          onSuccess={(demandId) => setReportedDemandIds(prev => new Set([...prev, demandId]))}
         />
       )}
       {activeChatDemand && (
@@ -373,47 +372,79 @@ const ConsumerDashboard = () => {
 
                     {/* Header */}
                     {demand.status !== 'quoted' && <div className="cd-demand-head">
-                      <div className="cd-demand-crop-info">
-                        <div className="cd-demand-icon">
-                          {(() => {
-                            const cropEntry = findCropByKeyword(demand.cropName?.toLowerCase?.() || '');
-                            const imgSrc = cropEntry?.image;
-                            return imgSrc
-                              ? <img src={imgSrc} alt={demand.cropName} style={{width:44,height:44,borderRadius:10,objectFit:'cover',display:'block'}} />
-                              : <FaLeaf style={{color:'#16a34a',fontSize:22}} />;
-                          })()}
-                        </div>
-                        <div>
-                          <div className="cd-demand-name">{demand.cropName}</div>
-                          {demand.status === 'open' && (
-                            <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
-                              <button
-                                title="Edit Request"
-                                onClick={() => setEditingDemand(demand)}
-                                style={{display:'flex',alignItems:'center',gap:3,background:'#eff6ff',border:'1px solid #bfdbfe',color:'#2563eb',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1}}
-                              >
-                                <FaEdit style={{fontSize:10}}/> Edit
-                              </button>
-                              <button
-                                title="Delete Request"
-                                onClick={async () => {
-                                  if (!window.confirm('Delete this request?')) return;
-                                  const res = await deleteDemand(demand.id);
-                                  if (!res.success) toastError(res.error || 'Failed to delete');
-                                }}
-                                style={{display:'flex',alignItems:'center',gap:3,background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:6,padding:'3px 8px',fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1}}
-                              >
-                                <FaTrash style={{fontSize:10}}/> Delete
-                              </button>
+                      {demand.status === 'open' ? (
+                        /* Open card: full-width structured layout */
+                        <div style={{width:'100%'}}>
+                          {/* Row 1: crop image + name | status chip */}
+                          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:6}}>
+                            <div style={{display:'flex', alignItems:'center', gap:10}}>
+                              <div className="cd-demand-icon">
+                                {(() => {
+                                  const cropEntry = findCropByKeyword(demand.cropName?.toLowerCase?.() || '');
+                                  const imgSrc = cropEntry?.image;
+                                  return imgSrc
+                                    ? <img src={imgSrc} alt={demand.cropName} style={{width:44,height:44,borderRadius:10,objectFit:'cover',display:'block'}} />
+                                    : <FaLeaf style={{color:'#16a34a',fontSize:22}} />;
+                                })()}
+                              </div>
+                              <div className="cd-demand-name">{demand.cropName}</div>
                             </div>
-                          )}
-
+                            <div className="cd-demand-chip" style={{background:sc.bg, color:sc.color}}>
+                              <span>{sc.icon}</span> {sc.label}
+                            </div>
+                          </div>
+                          {/* Row 2: qty left | location right */}
+                          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:11, color:'#6b7280', marginBottom:8, paddingLeft:54}}>
+                            <span style={{display:'flex',alignItems:'center',gap:3}}><FaBox style={{fontSize:9}}/>{demand.quantityKg} kg</span>
+                            {demand.location && <span style={{display:'flex',alignItems:'center',gap:3}}><FaMapMarkerAlt style={{fontSize:9, color:'#ef4444'}}/>{demand.location}</span>}
+                          </div>
+                          {/* Row 3: edit + delete */}
+                          <div style={{display:'flex', alignItems:'center', gap:6, paddingLeft:54}}>
+                            <button
+                              title="Edit Request"
+                              onClick={() => setEditingDemand(demand)}
+                              style={{display:'flex',alignItems:'center',gap:3,background:'#eff6ff',border:'1px solid #bfdbfe',color:'#2563eb',borderRadius:6,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}
+                            >
+                              <FaEdit style={{fontSize:10}}/> Edit
+                            </button>
+                            <button
+                              title="Delete Request"
+                              onClick={async () => {
+                                if (!window.confirm('Delete this request?')) return;
+                                const res = await deleteDemand(demand.id);
+                                if (!res.success) toastError(res.error || 'Failed to delete');
+                              }}
+                              style={{display:'flex',alignItems:'center',gap:3,background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:6,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}
+                            >
+                              <FaTrash style={{fontSize:10}}/> Delete
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      {demand.status !== 'quoted' && (
-                        <div className="cd-demand-chip" style={{background:sc.bg, color:sc.color}}>
-                          <span>{sc.icon}</span> {sc.label}
-                        </div>
+                      ) : (
+                        /* Other statuses: original layout */
+                        <>
+                          <div className="cd-demand-crop-info">
+                            <div className="cd-demand-icon">
+                              {(() => {
+                                const cropEntry = findCropByKeyword(demand.cropName?.toLowerCase?.() || '');
+                                const imgSrc = cropEntry?.image;
+                                return imgSrc
+                                  ? <img src={imgSrc} alt={demand.cropName} style={{width:44,height:44,borderRadius:10,objectFit:'cover',display:'block'}} />
+                                  : <FaLeaf style={{color:'#16a34a',fontSize:22}} />;
+                              })()}
+                            </div>
+                            <div>
+                              <div className="cd-demand-name">{demand.cropName}</div>
+                              <div style={{fontSize:11, color:'#6b7280', marginTop:2, display:'flex', alignItems:'center', gap:6}}>
+                                <span><FaBox style={{fontSize:9, marginRight:3}}/>{demand.quantityKg} kg</span>
+                                {demand.location && <span><FaMapMarkerAlt style={{fontSize:9, marginRight:2, color:'#ef4444'}}/>{demand.location}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="cd-demand-chip" style={{background:sc.bg, color:sc.color}}>
+                            <span>{sc.icon}</span> {sc.label}
+                          </div>
+                        </>
                       )}
                     </div>}
 
@@ -622,19 +653,23 @@ const ConsumerDashboard = () => {
                       <FaRegClock style={{marginRight:5,fontSize:10}}/>
                       {demand.createdAt?.seconds ? new Date(demand.createdAt.seconds*1000).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Just now'}
                       {demand.committedFarmerId && ['deal_closed', 'in_progress', 'completed'].includes(demand.status) && (
-                        <button
-                          className="report-trigger-btn"
-                          style={{ marginLeft: 'auto' }}
-                          title="You can report only after the deal has progressed"
-                          onClick={() => setComplaintTarget({
-                            id: demand.committedFarmerId,
-                            name: demand.committedFarmerName || 'Farmer',
-                            role: 'farmer',
-                            demandId: demand.id,
-                          })}
-                        >
-                          <FaFlag style={{ fontSize: 10 }} /> Report Farmer
-                        </button>
+                        reportedDemandIds.has(demand.id)
+                          ? <span style={{ marginLeft:'auto', fontSize:11, fontWeight:600, color:'#9ca3af', display:'flex', alignItems:'center', gap:4, padding:'3px 8px', background:'#f3f4f6', borderRadius:6, border:'1px solid #e5e7eb' }}>
+                              <FaFlag style={{ fontSize:10 }} /> Reported
+                            </span>
+                          : <button
+                              className="report-trigger-btn"
+                              style={{ marginLeft: 'auto' }}
+                              title="Report this farmer"
+                              onClick={() => setComplaintTarget({
+                                id: demand.committedFarmerId,
+                                name: demand.committedFarmerName || 'Farmer',
+                                role: 'farmer',
+                                demandId: demand.id,
+                              })}
+                            >
+                              <FaFlag style={{ fontSize: 10 }} /> Report Farmer
+                            </button>
                       )}
                     </div>
                   </div>
@@ -646,95 +681,6 @@ const ConsumerDashboard = () => {
             })()
           )}
         </section>
-
-        {/* CATEGORIES */}
-        <section className="cd-cats-section" ref={categorySectionRef}>
-          <div className="cd-section-header">
-            <div className="cd-section-title-wrap">
-              <div>
-                <h2 className="cd-section-title">Shop by Category</h2>
-                <p className="cd-section-sub">Browse our freshest produce</p>
-              </div>
-            </div>
-          </div>
-          <div className="cd-cat-grid">
-            {categories.map(cat => (
-              <button type="button" key={cat.id} className={`cd-cat-card ${selectedCategory===cat.id?'cd-cat-card--active':''}`} onClick={() => setSelectedCategory(cat.id)}>
-                <div className="cd-cat-img-wrap">
-                  <img src={cat.image} alt={cat.name} loading="lazy" />
-                  <div className="cd-cat-overlay"></div>
-
-                </div>
-                <span className="cd-cat-name">{cat.name}</span>
-                {selectedCategory === cat.id && <span className="cd-cat-check"><FaCheckCircle /></span>}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* PRODUCTS */}
-        <section className={`cd-products-section${showSidebar ? ' sidebar-open' : ''}`}>
-          <aside className={`filters-sidebar ${showSidebar ? 'visible' : ''}`}>
-            <div className="sidebar-header">
-              <h3>Filters</h3>
-            </div>
-            <FilterSection
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              organicOnly={organicOnly}
-              onOrganicToggle={setOrganicOnly}
-              onResetFilters={resetFilters}
-              categories={categories.map(c => ({ id: c.id, label: c.id === 'all' ? 'All Products' : c.name }))}
-            />
-          </aside>
-
-          <div className="cd-products-area">
-            {/* Products toolbar */}
-            <div className="cd-products-toolbar">
-              <div className="cd-pt-left">
-                <h3 className="cd-pt-title">
-                  {selectedCategory==='all' ? 'All Products' : (categories.find(c=>c.id===selectedCategory)?.name ?? 'Products')}
-                </h3>
-                <span className="cd-pt-count">{filteredProducts.length} items</span>
-                {organicOnly && <span className="cd-pt-tag cd-pt-tag--organic"><FaLeaf /> Organic Only</span>}
-              </div>
-              <div className="cd-pt-right">
-                <div className="cd-pt-search">
-                  <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Filter results..." />
-                </div>
-                <div className="cd-view-btns">
-                  <button className="cd-view-btn active" title="Grid"><FaThLarge /></button>
-                </div>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="cd-loading">
-                <div className="cd-loading-spinner"></div>
-                <p>Fetching fresh products from farmers...</p>
-              </div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="products-grid-modern">
-                {filteredProducts.map(product => (
-                  <ProductCard key={product.id} product={product} onAddToCart={p => addToCart(p,1)} onToggleFavorite={toggleFavorite} isFavorite={isFavorite(product.id)} onBuyNow={p => setBuyNowProduct(p)} />
-                ))}
-              </div>
-            ) : (
-              <div className="cd-no-products">
-                <div className="cd-no-products-art"><FaLeaf style={{fontSize:48,color:'#16a34a'}}/></div>
-                {productsToUse.length === 0 ? (
-                  <><h3>No Crops Listed Yet</h3><p>Farmers haven't added crops yet -- check back soon, or request one above!</p></>
-                ) : (
-                  <><h3>No Products Found</h3><p>Try adjusting your filters or search term.</p><button className="cd-reset-btn" onClick={resetFilters}>Reset Filters</button></>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-
-
 
       </div>{/* /cd-container */}
 
