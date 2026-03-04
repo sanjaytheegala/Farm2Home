@@ -100,6 +100,27 @@ export const useMarketOpportunities = () => {
     }
   }, [])
 
+  /* ── Update an existing price offer ── */
+  const updateOffer = useCallback(async (demandId, offerPrice, offerUnit = 'kg') => {
+    const user = auth.currentUser
+    if (!user) return { success: false, error: 'Not logged in' }
+    const price = parseFloat(offerPrice)
+    if (!price || price <= 0) return { success: false, error: 'Enter a valid price' }
+    try {
+      const unitMultiplier = offerUnit === 'quintal' ? 100 : offerUnit === 'ton' ? 1000 : 1
+      const pricePerKg = price / unitMultiplier
+      await updateDoc(doc(db, 'market_demands', demandId), {
+        farmerOfferPrice:   pricePerKg,
+        farmerOfferDisplay: price,
+        farmerOfferUnit:    offerUnit,
+        updatedAt:          serverTimestamp(),
+      })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
   /* ── Withdraw offer (reset to open so others can quote) ── */
   const withdrawOffer = useCallback(async (demandId) => {
     try {
@@ -146,5 +167,5 @@ export const useMarketOpportunities = () => {
     }
   }, [])
 
-  return { openDemands, myQuotes, loading, submitOffer, withdrawOffer, markInProgress, toggleFulfilling }
+  return { openDemands, myQuotes, loading, submitOffer, updateOffer, withdrawOffer, markInProgress, toggleFulfilling }
 }

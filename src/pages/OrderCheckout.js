@@ -538,7 +538,7 @@ const OrderCheckout = () => {
               </div>
 
               <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8, textAlign: 'center' }}>
-                Cash on Delivery (COD)
+                💵 Pay directly to the farmer upon delivery
               </p>
 
               <button
@@ -560,7 +560,7 @@ const OrderCheckout = () => {
             <FaCheckCircle style={styles.modalIcon} />
             <h2 style={styles.modalTitle}>Order Placed!</h2>
             <p style={styles.modalSub}>
-              Your order has been confirmed and will be delivered soon.
+              Your order has been confirmed. Please arrange payment directly with the farmer upon delivery.
               {placedOrderId && (
                 <>
                   <br />

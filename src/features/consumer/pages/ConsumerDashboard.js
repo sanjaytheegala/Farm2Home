@@ -12,8 +12,16 @@ import {
   FaRegClock, FaLock, FaFlag, FaEdit, FaTrash, FaSave, FaTimes as FaX, FaComments,
 } from 'react-icons/fa';
 import ChatModal from '../../../shared/components/ChatModal/ChatModal';
+import ProductCard from '../components/ProductCard/ProductCard';
+import SearchBar from '../components/Filters/SearchBar';
+import FilterSection from '../components/Filters/FilterSection';
+import ShippingAddressModal from '../components/ShippingAddressModal/ShippingAddressModal';
 import RequestCropModal from '../components/RequestCropModal/RequestCropModal';
 import ComplaintModal from '../../../shared/components/ComplaintModal/ComplaintModal';
+import { useCart } from '../hooks/useCart';
+import { useFavorites } from '../hooks/useFavorites';
+import { useFilters } from '../hooks/useFilters';
+import { useProducts } from '../hooks/useProducts';
 import { useMarketDemands } from '../hooks/useMarketDemands';
 import { useToast } from '../../../context/ToastContext';
 import './ConsumerDashboard.css';
@@ -24,10 +32,17 @@ const getGreeting = () => { const h=new Date().getHours(); return h<12?'Good mor
 
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
+  const { products: firestoreProducts, loading } = useProducts({ realtime: true });
+  const productsToUse = firestoreProducts;
+  const { addToCart, getTotalItems } = useCart();
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
+  const { searchTerm, setSearchTerm, selectedCategory, setSelectedCategory, sortBy, setSortBy, organicOnly, setOrganicOnly, filteredProducts, resetFilters } = useFilters(productsToUse);
   const [userProfile, setUserProfile] = useState({ name:'', photoURL:'', email:'', phone:'' });
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState({ name:'', phone:'' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [buyNowProduct, setBuyNowProduct] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [editingDemand, setEditingDemand] = useState(null);
   const [navScrolled, setNavScrolled] = useState(false);
@@ -151,6 +166,7 @@ const ConsumerDashboard = () => {
 
   return (
     <div className="cd-root">
+      {buyNowProduct && <ShippingAddressModal product={buyNowProduct} onClose={() => setBuyNowProduct(null)} onSuccess={() => navigate('/orders')} />}
       {showRequestModal && <RequestCropModal onClose={() => setShowRequestModal(false)} onSubmit={submitDemand} />}
       {editingDemand && (
         <RequestCropModal
@@ -681,6 +697,54 @@ const ConsumerDashboard = () => {
             })()
           )}
         </section>
+
+        {/* PRODUCTS */}
+        <section className="cd-products-section">
+          <div className="cd-products-area">
+            {/* Products toolbar */}
+            <div className="cd-products-toolbar">
+              <div className="cd-pt-left">
+                <h3 className="cd-pt-title">
+                  {selectedCategory==='all' ? 'All Products' : (categories.find(c=>c.id===selectedCategory)?.name ?? 'Products')}
+                </h3>
+                <span className="cd-pt-count">{filteredProducts.length} items</span>
+                {organicOnly && <span className="cd-pt-tag cd-pt-tag--organic"><FaLeaf /> Organic Only</span>}
+              </div>
+              <div className="cd-pt-right">
+                <div className="cd-pt-search">
+                  <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Filter results..." />
+                </div>
+                <div className="cd-view-btns">
+                  <button className="cd-view-btn active" title="Grid"><FaThLarge /></button>
+                </div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="cd-loading">
+                <div className="cd-loading-spinner"></div>
+                <p>Fetching fresh products from farmers...</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div className="products-grid-modern">
+                {filteredProducts.map(product => (
+                  <ProductCard key={product.id} product={product} onAddToCart={p => addToCart(p,1)} onToggleFavorite={toggleFavorite} isFavorite={isFavorite(product.id)} onBuyNow={p => setBuyNowProduct(p)} />
+                ))}
+              </div>
+            ) : (
+              <div className="cd-no-products">
+                <div className="cd-no-products-art"><FaLeaf style={{fontSize:48,color:'#16a34a'}}/></div>
+                {productsToUse.length === 0 ? (
+                  <><h3>No Crops Listed Yet</h3><p>Farmers haven't added crops yet -- check back soon, or request one above!</p></>
+                ) : (
+                  <><h3>No Products Found</h3><p>Try adjusting your filters or search term.</p><button className="cd-reset-btn" onClick={resetFilters}>Reset Filters</button></>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
+
 
       </div>{/* /cd-container */}
 

@@ -17,7 +17,6 @@ import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave,
   FaCoins, FaUsers, FaBullseye, FaFlag, FaComments, FaWeightHanging
 } from 'react-icons/fa'
 import { findCropByKeyword, CROP_DICTIONARY } from '../../../data/cropData'
-import { geoData } from '../../../locale/geoData'
 import ComplaintModal from '../../../shared/components/ComplaintModal/ComplaintModal'
 import ChatModal from '../../../shared/components/ChatModal/ChatModal'
 
@@ -86,6 +85,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
   const [offerUnit,  setOfferUnit]        = useState('kg')
   const [submitting, setSubmitting]       = useState(false)
   const hasPhone = demand.consumerPhone && demand.consumerPhone !== 'Not provided'
+  const cropImg  = getCropImage(demand.cropName)
 
   const handleSubmitOffer = async () => {
     if (!offerPrice || parseFloat(offerPrice) <= 0) { onToastError('Enter a valid price'); return }
@@ -107,93 +107,83 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
 
   return (
     <div className={`fd-demand-card${isPriority ? ' fd-demand-card--priority' : ''}`}>
-      {isPriority && <div className="fd-priority-badge">📍 Near You</div>}
-      <div className="fd-demand-header">
-        <div className="fd-demand-crop-icon"><FaLeaf /></div>
-        <div className="fd-demand-info">
-          <span className="fd-demand-cropname">{demand.cropName}</span>
-          <span className="fd-demand-consumer">
-            <FaUsers style={{ marginRight: 4, fontSize: 11 }} />{demand.consumerName}
-          </span>
+
+      {/* ── Top row: crop image (left) | Near You + Chat (right) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', background: '#f0fdf4', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {cropImg
+            ? <img src={cropImg} alt={demand.cropName} style={{ width: 48, height: 48, objectFit: 'cover', display: 'block' }} />
+            : <FaLeaf style={{ fontSize: 22, color: '#16a34a' }} />}
         </div>
-        <div className="fd-demand-new-badge">OPEN</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {isPriority && <div className="fd-priority-badge" style={{ margin: 0 }}>📍 Near You</div>}
+          <button
+            className="chat-trigger-btn"
+            onClick={() => onOpenChat(demand)}
+            style={{ padding: '4px 10px', fontSize: 12 }}
+          >
+            <FaComments style={{ marginRight: 4 }} /> Chat
+          </button>
+        </div>
       </div>
 
-      <div className="fd-demand-details">
-        <div className="fd-demand-detail">
-          <span className="fd-dd-label">Quantity</span>
-          <span className="fd-dd-value">{demand.quantityKg} kg</span>
-        </div>
-        <div className="fd-demand-detail">
-          <span className="fd-dd-label">Location</span>
-          <span className="fd-dd-value">
-            <FaMapMarkerAlt style={{ marginRight: 3, fontSize: 10 }} />{demand.location}
-          </span>
-        </div>
+      {/* ── Crop name (left) | Consumer name (right) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span className="fd-demand-cropname">{demand.cropName}</span>
+        <span style={{ fontSize: 12, color: '#2563eb', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+          <FaUsers style={{ fontSize: 10 }} />{demand.consumerName}
+        </span>
       </div>
 
       {demand.notes && <p className="fd-demand-notes">"{demand.notes}"</p>}
 
-      {/* Consumer phone */}
-      <div className="fd-direct-contact">
-        <div className="fd-direct-phone">
-          <FaPhone style={{ marginRight: 6, color: '#16a34a' }} />
-          {hasPhone
-            ? <a href={`tel:${demand.consumerPhone}`} style={{ color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>{demand.consumerPhone}</a>
-            : <span>Phone not added</span>}
-        </div>
-        {hasPhone && (
-          <a href={`tel:${demand.consumerPhone}`} className="fd-call-btn">
-            <FaPhone style={{ marginRight: 6 }} /> Call Consumer
-          </a>
-        )}
-      </div>
-
-      {/* Offer form */}
-      {!showOfferForm ? (
-        <button
-          className="fd-fulfilling-btn"
-          style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', border: 'none' }}
-          onClick={() => setShowOfferForm(true)}
-        >
-          <FaCoins style={{ marginRight: 6 }} /> Submit Price Offer
-        </button>
-      ) : (
-        <div style={{ marginTop: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '12px' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <FaWeightHanging /> Enter Your Price
+      {/* ── Offer form (when open) ── */}
+      {showOfferForm && (
+        <div style={{ marginTop: 12, background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 12, padding: '14px 14px 12px' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d', marginBottom: 10 }}>
+            💰 Your Price Offer
           </div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          {/* Unit selector as pill tabs */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            {UNIT_OPTIONS.map(u => (
+              <button
+                key={u.value}
+                onClick={() => setOfferUnit(u.value)}
+                style={{
+                  flex: 1, padding: '6px 4px', fontSize: 11, fontWeight: 600, borderRadius: 8, cursor: 'pointer', border: '1.5px solid',
+                  borderColor: offerUnit === u.value ? '#16a34a' : '#d1d5db',
+                  background: offerUnit === u.value ? '#dcfce7' : '#fff',
+                  color: offerUnit === u.value ? '#15803d' : '#6b7280',
+                }}
+              >{u.label}</button>
+            ))}
+          </div>
+          {/* Price input with ₹ prefix */}
+          <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #86efac', borderRadius: 8, overflow: 'hidden', background: '#fff', marginBottom: 8 }}>
+            <span style={{ padding: '0 10px', fontSize: 16, fontWeight: 700, color: '#15803d', borderRight: '1px solid #86efac', height: '100%', display: 'flex', alignItems: 'center' }}>₹</span>
             <input
               type="number" min="1" step="0.01"
-              placeholder="Amount (e.g. 30)"
+              placeholder={`Amount ${offerUnit === 'kg' ? 'per kg' : offerUnit === 'quintal' ? 'per quintal' : 'per ton'}`}
               value={offerPrice}
               onChange={e => setOfferPrice(e.target.value)}
-              style={{ flex: 1, padding: '8px 10px', border: '1px solid #86efac', borderRadius: 8, fontSize: 14, outline: 'none' }}
+              style={{ flex: 1, padding: '9px 10px', border: 'none', fontSize: 15, outline: 'none', background: 'transparent' }}
             />
-            <select
-              value={offerUnit}
-              onChange={e => setOfferUnit(e.target.value)}
-              style={{ padding: '8px 10px', border: '1px solid #86efac', borderRadius: 8, fontSize: 13, background: 'white', cursor: 'pointer' }}
-            >
-              {UNIT_OPTIONS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
-            </select>
           </div>
           {totalEst && (
-            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
-              Total estimate: ₹{parseInt(totalEst).toLocaleString()} for {demand.quantityKg} kg
+            <div style={{ fontSize: 12, color: '#15803d', fontWeight: 600, marginBottom: 10, background: '#dcfce7', borderRadius: 6, padding: '5px 8px' }}>
+              Total for {demand.quantityKg} kg → ₹{parseInt(totalEst).toLocaleString()}
             </div>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={handleSubmitOffer} disabled={submitting}
-              style={{ flex: 1, padding: '8px', background: submitting ? '#9ca3af' : '#16a34a', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontSize: 13 }}
+              style={{ flex: 1, padding: '9px', background: submitting ? '#9ca3af' : 'linear-gradient(135deg,#16a34a,#15803d)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontSize: 13 }}
             >
-              {submitting ? 'Submitting…' : <><FaCheckCircle style={{marginRight:6}}/>Send Offer</>}
+              {submitting ? 'Submitting…' : <><FaCheckCircle style={{ marginRight: 6 }} />Send Offer</>}
             </button>
             <button
               onClick={() => { setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg') }}
-              style={{ padding: '8px 12px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
+              style={{ padding: '9px 14px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
             >
               Cancel
             </button>
@@ -201,12 +191,44 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
         </div>
       )}
 
-      {/* Chat + Report row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-        <button className="chat-trigger-btn" onClick={() => onOpenChat(demand)}>
-          <FaComments /> Chat
-        </button>
+      {/* ── Bottom: qty left, location right ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, padding: '8px 10px', background: '#f9fafb', borderRadius: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <FaWeightHanging style={{ color: '#6b7280', fontSize: 11 }} /> {demand.quantityKg} kg
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <FaMapMarkerAlt style={{ color: '#ef4444', fontSize: 11 }} /> {demand.location}
+        </span>
       </div>
+
+      {/* ── Action row: phone number + Send Price side by side ── */}
+      {!showOfferForm && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'stretch' }}>
+          {hasPhone ? (
+            <a
+              href={`tel:${demand.consumerPhone}`}
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '9px 10px', background: '#f0fdf4', border: '1.5px solid #86efac',
+                borderRadius: 8, color: '#15803d', fontWeight: 700, fontSize: 13, textDecoration: 'none'
+              }}
+            >
+              <FaPhone style={{ fontSize: 12 }} /> {demand.consumerPhone}
+            </a>
+          ) : (
+            <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '9px 10px', background: '#f3f4f6', borderRadius: 8, fontSize: 12, color: '#9ca3af' }}>
+              No phone
+            </span>
+          )}
+          <button
+            className="fd-fulfilling-btn"
+            style={{ flex: 1, background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', border: 'none', marginTop: 0 }}
+            onClick={() => setShowOfferForm(true)}
+          >
+            <FaCoins style={{ marginRight: 6 }} /> Send Price
+          </button>
+        </div>
+      )}
 
       {showComplaint && (
         <ComplaintModal
@@ -231,6 +253,7 @@ const FarmerDashboard = () => {
   const [editProfileSaving, setEditProfileSaving] = useState(false)
   const [userLocation, setUserLocation] = useState({ state: '', district: '' })
   const [activeChatDemand, setActiveChatDemand] = useState(null)
+  const [editingDeal, setEditingDeal] = useState({}) // { [dealId]: { price, unit } }
   const [cropSearch, setCropSearch] = useState('')
   const [cropPickerStep, setCropPickerStep] = useState('pick') // 'pick' | 'details'
 
@@ -262,29 +285,9 @@ const FarmerDashboard = () => {
 
   const { savedCrops, loading, analytics, addCrop, deleteCrop, updateCropStatus, updateCrop } = useCrops()
   const { orders, loading: ordersLoading, updateOrderStatus } = useOrders()
-  const { openDemands, myQuotes, submitOffer, withdrawOffer, markInProgress, toggleFulfilling } = useMarketOpportunities()
+  const { openDemands, myQuotes, submitOffer, updateOffer, withdrawOffer, markInProgress, toggleFulfilling } = useMarketOpportunities()
   const { success: toastSuccess, error: toastError } = useToast()
 
-  // Farmer's display location for smart sorting
-  const farmerStateDisplay    = userLocation?.state
-    ? (geoData.en.states[userLocation.state] || '') : ''
-  const farmerDistrictDisplay = userLocation?.state && userLocation?.district
-    ? ((geoData.en.districts[userLocation.state] || {})[userLocation.district] || '') : ''
-
-  const isDistrictMatch = (loc = '') => farmerDistrictDisplay && loc.includes(farmerDistrictDisplay)
-  const isStateMatch    = (loc = '') => farmerStateDisplay    && loc.includes(farmerStateDisplay)
-  const isLocationMatch = (loc = '') => isDistrictMatch(loc) || isStateMatch(loc)
-
-  const priorityDemands = openDemands
-    .filter(d => isLocationMatch(d.location))
-    .sort((a, b) => {
-      const aScore = isDistrictMatch(a.location) ? 2 : isStateMatch(a.location) ? 1 : 0
-      const bScore = isDistrictMatch(b.location) ? 2 : isStateMatch(b.location) ? 1 : 0
-      return bScore - aScore
-    })
-  const otherDemands = openDemands
-    .filter(d => !isLocationMatch(d.location))
-    .sort((a, b) => (a.location || '').localeCompare(b.location || ''))
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [offerPrices, setOfferPrices] = useState({})      // { [demandId]: string }
@@ -299,6 +302,27 @@ const FarmerDashboard = () => {
   } = useCropForm(userLocation)
 
   const handleStateChange = (e) => { setSelectedState(e.target.value); setSelectedDistrict('') }
+
+  // Use dropdown values for priority matching so changing district re-sorts immediately
+  const filterDistrictDisplay = selectedDistrict ? fmt(selectedDistrict) : ''
+  const filterStateDisplay    = selectedState    ? fmt(selectedState)    : ''
+
+  const isDistrictMatch = (loc = '') => filterDistrictDisplay && loc.toLowerCase().includes(filterDistrictDisplay.toLowerCase())
+  const isStateMatch    = (loc = '') => filterStateDisplay    && loc.toLowerCase().includes(filterStateDisplay.toLowerCase())
+  const isLocationMatch = (loc = '') => isDistrictMatch(loc) || isStateMatch(loc)
+
+  const priorityDemands = openDemands
+    .filter(d => isLocationMatch(d.location))
+    .sort((a, b) => {
+      const aScore = isDistrictMatch(a.location) ? 2 : isStateMatch(a.location) ? 1 : 0
+      const bScore = isDistrictMatch(b.location) ? 2 : isStateMatch(b.location) ? 1 : 0
+      if (bScore !== aScore) return bScore - aScore
+      // Same location tier → sort by quantity ascending (smallest first)
+      return (parseFloat(a.quantityKg) || 0) - (parseFloat(b.quantityKg) || 0)
+    })
+  const otherDemands = openDemands
+    .filter(d => !isLocationMatch(d.location))
+    .sort((a, b) => (a.location || '').localeCompare(b.location || ''))
 
   // Pre-fill form with an existing crop for editing
   const handleEdit = (crop) => {
@@ -660,25 +684,68 @@ const FarmerDashboard = () => {
                   </button>
                 )}
               </div>
-              <div className="fd-picker-grid">
-                {CROP_DICTIONARY
-                  .filter(c =>
-                    !cropSearch ||
-                    c.name.toLowerCase().includes(cropSearch.toLowerCase()) ||
-                    c.keywords.some(k => k.toLowerCase().includes(cropSearch.toLowerCase()))
-                  )
-                  .map(c => (
-                    <button
-                      key={c.id}
-                      className="fd-picker-card"
-                      onClick={() => { updateField(0, 'crop', c.name); setCropPickerStep('details') }}
-                    >
-                      <img src={c.image} alt={c.name} className="fd-picker-img" />
-                      <span className="fd-picker-name">{c.name}</span>
-                    </button>
-                  ))
-                }
-              </div>
+              {cropSearch ? (
+                /* ── Search results as flat grid ── */
+                <div className="fd-picker-grid">
+                  {CROP_DICTIONARY
+                    .filter(c =>
+                      c.name.toLowerCase().includes(cropSearch.toLowerCase()) ||
+                      c.keywords.some(k => k.toLowerCase().includes(cropSearch.toLowerCase()))
+                    )
+                    .map(c => (
+                      <button
+                        key={c.id}
+                        className="fd-picker-card"
+                        onClick={() => { updateField(0, 'crop', c.name); setCropPickerStep('details') }}
+                      >
+                        <img src={c.image} alt={c.name} className="fd-picker-img" />
+                        <span className="fd-picker-name">{c.name}</span>
+                      </button>
+                    ))
+                  }
+                </div>
+              ) : (
+                /* ── Category sections with marquee ── */
+                <div className="fd-category-sections">
+                  {[
+                    { key: 'fruits',        label: 'Fruits' },
+                    { key: 'vegetables',    label: 'Vegetables' },
+                    { key: 'grains-pulses', label: 'Grains & Pulses' },
+                    { key: 'spices',        label: 'Spices' },
+                    { key: 'leafy-greens',  label: 'Leafy Greens' },
+                    { key: 'dry-fruits',    label: 'Dry Fruits' },
+                  ].map(({ key, label }) => {
+                    const categoryCrops = CROP_DICTIONARY.filter(c => c.category === key).sort((a, b) => a.name.localeCompare(b.name));
+                    if (!categoryCrops.length) return null;
+                    // Duplicate only enough times to always fill > 2× the viewport for seamless looping
+                    const minItems = 12;
+                    const repeatCount = Math.ceil(minItems / categoryCrops.length) + 1;
+                    const loopItems = Array.from({ length: repeatCount }, () => categoryCrops).flat();
+                    return (
+                      <div key={key} className="fd-category-section">
+                        <h4 className="fd-category-title">{label}</h4>
+                        <div className="fd-marquee-outer">
+                          <div
+                            className="fd-marquee-track"
+                            style={{ '--item-count': categoryCrops.length, '--repeat-count': repeatCount }}
+                          >
+                            {loopItems.map((c, i) => (
+                              <button
+                                key={`${c.id}-${i}`}
+                                className="fd-picker-card"
+                                onClick={() => { updateField(0, 'crop', c.name); setCropPickerStep('details') }}
+                              >
+                                <img src={c.image} alt={c.name} className="fd-picker-img" onError={e => { e.target.style.display='none' }} />
+                                <span className="fd-picker-name">{c.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div style={{ marginTop: 18, textAlign: 'center' }}>
                 <button onClick={() => { resetForm(); setCropPickerStep('pick'); setCropSearch('') }} className="fd-cancel-btn">
                   <FaTimes style={{ marginRight: 4 }} />Cancel
@@ -770,93 +837,6 @@ const FarmerDashboard = () => {
             </div>
           )}
 
-          {/* Crop Cards Grid */}
-          {savedCrops.length > 0 && (
-            <div className="fd-crops-grid">
-              {savedCrops.map((crop) => {
-                const img = getCropImage(crop.crop || crop.cropName)
-                const sm = statusMeta[crop.status] || statusMeta.available
-                const totalVal = (parseFloat(crop.price) || 0) * (parseFloat(crop.quantity) || 0)
-                return (
-                  <div key={crop.id} className="fd-crop-card">
-                    {/* Banner image */}
-                    <div className="fd-card-banner" style={{ background: img ? 'transparent' : 'linear-gradient(135deg,#e8f5e9,#c8e6c9)' }}>
-                      {img
-                        ? <img src={img} alt={crop.crop || crop.cropName} className="fd-card-banner-img" />
-                        : <FaLeaf style={{ fontSize: 54, color: '#4caf50', opacity: 0.45 }} />}
-                      {/* Top-right: status select + edit/delete side by side */}
-                      <div className="fd-banner-actions">
-                        <select
-                          value={crop.status}
-                          onChange={e => updateCropStatus(crop.id, e.target.value)}
-                          className="fd-status-badge fd-status-badge--select fd-status-badge--overlay"
-                          style={{ background: sm.bg, color: sm.color }}
-                        >
-                          <option value="available">Available</option>
-                          <option value="sold">Sold</option>
-                          <option value="reserved">Reserved</option>
-                        </select>
-                        <button onClick={() => handleEdit(crop)} className="fd-banner-btn fd-banner-btn--edit" title="Edit">
-                          <FaEdit />
-                        </button>
-                        <button onClick={() => handleDelete(crop.id)} className="fd-banner-btn fd-banner-btn--del" title="Delete">
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="fd-card-body">
-                      <h4 className="fd-card-name">{crop.crop || crop.cropName}</h4>
-
-                      {/* Stats row: qty | price | total — all side by side */}
-                      <div className="fd-quick-stats">
-                        <div className="fd-quick-stat">
-                          <span className="fd-qs-label">Qty</span>
-                          <span className="fd-qs-val">{parseFloat(crop.quantity).toLocaleString()} kg</span>
-                        </div>
-                        <div className="fd-qs-divider" />
-                        <div className="fd-quick-stat">
-                          <span className="fd-qs-label">Price/kg</span>
-                          <span className="fd-qs-val fd-price-val">₹{parseFloat(crop.price).toLocaleString()}</span>
-                        </div>
-                        <div className="fd-qs-divider" />
-                        <div className="fd-quick-stat">
-                          <span className="fd-qs-label">Total</span>
-                          <span className="fd-qs-val fd-total-qs">₹{totalVal.toLocaleString()}</span>
-                        </div>
-                      </div>
-
-                      {/* Location */}
-                      <div className="fd-meta-row">
-                        <FaMapMarkerAlt className="fd-meta-icon fd-meta-icon--red" />
-                        <span className="fd-meta-text">{fmt(crop.district)}, {fmt(crop.state)}</span>
-                      </div>
-
-                      {/* Notes */}
-                      {crop.notes && (
-                        <div className="fd-meta-row fd-notes-row">
-                          <FaTag className="fd-meta-icon" />
-                          <span className="fd-notes-text">{crop.notes}</span>
-                        </div>
-                      )}
-
-                      {/* Date */}
-                      {crop.createdAt && (
-                        <div className="fd-meta-row fd-date-row">
-                          <FaCalendarAlt className="fd-meta-icon" />
-                          <span className="fd-date-text">
-                            {crop.createdAt?.toDate
-                              ? crop.createdAt.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                              : new Date(crop.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </div>
       )}
 
@@ -1154,70 +1134,66 @@ const FarmerDashboard = () => {
 
                   return (
                     <div key={deal.id} className="fd-demand-card fd-committed-card">
-                      <div className="fd-demand-header">
-                        <div className="fd-demand-crop-icon" style={{ background: '#fef3c7', color: '#b45309' }}><FaCoins /></div>
-                        <div className="fd-demand-info">
-                          <span className="fd-demand-cropname">{deal.cropName}</span>
-                          <span className="fd-demand-consumer">{deal.consumerName}</span>
+
+                      {/* Status badge */}
+                      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
+                        <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:20, background:statusColors.bg, color:statusColors.color, border:`1px solid ${statusColors.color}40` }}>
+                          {statusLabel}
+                        </span>
+                      </div>
+
+                      {/* Crop name + Consumer name */}
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                        <span className="fd-demand-cropname" style={{ fontSize:16 }}>{deal.cropName}</span>
+                        <span style={{ fontSize:12, color:'#2563eb', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
+                          <FaUsers style={{ fontSize:10 }} />{deal.consumerName}
+                        </span>
+                      </div>
+
+                      {/* QTY | OFFER | TOTAL partitions */}
+                      <div style={{ display:'flex', gap:6, marginBottom:10 }}>
+                        <div style={{ flex:1, background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
+                          <div style={{ fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2 }}>QTY</div>
+                          <div style={{ fontSize:13, fontWeight:700, color:'#1d4ed8' }}>{deal.quantityKg}<span style={{ fontSize:10, fontWeight:500 }}> kg</span></div>
                         </div>
                         <div
-                          className="fd-demand-new-badge"
-                          style={{ background: statusColors.bg, color: statusColors.color, border: `1px solid ${statusColors.color}40` }}
+                          style={{ flex:1, background:'#fefce8', border: deal.status==='quoted' ? '1.5px dashed #f59e0b' : '1px solid #fde68a', borderRadius:8, padding:'6px 8px', textAlign:'center', cursor: deal.status==='quoted' ? 'pointer' : 'default' }}
+                          onClick={() => deal.status==='quoted' && setEditingDeal(prev =>
+                            prev[deal.id]
+                              ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== deal.id))
+                              : { ...prev, [deal.id]: { price: deal.farmerOfferDisplay || '', unit: deal.farmerOfferUnit || 'kg' } }
+                          )}
+                          title={deal.status==='quoted' ? 'Click to edit rate' : ''}
                         >
-                          {statusLabel}
+                          <div style={{ fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2 }}>RATE {deal.status==='quoted' && <span style={{fontSize:9}}>✏️</span>}</div>
+                          <div style={{ fontSize:13, fontWeight:700, color:'#b45309' }}>₹{deal.farmerOfferDisplay || deal.farmerOfferPrice}<span style={{ fontSize:10, fontWeight:500 }}>/{deal.farmerOfferUnit || 'kg'}</span></div>
+                        </div>
+                        <div style={{ flex:1, background:'#f0fdf4', border:'1px solid #86efac', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
+                          <div style={{ fontSize:10, color:'#166534', fontWeight:600, marginBottom:2 }}>TOTAL</div>
+                          <div style={{ fontSize:13, fontWeight:700, color:'#15803d' }}>₹{((deal.quantityKg || 0) * (deal.farmerOfferPrice || 0)).toLocaleString()}</div>
                         </div>
                       </div>
-                      <div className="fd-demand-details">
-                        <div className="fd-demand-detail">
-                          <span className="fd-dd-label">Quantity</span>
-                          <span className="fd-dd-value">{deal.quantityKg} kg</span>
-                        </div>
-                        <div className="fd-demand-detail">
-                          <span className="fd-dd-label">Your Offer</span>
-                          <span className="fd-dd-value fd-dd-price">
-                            ₹{deal.farmerOfferDisplay || deal.farmerOfferPrice}/{deal.farmerOfferUnit || 'kg'}
-                            <span style={{fontSize:11,color:'#6b7280',marginLeft:4}}>(₹{deal.farmerOfferPrice?.toFixed(2)}/kg)</span>
-                          </span>
-                        </div>
-                        <div className="fd-demand-detail">
-                          <span className="fd-dd-label">Location</span>
-                          <span className="fd-dd-value">{deal.location}</span>
-                        </div>
-                        <div className="fd-demand-detail">
-                          <span className="fd-dd-label">Total Value</span>
-                          <span className="fd-dd-value fd-dd-total">Rs.{((deal.quantityKg || 0) * (deal.farmerOfferPrice || 0)).toLocaleString()}</span>
-                        </div>
+
+                      {/* Location */}
+                      <div style={{ fontSize:12, color:'#6b7280', marginBottom:10, display:'flex', alignItems:'center', gap:5 }}>
+                        <FaMapMarkerAlt style={{ color:'#ef4444', fontSize:11 }} />{deal.location}
                       </div>
 
                       {/* Consumer contact revealed after deal is accepted */}
                       {['deal_closed','in_progress','completed'].includes(deal.status) && (
-                        <div className="fd-contact-reveal">
-                          <div className="fd-contact-reveal-title">
-                            <FaPhone style={{ marginRight: 6 }} /> Consumer Contact
+                        <div className="fd-contact-reveal" style={{ marginBottom:10 }}>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                            <span style={{ fontSize:13, fontWeight:700, color:'#0ea5e9' }}>{deal.consumerName}</span>
+                            <a href={`tel:${deal.consumerPhone}`} style={{ fontSize:12, fontWeight:600, color:'#b45309', display:'flex', alignItems:'center', gap:5, textDecoration:'none' }}>
+                              <FaPhone style={{ fontSize:11 }} />{deal.consumerPhone || 'Not provided'}
+                            </a>
                           </div>
-                          <div className="fd-contact-reveal-number">{deal.consumerPhone || 'Not provided'}</div>
-                          <div className="fd-contact-reveal-name">{deal.consumerName}</div>
                         </div>
                       )}
 
-                      {/* Mark as Dispatched — farmer action */}
-                      {deal.status === 'deal_closed' && (
-                        <button
-                          className="fd-commit-btn"
-                          style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
-                          onClick={async () => {
-                            const res = await markInProgress(deal.id)
-                            if (res.success) toastSuccess('Marked as dispatched! Waiting for consumer to confirm receipt.')
-                            else toastError(res.error)
-                          }}
-                        >
-                          <FaTruck style={{ marginRight: 8 }} /> Mark as Dispatched
-                        </button>
-                      )}
-
-                      {/* Waiting for consumer confirmation */}
+                      {/* Waiting message for in_progress */}
                       {deal.status === 'in_progress' && (
-                        <div className="fd-deal-waiting">
+                        <div className="fd-deal-waiting" style={{ marginBottom:8 }}>
                           Dispatched — waiting for consumer to mark as received.
                         </div>
                       )}
@@ -1229,25 +1205,82 @@ const FarmerDashboard = () => {
                         </div>
                       )}
 
-                      {/* Withdraw offer (only when still waiting for consumer) */}
-                      {deal.status === 'quoted' && (
-                        <button
-                          className="fd-fulfilling-btn"
-                          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', marginTop: 8 }}
-                          onClick={async () => {
-                            const res = await withdrawOffer(deal.id)
-                            if (res.success) toastSuccess('Offer withdrawn. Request is open again.')
-                            else toastError(res.error || 'Failed to withdraw offer')
-                          }}
-                        >
-                          <FaTimes style={{ marginRight: 6 }} /> Withdraw Offer
-                        </button>
+                      {/* Inline edit form for quoted deals */}
+                      {deal.status === 'quoted' && editingDeal[deal.id] && (
+                        <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:10, padding:'12px', marginTop:8 }}>
+                          <div style={{ fontSize:12, fontWeight:700, color:'#15803d', marginBottom:8 }}>✏️ Edit Your Offer</div>
+                          <div style={{ display:'flex', gap:6, marginBottom:8 }}>
+                            {[{label:'per kg',value:'kg'},{label:'per Quintal',value:'quintal'},{label:'per Ton',value:'ton'}].map(u => (
+                              <button key={u.value}
+                                onClick={() => setEditingDeal(prev => ({ ...prev, [deal.id]: { ...prev[deal.id], unit: u.value } }))}
+                                style={{ flex:1, padding:'5px 4px', fontSize:11, fontWeight:600, borderRadius:8, cursor:'pointer', border:'1.5px solid',
+                                  borderColor: (editingDeal[deal.id]?.unit||'kg') === u.value ? '#16a34a' : '#d1d5db',
+                                  background:  (editingDeal[deal.id]?.unit||'kg') === u.value ? '#dcfce7' : '#fff',
+                                  color:       (editingDeal[deal.id]?.unit||'kg') === u.value ? '#15803d' : '#6b7280' }}
+                              >{u.label}</button>
+                            ))}
+                          </div>
+                          <div style={{ display:'flex', border:'1.5px solid #86efac', borderRadius:8, overflow:'hidden', marginBottom:8 }}>
+                            <span style={{ padding:'0 10px', background:'#dcfce7', display:'flex', alignItems:'center', fontSize:14, fontWeight:700, color:'#15803d' }}>₹</span>
+                            <input
+                              type="number" min="0" placeholder="New amount..."
+                              value={editingDeal[deal.id]?.price || ''}
+                              onChange={e => setEditingDeal(prev => ({ ...prev, [deal.id]: { ...prev[deal.id], price: e.target.value } }))}
+                              style={{ flex:1, border:'none', outline:'none', padding:'8px 10px', fontSize:14 }}
+                            />
+                          </div>
+                          <div style={{ display:'flex', gap:8 }}>
+                            <button
+                              style={{ flex:1, padding:'8px', background:'linear-gradient(135deg,#16a34a,#15803d)', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}
+                              onClick={async () => {
+                                const ed = editingDeal[deal.id] || {}
+                                const res = await updateOffer(deal.id, ed.price, ed.unit || 'kg')
+                                if (res.success) { toastSuccess('Offer updated!'); setEditingDeal(prev => { const n={...prev}; delete n[deal.id]; return n }) }
+                                else toastError(res.error || 'Failed to update offer')
+                              }}
+                            ><FaCheckCircle style={{ marginRight:6 }} /> Save</button>
+                            <button
+                              style={{ flex:1, padding:'8px', background:'#f3f4f6', color:'#374151', border:'1px solid #d1d5db', borderRadius:8, fontWeight:600, fontSize:13, cursor:'pointer' }}
+                              onClick={() => setEditingDeal(prev => { const n={...prev}; delete n[deal.id]; return n })}
+                            >Cancel</button>
+                          </div>
+                        </div>
                       )}
 
-                      {/* Chat button — available on all active deals */}
-                      <div style={{ marginTop: 8 }}>
-                        <button className="chat-trigger-btn" onClick={() => setActiveChatDemand(deal)}>
-                          <FaComments /> Chat with Consumer
+                      {/* Action buttons — always side by side */}
+                      <div style={{ display:'flex', gap:8, marginTop:8, alignItems:'stretch' }}>
+                        {deal.status === 'quoted' && (
+                          <button
+                            className="fd-fulfilling-btn"
+                            style={{ flex:1, background:'#fef2f2', color:'#dc2626', border:'1px solid #fca5a5', marginTop:0 }}
+                            onClick={async () => {
+                              const res = await withdrawOffer(deal.id)
+                              if (res.success) toastSuccess('Offer withdrawn. Request is open again.')
+                              else toastError(res.error || 'Failed to withdraw offer')
+                            }}
+                          >
+                            <FaTimes style={{ marginRight: 6 }} /> Withdraw
+                          </button>
+                        )}
+                        {deal.status === 'deal_closed' && (
+                          <button
+                            className="fd-commit-btn"
+                            style={{ flex:1, background:'linear-gradient(135deg,#7c3aed,#6d28d9)', marginTop:0 }}
+                            onClick={async () => {
+                              const res = await markInProgress(deal.id)
+                              if (res.success) toastSuccess('Marked as dispatched! Waiting for consumer to confirm receipt.')
+                              else toastError(res.error)
+                            }}
+                          >
+                            <FaTruck style={{ marginRight: 6 }} /> Dispatch
+                          </button>
+                        )}
+                        <button
+                          className="chat-trigger-btn"
+                          style={{ flex:1 }}
+                          onClick={() => setActiveChatDemand(deal)}
+                        >
+                          <FaComments style={{ marginRight: 6 }} /> Chat
                         </button>
                       </div>
                     </div>

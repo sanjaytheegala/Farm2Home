@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../context/ToastContext'
 import Navbar from '../components/Navbar'
-import { FaShoppingCart, FaTrash, FaPlus, FaMinus, FaCheckCircle, FaCreditCard, FaWallet, FaUniversity } from 'react-icons/fa'
+import { FaShoppingCart, FaTrash, FaPlus, FaMinus, FaCheckCircle, FaHandshake } from 'react-icons/fa'
 import { useCart } from '../features/consumer/hooks/useCart'
 import { auth, db } from '../firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 
 const CartPage = () => {
   const { cartItems, removeFromCart, updateQuantity: updateQty, clearCart } = useCart()
-  const [checkoutStep, setCheckoutStep] = useState('cart') // 'cart', 'address', 'payment', 'confirmation'
+  const [checkoutStep, setCheckoutStep] = useState('cart') // 'cart', 'address', 'confirmation'
   const [deliveryAddress, setDeliveryAddress] = useState({
     fullName: '',
     phone: '',
@@ -19,7 +19,6 @@ const CartPage = () => {
     state: '',
     pincode: ''
   })
-  const [paymentMethod, setPaymentMethod] = useState('cod') // 'cod', 'upi', 'card', 'netbanking'
   const [batchOrderId, setBatchOrderId] = useState(null)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -65,8 +64,8 @@ const CartPage = () => {
     setCheckoutStep('address')
   }
 
-  const proceedToPayment = () => {
-    if (!deliveryAddress.fullName || !deliveryAddress.phone || !deliveryAddress.addressLine || 
+  const validateAndPlaceOrder = () => {
+    if (!deliveryAddress.fullName || !deliveryAddress.phone || !deliveryAddress.addressLine ||
         !deliveryAddress.city || !deliveryAddress.state || !deliveryAddress.pincode) {
       toastWarning(t('fill_address') || 'Please fill all address fields')
       return
@@ -75,7 +74,7 @@ const CartPage = () => {
       toastWarning(t('valid_phone') || 'Please enter a valid 10-digit phone number')
       return
     }
-    setCheckoutStep('payment')
+    placeOrder()
   }
 
   const placeOrder = async () => {
@@ -105,7 +104,7 @@ const CartPage = () => {
             totalAmount:     price * qty,
             unit:            item.unit || 'kg',
             shippingAddress: deliveryAddress,
-            paymentMethod,
+            paymentMethod:   'direct',
             status:          'pending',
             batchOrderId:    sharedBatchId,
             createdAt:       serverTimestamp(),
@@ -253,79 +252,15 @@ const CartPage = () => {
           <button onClick={() => setCheckoutStep('cart')} style={backBtn}>
             {t('back') || 'Back'}
           </button>
-          <button onClick={proceedToPayment} style={continueBtn}>
-            {t('continue') || 'Continue'}
+          <button onClick={validateAndPlaceOrder} style={continueBtn} disabled={loading}>
+            {loading ? (t('processing') || 'Placing Order...') : (t('place_order') || 'Place Order')}
           </button>
         </div>
       </div>
     </div>
   )
 
-  // Payment View
-  const renderPayment = () => (
-    <div style={paymentContainer}>
-      <h2 style={heading}>{t('payment_method') || 'Select Payment Method'}</h2>
-      <div style={paymentOptions}>
-        <div 
-          style={paymentMethod === 'cod' ? activePaymentOption : paymentOption}
-          onClick={() => setPaymentMethod('cod')}
-        >
-          <FaWallet size={32} />
-          <h3>{t('cash_on_delivery') || 'Cash on Delivery'}</h3>
-          <p>{t('pay_cash') || 'Pay when you receive'}</p>
-        </div>
-        <div 
-          style={paymentMethod === 'upi' ? activePaymentOption : paymentOption}
-          onClick={() => setPaymentMethod('upi')}
-        >
-          <FaWallet size={32} />
-          <h3>{t('upi') || 'UPI'}</h3>
-          <p>{t('gpay_phonepe') || 'GPay, PhonePe, Paytm'}</p>
-        </div>
-        <div 
-          style={paymentMethod === 'card' ? activePaymentOption : paymentOption}
-          onClick={() => setPaymentMethod('card')}
-        >
-          <FaCreditCard size={32} />
-          <h3>{t('credit_debit_card') || 'Credit/Debit Card'}</h3>
-          <p>{t('visa_mastercard') || 'Visa, Mastercard, Rupay'}</p>
-        </div>
-        <div 
-          style={paymentMethod === 'netbanking' ? activePaymentOption : paymentOption}
-          onClick={() => setPaymentMethod('netbanking')}
-        >
-          <FaUniversity size={32} />
-          <h3>{t('net_banking') || 'Net Banking'}</h3>
-          <p>{t('all_banks') || 'All major banks'}</p>
-        </div>
-      </div>
-
-      <div style={orderSummaryBox}>
-        <h3>{t('order_summary') || 'Order Summary'}</h3>
-        <div style={summaryRow}>
-          <span>{t('items') || 'Items'} ({cartItems.length}):</span>
-          <span>₹{calculateTotal().toFixed(2)}</span>
-        </div>
-        <div style={summaryRow}>
-          <span>{t('delivery') || 'Delivery'}:</span>
-          <span>{calculateDeliveryCharge() === 0 ? t('free') || 'FREE' : `₹${calculateDeliveryCharge()}`}</span>
-        </div>
-        <div style={summaryTotal}>
-          <strong>{t('total_amount') || 'Total Amount'}:</strong>
-          <strong>₹{calculateGrandTotal().toFixed(2)}</strong>
-        </div>
-      </div>
-
-      <div style={btnGroup}>
-        <button onClick={() => setCheckoutStep('address')} style={backBtn}>
-          {t('back') || 'Back'}
-        </button>
-        <button onClick={placeOrder} style={placeOrderBtn} disabled={loading}>
-          {loading ? (t('processing') || 'Processing...') : (t('place_order') || 'Place Order')}
-        </button>
-      </div>
-    </div>
-  )
+  // Payment step removed — direct settlement outside the app
 
   // Confirmation View
   const renderConfirmation = () => (
@@ -336,7 +271,7 @@ const CartPage = () => {
       <h2 style={successHeading}>{t('order_placed') || 'Order Placed Successfully!'}</h2>
       <p style={orderIdText}>{t('order_id') || 'Order ID'}: <strong>#{batchOrderId}</strong></p>
       <div style={confirmationBox}>
-        <p><strong>{t('payment_method') || 'Payment Method'}:</strong> {paymentMethod.toUpperCase()}</p>
+        <p style={{ display: 'flex', alignItems: 'center', gap: 6 }}><FaHandshake color="#28a745" /> <strong>Payment:</strong> Settle directly with the farmer</p>
         <p><strong>{t('total_amount') || 'Total Amount'}:</strong> ₹{calculateGrandTotal().toFixed(2)}</p>
         <p><strong>{t('delivery_to') || 'Delivering to'}:</strong> {deliveryAddress.fullName}</p>
         <p>{deliveryAddress.addressLine}, {deliveryAddress.city}</p>
@@ -363,25 +298,19 @@ const CartPage = () => {
           <span>{t('cart') || 'Cart'}</span>
         </div>
         <div style={stepLine(checkoutStep !== 'cart')} />
-        <div style={['address', 'payment', 'confirmation'].includes(checkoutStep) ? activeStep : step}>
+        <div style={['address', 'confirmation'].includes(checkoutStep) ? activeStep : step}>
           <div style={stepNumber}>2</div>
           <span>{t('address') || 'Address'}</span>
         </div>
-        <div style={stepLine(['payment', 'confirmation'].includes(checkoutStep))} />
-        <div style={['payment', 'confirmation'].includes(checkoutStep) ? activeStep : step}>
-          <div style={stepNumber}>3</div>
-          <span>{t('payment') || 'Payment'}</span>
-        </div>
         <div style={stepLine(checkoutStep === 'confirmation')} />
         <div style={checkoutStep === 'confirmation' ? activeStep : step}>
-          <div style={stepNumber}>4</div>
+          <div style={stepNumber}>3</div>
           <span>{t('confirmation') || 'Done'}</span>
         </div>
       </div>
 
       {checkoutStep === 'cart' && renderCart()}
       {checkoutStep === 'address' && renderAddress()}
-      {checkoutStep === 'payment' && renderPayment()}
       {checkoutStep === 'confirmation' && renderConfirmation()}
     </div>
   )

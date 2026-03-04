@@ -897,6 +897,88 @@
   color: white;
 }
 
+/* ── Category Sections with Marquee ── */
+.fd-category-sections {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fd-category-section {
+  /* each category block */
+}
+
+.fd-category-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #c62828;
+  margin: 0 0 10px 0;
+  padding: 6px 14px;
+  background: linear-gradient(90deg, #e8f5e9 0%, transparent 100%);
+  border-left: 4px solid #4caf50;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+/* Marquee container — clips the scrolling track */
+.fd-marquee-outer {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+  padding-bottom: 4px;
+}
+
+/* Gradient fade edges */
+.fd-marquee-outer::before,
+.fd-marquee-outer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  z-index: 1;
+  pointer-events: none;
+}
+.fd-marquee-outer::before {
+  left: 0;
+  background: linear-gradient(to right, #fff 0%, transparent 100%);
+}
+.fd-marquee-outer::after {
+  right: 0;
+  background: linear-gradient(to left, #fff 0%, transparent 100%);
+}
+
+/* The scrolling row — repeated enough to ensure seamless loop */
+.fd-marquee-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  animation: fd-marquee-scroll 28s linear infinite;
+}
+
+/* Pause on hover so the user can click */
+.fd-marquee-outer:hover .fd-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes fd-marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(-100% / var(--repeat-count, 2))); }
+}
+
+/* Cards inside marquee — fixed width so track width is predictable */
+.fd-marquee-track .fd-picker-card {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.fd-marquee-track .fd-picker-img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+}
+
 /* Responsive adjustments for picker */
 @media (max-width: 600px) {
   .fd-picker-grid {
@@ -909,9 +991,13 @@
   .fd-picker-name { font-size: 11px; }
   .fd-selected-crop-bar { flex-wrap: wrap; gap: 10px; }
   .fd-selected-crop-name { font-size: 16px; }
+  .fd-marquee-track .fd-picker-card { width: 100px; }
+  .fd-marquee-track .fd-picker-img { width: 100px; height: 72px; }
 }
 @media (max-width: 400px) {
   .fd-picker-grid { grid-template-columns: repeat(3, 1fr); }
+  .fd-marquee-track .fd-picker-card { width: 88px; }
+  .fd-marquee-track .fd-picker-img { width: 88px; height: 64px; }
 }
 
 /* ══════════════════════════════════════
@@ -1244,6 +1330,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 18px;
+  align-items: start;
 }
 
 .fd-market-section-title {

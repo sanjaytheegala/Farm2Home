@@ -79,7 +79,25 @@ export const useMarketDemands = () => {
       return { success: false, error: err.message }
     }
   }, [])
-
+  /* ── Consumer rejects farmer’s offer → back to open ── */
+  const rejectOffer = useCallback(async (demandId) => {
+    try {
+      await updateDoc(doc(db, 'market_demands', demandId), {
+        status:              'open',
+        committedFarmerId:   null,
+        committedFarmerName: null,
+        farmerOfferPrice:    null,
+        farmerOfferDisplay:  null,
+        farmerOfferUnit:     null,
+        farmerPhone:         null,
+        quotedAt:            null,
+        rejectedAt:          serverTimestamp(),
+      })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
   /* ── Consumer accepts farmer's offer → deal_closed ── */
   const acceptOffer = useCallback(async (demandId) => {
     const user = auth.currentUser
@@ -171,5 +189,26 @@ export const useMarketDemands = () => {
     }
   }, [])
 
-  return { myDemands, loading, submitDemand, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand }
+  /* ── Consumer cancels an accepted deal → back to open ── */
+  const cancelDeal = useCallback(async (demandId) => {
+    try {
+      await updateDoc(doc(db, 'market_demands', demandId), {
+        status:               'open',
+        committedFarmerId:    null,
+        committedFarmerName:  null,
+        farmerPhone:          null,
+        farmerOfferPrice:     null,
+        farmerOfferDisplay:   null,
+        farmerOfferUnit:      null,
+        dealClosedAt:         null,
+        consumerPhone:        null,
+        cancelledAt:          serverTimestamp(),
+      })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
+  return { myDemands, loading, submitDemand, rejectOffer, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal }
 }

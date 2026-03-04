@@ -336,8 +336,8 @@ const OrdersPage = () => {
                 <strong>₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</strong>
               </div>
               <div style={paymentMethodBox}>
-                <span>Payment Method:</span>
-                <span style={paymentBadge}>COD</span>
+                <span>Payment:</span>
+                <span style={paymentBadge}>Direct to Farmer</span>
               </div>
             </div>
           </div>
