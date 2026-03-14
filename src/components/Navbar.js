@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next';
 import './Navbar.css'
 // Removed unused icons: FaUser, FaSignOutAlt, FaBars, FaTimes, FaCog, FaStore, FaHome, FaLeaf, FaSearch, FaArrowLeft, FaArrowRight, FaBoxOpen
-import { FaShoppingCart, FaChevronLeft, FaChevronRight, FaTools, FaLeaf, FaBars, FaTimes, FaHome, FaGift, FaHistory, FaUserCircle, FaSearch, FaSignOutAlt } from 'react-icons/fa'
+import { FaShoppingCart, FaChevronLeft, FaChevronRight, FaTools, FaLeaf, FaBars, FaTimes, FaHome, FaGift, FaHistory, FaUserCircle, FaSearch, FaSignOutAlt, FaBell } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 
 // Pass cartCount and notificationCount as props
@@ -16,14 +16,21 @@ const Navbar = React.memo(({
   isFarmerDashboard: isFarmerDashboardProp = false,
   activeTab = 'browse',
   onTabChange = () => {},
-  onSearchClick = () => {}
+  onSearchClick = () => {},
+  farmerNotifCount = 0,
+  farmerNotifications = [],
+  onFarmerNotifOpen = () => {},
+  onFarmerNotifItemClick = () => {},
+  resourceNotifCount = 0,
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const [isScrolled, setIsScrolled] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+  const notifRef = useRef(null)
   const { t, i18n } = useTranslation();
-  const { signOut } = useAuth();
+  const { signOut, currentUser } = useAuth();
 
   const handleLogout = useCallback(async () => {
     try { await signOut() } catch (e) {}
@@ -80,6 +87,18 @@ const Navbar = React.memo(({
   const changeLanguage = useCallback((lng) => {
     i18n.changeLanguage(lng);
   }, [i18n]);
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    if (!showNotifDropdown) return
+    const handleOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [showNotifDropdown])
 
   return (
     <div className={`navbar-container ${isScrolled ? 'scrolled' : ''}`}>
@@ -151,6 +170,72 @@ const Navbar = React.memo(({
           {/* Search removed from homepage */}
 
 
+          {/* Farmer Notification Bell */}
+          {isFarmerDashboard && (
+            <div className="farmer-notif-wrap" ref={notifRef}>
+              <button
+                className="farmer-notif-btn"
+                title="Notifications"
+                onClick={() => {
+                  const opening = !showNotifDropdown
+                  setShowNotifDropdown(opening)
+                  if (opening) onFarmerNotifOpen()
+                }}
+              >
+                <FaBell />
+                {farmerNotifCount > 0 && (
+                  <span className="farmer-notif-badge">
+                    {farmerNotifCount > 99 ? '99+' : farmerNotifCount}
+                  </span>
+                )}
+              </button>
+              {showNotifDropdown && (
+                <div className="farmer-notif-dropdown">
+                  <div className="farmer-notif-header">
+                    <span>Notifications</span>
+                    {farmerNotifications.length > 0 && (
+                      <span className="farmer-notif-header-count">{farmerNotifications.length}</span>
+                    )}
+                  </div>
+                  {farmerNotifications.length === 0 ? (
+                    <div className="farmer-notif-empty">🔔 All caught up! No pending requests.</div>
+                  ) : (
+                    <div className="farmer-notif-list">
+                      {farmerNotifications.map(n => (
+                        <button
+                          key={n.id}
+                          className="farmer-notif-item"
+                          onClick={() => { setShowNotifDropdown(false); onFarmerNotifItemClick(n); }}
+                        >
+                          <span className="farmer-notif-item-icon">{n.icon}</span>
+                          <div className="farmer-notif-item-body">
+                            <div className="farmer-notif-item-title">{n.title}</div>
+                            <div className="farmer-notif-item-sub">{n.subtitle}</div>
+                          </div>
+                          <span className="farmer-notif-item-time">{n.timeLabel}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {/* Resource Notification Bell — visible for all logged-in users */}
+          {currentUser && (
+            <button
+              className="rs-notif-bell-btn"
+              title="Resource Sharing Notifications"
+              onClick={() => navigate('/resource-share')}
+            >
+              <FaBell />
+              {resourceNotifCount > 0 && (
+                <span className="rs-notif-bell-badge">
+                  {resourceNotifCount > 99 ? '99+' : resourceNotifCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* Language Selector */}
           <div className="language-container">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaHeart, FaStar, FaShoppingCart, FaLeaf, FaTruck, FaShieldAlt, FaMapMarkerAlt, FaRupeeSign } from 'react-icons/fa';
+import { FaHeart, FaStar, FaShoppingCart, FaLeaf, FaTruck, FaShieldAlt, FaMapMarkerAlt, FaRupeeSign, FaCalendarAlt } from 'react-icons/fa';
 import './ProductCard.css';
 
 const ProductCard = ({ 
@@ -8,7 +8,7 @@ const ProductCard = ({
   onToggleFavorite, 
   isFavorite,
   onViewDetails,
-  onBuyNow,
+  onRequestNow,
 }) => {
   const [imageError, setImageError] = useState(false);
   const defaultImage = '/images/default_crop.jpg';
@@ -18,9 +18,9 @@ const ProductCard = ({
     onAddToCart(product);
   };
 
-  const handleBuyNow = (e) => {
+  const handleRequestNow = (e) => {
     e.stopPropagation();
-    onBuyNow && onBuyNow(product);
+    onRequestNow && onRequestNow(product);
   };
 
   const handleToggleFavorite = (e) => {
@@ -96,6 +96,18 @@ const ProductCard = ({
           <span>{product.village}, {product.district}</span>
         </div>
 
+        {/* Availability end date */}
+        {product.availableUntil && (() => {
+          const today = new Date().toISOString().split('T')[0];
+          const isExpired = product.availableUntil < today;
+          return (
+            <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color: isExpired ? '#dc2626' : '#059669', marginTop:4 }}>
+              <FaCalendarAlt style={{ fontSize:10 }} />
+              {isExpired ? 'Expired' : 'Available till'}: {new Date(product.availableUntil + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short' })}
+            </div>
+          );
+        })()}
+
         {/* Price */}
         <div className="product-pricing">
           <div className="current-price">
@@ -135,10 +147,10 @@ const ProductCard = ({
             Add to Cart
           </button>
           <button
-            className="buy-now-btn"
-            onClick={handleBuyNow}
+            className="request-now-btn"
+            onClick={handleRequestNow}
           >
-            Buy Now
+            Request Now
           </button>
         </div>
       </div>

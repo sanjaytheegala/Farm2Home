@@ -145,6 +145,10 @@
     
     "profile_updated": "प्रोफाइल सफलतापूर्वक अपडेट की गई",
     "profile_update_error": "प्रोफाइल अपडेट करने में त्रुटि",
+    "profile_load_error": "प्रोफाइल लोड करने में त्रुटि",
+    "passwords_dont_match": "नए पासवर्ड मेल नहीं खाते",
+    "password_too_short": "पासवर्ड कम से कम 6 अक्षर का होना चाहिए",
+    "current_password_wrong": "वर्तमान पासवर्ड गलत है",
     "password_changed": "पासवर्ड सफलतापूर्वक बदला गया",
     "password_change_error": "पासवर्ड बदलने में त्रुटि",
     

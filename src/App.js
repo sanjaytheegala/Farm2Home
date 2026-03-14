@@ -6,6 +6,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAuth } from './context/AuthContext';
+import { db } from './firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 // Import styles
 import './App.css';
@@ -83,9 +85,10 @@ const PublicOnlyRoute = ({ children }) => {
 const AppContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { loading } = useAuth();
+  const { loading, currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('browse');
   const [cartCount, setCartCount] = useState(0);
+  const [resourceNotifCount, setResourceNotifCount] = useState(0);
 
   const isConsumerPage = location.pathname === '/consumer';
 
@@ -102,16 +105,34 @@ const AppContent = () => {
     };
 
     updateCartCount();
-    
-    // Listen for cart updates
+
+    // cross-tab sync, same-tab custom events, and tab focus refresh
     window.addEventListener('storage', updateCartCount);
     window.addEventListener('cartUpdated', updateCartCount);
-    
+    document.addEventListener('visibilitychange', updateCartCount);
+
     return () => {
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
+      document.removeEventListener('visibilitychange', updateCartCount);
     };
   }, []);
+
+  // Resource sharing notification count (pending requests + new tools added in last 24h)
+  useEffect(() => {
+    if (!currentUser?.uid) { setResourceNotifCount(0); return; }
+    const unsub = onSnapshot(collection(db, 'rental_requests'), (snap) => {
+      const pending = snap.docs.filter(d => {
+        const r = d.data();
+        return (
+          (r.toolOwnerId === currentUser.uid && r.status === 'Requested') ||
+          (r.requesterId === currentUser.uid && r.status === 'Accepted')
+        );
+      }).length;
+      setResourceNotifCount(pending);
+    }, () => {});
+    return () => unsub();
+  }, [currentUser]);
 
   // Handle tab changes in consumer dashboard
   const handleTabChange = (tab) => {
@@ -161,6 +182,7 @@ const AppContent = () => {
         onSearchClick={handleSearchClick}
         showCart={true}
         showOrders={true}
+        resourceNotifCount={resourceNotifCount}
       />
       <Suspense fallback={<PageLoader />}>
         <Routes>

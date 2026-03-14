@@ -145,6 +145,10 @@
     
     "profile_updated": "Profile updated successfully",
     "profile_update_error": "Error updating profile",
+    "profile_load_error": "Error loading profile",
+    "passwords_dont_match": "New passwords do not match",
+    "password_too_short": "Password must be at least 6 characters",
+    "current_password_wrong": "Current password is incorrect",
     "password_changed": "Password changed successfully",
     "password_change_error": "Error changing password",
     
@@ -193,6 +197,49 @@
     "english": "English",
     "telugu": "Telugu",
     "hindi": "Hindi",
-    "tamil": "Tamil"
+    "tamil": "Tamil",
+
+    "join_as_farmer": "Join as Farmer",
+    "shop_fresh_products": "Shop Fresh Products",
+    "farmer_join_subtitle": "Start selling your crops directly to consumers — no middlemen, fair prices, real connections.",
+    "consumer_join_subtitle": "Discover fresh produce from local farmers. Shop, request crops, and share resources!",
+
+    "register": "Register",
+    "logging_in": "Logging in...",
+    "creating_account": "Creating account...",
+    "create_account": "Create Account",
+    "email_placeholder": "Email Address",
+    "password_placeholder": "Password",
+    "confirm_password_placeholder": "Confirm Password",
+
+    "active_farmers": "Active Farmers",
+    "happy_consumers": "Happy Consumers",
+    "fresh_products": "Fresh Products",
+    "satisfaction_rate": "Satisfaction Rate",
+
+    "why_choose_us": "Why Choose Farm2Home?",
+    "feature_fresh_title": "Farm Fresh Quality",
+    "feature_fresh_desc": "Get produce directly from verified local farmers — no cold storage, no middlemen. Maximum freshness guaranteed.",
+    "feature_pricing_title": "Fair & Transparent Pricing",
+    "feature_pricing_desc": "Our live bidding system lets farmers offer their best price directly to you. Fair for farmers, affordable for consumers.",
+    "feature_community_title": "P2P Resource Sharing",
+    "feature_community_desc": "Farmers can rent tractors, tools, and equipment to each other — building stronger agricultural communities.",
+    "feature_local_title": "Local & District-Matched",
+    "feature_local_desc": "Browse crops and requests matched to your state and district. Out-of-district alerts keep you always informed.",
+
+    "how_it_works": "How It Works",
+    "step_1_title": "Sign Up & Set Location",
+    "step_1_desc": "Register as a farmer or consumer. Set your state and district to get matched with local produce and requests.",
+    "step_2_title": "Connect & Negotiate",
+    "step_2_desc": "Farmers list crops, consumers request what they need. Submit price offers, chat directly, and close deals.",
+    "step_3_title": "Deal Done & Deliver",
+    "step_3_desc": "Confirm pickup dates, dispatch produce, and mark orders complete. Rate your experience to build trust.",
+
+    "what_users_say": "What Our Users Say",
+
+    "typewriter_message_1": "Empowering local farmers to connect directly with consumers. Fresh produce, fair prices, sustainable agriculture.",
+    "typewriter_message_2": "Request any crop you need — farmers in your area will bid with their best price, delivered to your location.",
+    "typewriter_message_3": "Farmers can rent tractors, tools, and transport to each other through our P2P Resource Sharing platform.",
+    "typewriter_message_4": "From listing crops to closing deals — Farm2Home handles every step of the farmer-to-consumer journey."
   }
 }

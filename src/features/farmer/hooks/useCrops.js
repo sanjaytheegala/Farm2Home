@@ -106,6 +106,7 @@ export const useCrops = () => {
         state: cropData.state || '',
         district: cropData.district || '',
         image: cropData.image || '',   // Farmer-selected image from CROP_DICTIONARY
+        availableUntil: cropData.availableUntil || '',
         createdAt: serverTimestamp()
       };
       

@@ -500,7 +500,7 @@ const HomePage = () => {
   }, [])
 
   const animateStats = () => {
-    const targets = { farmers: 5000, consumers: 15000, products: 1000, satisfaction: 98 }
+    const targets = { farmers: 1200, consumers: 4500, products: 350, satisfaction: 96 }
     const duration = 2000
     const steps = 60
     const stepValue = {}
@@ -896,12 +896,12 @@ const HomePage = () => {
             { number: '1', title: t('step_1_title'), desc: t('step_1_desc'), icon: FaUsers },
             { number: '2', title: t('step_2_title'), desc: t('step_2_desc'), icon: FaHandshake },
             { number: '3', title: t('step_3_title'), desc: t('step_3_desc'), icon: FaTruck }
-          ].map((step, index) => (
-            <div key={index} style={step}>
-              <div style={stepNumber}>{step.number}</div>
-              <step.icon style={{ fontSize: '2rem', color: '#28a745', marginBottom: '15px' }} />
-              <h3 style={stepTitle}>{step.title}</h3>
-              <p style={stepDesc}>{step.desc}</p>
+          ].map((stepItem, index) => (
+            <div key={index} style={stepStyle}>
+              <div style={stepNumber}>{stepItem.number}</div>
+              <stepItem.icon style={{ fontSize: '2rem', color: '#28a745', marginBottom: '15px' }} />
+              <h3 style={stepTitle}>{stepItem.title}</h3>
+              <p style={stepDesc}>{stepItem.desc}</p>
             </div>
           ))}
         </div>
@@ -1002,21 +1002,26 @@ const HomePage = () => {
 
             {/* Download App Column */}
             <div className="footer-col">
-              <h3 className="footer-col-header">DOWNLOAD THE APP</h3>
-              <button className="app-btn">
-                <FaApple style={{fontSize: '24px'}} />
-                <div>
-                  <div style={{fontSize: '10px'}}>Download on the</div>
-                  <div style={{fontSize: '14px', fontWeight: 'bold'}}>App Store</div>
-                </div>
-              </button>
-              <button className="app-btn">
-                <FaGooglePlay style={{fontSize: '24px'}} />
-                <div>
-                  <div style={{fontSize: '10px'}}>Get it on</div>
-                  <div style={{fontSize: '14px', fontWeight: 'bold'}}>Google Play</div>
-                </div>
-              </button>
+              <h3 className="footer-col-header">MOBILE APP</h3>
+              <p style={{fontSize: '13px', color: 'rgba(255,255,255,0.75)', lineHeight: '1.6', marginBottom: '14px'}}>
+                Our mobile app is coming soon! Get ready to manage your farm, browse fresh crops, and share resources — on the go.
+              </p>
+              <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+                <button className="app-btn" disabled style={{opacity: 0.6, cursor: 'not-allowed'}}>
+                  <FaApple style={{fontSize: '24px'}} />
+                  <div>
+                    <div style={{fontSize: '10px'}}>Coming Soon</div>
+                    <div style={{fontSize: '14px', fontWeight: 'bold'}}>App Store</div>
+                  </div>
+                </button>
+                <button className="app-btn" disabled style={{opacity: 0.6, cursor: 'not-allowed'}}>
+                  <FaGooglePlay style={{fontSize: '24px'}} />
+                  <div>
+                    <div style={{fontSize: '10px'}}>Coming Soon</div>
+                    <div style={{fontSize: '14px', fontWeight: 'bold'}}>Google Play</div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1029,7 +1034,7 @@ const HomePage = () => {
               <a href="#" className="social-icon"><FaTwitter /></a>
             </div>
             <div className="copyright-text">
-              &copy; 2025, Farm2Home | Privacy Policy | Sitemap | Terms & Conditions
+              &copy; 2026, Farm2Home | Privacy Policy | Sitemap | Terms & Conditions
             </div>
           </div>
         </div>
@@ -1312,6 +1317,14 @@ const stepsContainer = {
 };
 
 // Removed unused step style object
+const stepStyle = {
+  flex: '1 1 220px',
+  textAlign: 'center',
+  padding: '30px 20px',
+  background: '#fff',
+  borderRadius: '16px',
+  boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+};
 
 const stepNumber = {
   width: '60px',

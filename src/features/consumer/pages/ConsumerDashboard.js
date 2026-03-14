@@ -9,13 +9,12 @@ import {
   FaUsers, FaCheckCircle, FaSearch, FaThLarge,
   FaSlidersH, FaPlusCircle, FaMapMarkerAlt, FaCoins,
   FaStar, FaPhone, FaRobot, FaBell, FaChevronRight,
-  FaRegClock, FaLock, FaFlag, FaEdit, FaTrash, FaSave, FaTimes as FaX, FaComments,
+  FaRegClock, FaLock, FaFlag, FaEdit, FaTrash, FaSave, FaTimes as FaX, FaComments, FaCalendarAlt,
 } from 'react-icons/fa';
 import ChatModal from '../../../shared/components/ChatModal/ChatModal';
 import ProductCard from '../components/ProductCard/ProductCard';
 import SearchBar from '../components/Filters/SearchBar';
 import FilterSection from '../components/Filters/FilterSection';
-import ShippingAddressModal from '../components/ShippingAddressModal/ShippingAddressModal';
 import RequestCropModal from '../components/RequestCropModal/RequestCropModal';
 import ComplaintModal from '../../../shared/components/ComplaintModal/ComplaintModal';
 import { useCart } from '../hooks/useCart';
@@ -29,6 +28,16 @@ import './ConsumerDashboard.css';
 const AVATAR_PALETTE = ['#FFBF00','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#BE6DB7','#F7A738','#2ECC71'];
 const getAvatarColor = (name) => AVATAR_PALETTE[((name||'U').charCodeAt(0)-65+26)%AVATAR_PALETTE.length];
 const getGreeting = () => { const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; };
+const formatRelTime = (ts) => {
+  if (!ts) return null;
+  const date = ts?.toDate ? ts.toDate() : ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+};
 
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
@@ -42,16 +51,21 @@ const ConsumerDashboard = () => {
   const [editProfileData, setEditProfileData] = useState({ name:'', phone:'' });
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [buyNowProduct, setBuyNowProduct] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [editingDemand, setEditingDemand] = useState(null);
   const [navScrolled, setNavScrolled] = useState(false);
-  const { myDemands, submitDemand, rejectOffer, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal } = useMarketDemands();
+  const { myDemands, submitDemand, rejectOffer, acceptOffer, preponePickupDate, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal } = useMarketDemands();
   const { success: toastSuccess, error: toastError } = useToast();
   const [complaintTarget, setComplaintTarget] = useState(null);
   const [reportedDemandIds, setReportedDemandIds] = useState(new Set());
   const [reviewData, setReviewData] = useState({}); // { [demandId]: { rating, comment, submitting, error } }
   const [activeChatDemand, setActiveChatDemand] = useState(null);
+  // Accept date modal
+  const [acceptDateModal, setAcceptDateModal] = useState(null); // demandId or null
+  const [pickupDateInput, setPickupDateInput] = useState('');
+  // Prepone date modal
+  const [preponeDealId, setPreponeDealId] = useState(null);
+  const [preponeDate, setPreponeDate] = useState('');
   const categorySectionRef = useRef(null);
   const prevDemandsRef = useRef({});
 
@@ -166,7 +180,6 @@ const ConsumerDashboard = () => {
 
   return (
     <div className="cd-root">
-      {buyNowProduct && <ShippingAddressModal product={buyNowProduct} onClose={() => setBuyNowProduct(null)} onSuccess={() => navigate('/orders')} />}
       {showRequestModal && <RequestCropModal onClose={() => setShowRequestModal(false)} onSubmit={submitDemand} />}
       {editingDemand && (
         <RequestCropModal
@@ -497,12 +510,23 @@ const ConsumerDashboard = () => {
 
                         {/* Row 2: farmer name (left) | phone (right) */}
                         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                          <span style={{ fontSize:14, fontWeight:700, color:'#0ea5e9' }}>{demand.committedFarmerName || 'A Farmer'}</span>
+                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                            <span style={{ fontSize:14, fontWeight:700, color:'#0ea5e9' }}>{demand.committedFarmerName || 'A Farmer'}</span>
+                            {(demand.farmerTotalDeals || 0) >= 5 && (
+                              <span className="cd-verified-badge">✓ Verified</span>
+                            )}
+                          </div>
                           <a href={`tel:${demand.farmerPhone}`} style={{ fontSize:12, fontWeight:600, color:'#b45309', display:'flex', alignItems:'center', gap:4, textDecoration:'none' }}>
                             <FaPhone style={{ fontSize:11 }} />{demand.farmerPhone || 'Not provided'}
                           </a>
                         </div>
                         {/* Row 3: QTY | RATE | TOTAL */}
+                        {demand.farmerAvailableUntil && (
+                          <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color:'#7c3aed', background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:7, padding:'5px 9px', marginBottom:8 }}>
+                            <FaCalendarAlt style={{ fontSize:10 }} />
+                            Farmer has crop until: <strong>{new Date(demand.farmerAvailableUntil + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</strong>
+                          </div>
+                        )}
                         <div style={{ display:'flex', gap:6, marginBottom:10 }}>
                           <div style={{ flex:1, background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
                             <div style={{ fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2 }}>QTY</div>
@@ -520,9 +544,9 @@ const ConsumerDashboard = () => {
                         {/* Row 4: Accept | Chat */}
                         <div style={{ display:'flex', gap:6 }}>
                           <button
-                            onClick={async () => {
-                              const res = await acceptOffer(demand.id);
-                              if (!res.success) toastError(res.error || 'Failed to accept offer');
+                            onClick={() => {
+                              setAcceptDateModal(demand.id);
+                              setPickupDateInput('');
                             }}
                             style={{ flex:1, padding:'8px 4px', background:'#f0fdf4', color:'#15803d', border:'1.5px solid #86efac', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}
                           >
@@ -543,7 +567,12 @@ const ConsumerDashboard = () => {
                     {['deal_closed','in_progress','completed'].includes(demand.status) && (
                       <div className="cd-contact-panel">
                         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:8}}>
-                          <div className="cd-contact-farmer" style={{margin:0, color:'#0ea5e9', fontWeight:700, fontSize:14}}>{demand.committedFarmerName}</div>
+                          <div style={{display:'flex', alignItems:'center', gap:6}}>
+                            <div className="cd-contact-farmer" style={{margin:0, color:'#0ea5e9', fontWeight:700, fontSize:14}}>{demand.committedFarmerName}</div>
+                            {(demand.farmerTotalDeals || 0) >= 5 && (
+                              <span className="cd-verified-badge">✓ Verified</span>
+                            )}
+                          </div>
                           <a className="cd-contact-phone" href={`tel:${demand.farmerPhone}`} style={{margin:0, color:'#b45309', fontWeight:600, fontSize:12}}>
                             <FaPhone style={{marginRight:6}}/>{demand.farmerPhone || 'Not provided'}
                           </a>
@@ -563,6 +592,28 @@ const ConsumerDashboard = () => {
                             <div style={{fontSize:14, fontWeight:700, color:'#15803d'}}>₹{((demand.quantityKg||0)*(demand.farmerOfferPrice||0)).toLocaleString()}</div>
                           </div>
                         </div>
+                        {/* Pickup Date + Prepone */}
+                        {['deal_closed','in_progress'].includes(demand.status) && (
+                          <div style={{background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:9, padding:'9px 12px', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap'}}>
+                            <div style={{display:'flex', alignItems:'center', gap:6}}>
+                              <FaCalendarAlt style={{color:'#15803d', fontSize:12}}/>
+                              <span style={{fontSize:12, fontWeight:600, color:'#166534'}}>Pickup Date:</span>
+                              <span style={{fontSize:13, fontWeight:700, color:'#15803d'}}>
+                                {demand.pickupDate
+                                  ? new Date(demand.pickupDate + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+                                  : 'Not set'}
+                              </span>
+                            </div>
+                            {demand.status === 'deal_closed' && (
+                              <button
+                                onClick={() => { setPreponeDealId(demand.id); setPreponeDate(''); }}
+                                style={{fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:7, border:'1.5px solid #0369a1', background:'#e0f2fe', color:'#0369a1', cursor:'pointer'}}
+                              >
+                                ⏰ Prepone
+                              </button>
+                            )}
+                          </div>
+                        )}
                         {demand.status === 'deal_closed' && (
                         <div style={{display:'flex', gap:6, marginTop:8}}>
                           <button
@@ -668,6 +719,9 @@ const ConsumerDashboard = () => {
                     <div className="cd-demand-foot">
                       <FaRegClock style={{marginRight:5,fontSize:10}}/>
                       {demand.createdAt?.seconds ? new Date(demand.createdAt.seconds*1000).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Just now'}
+                      {formatRelTime(demand.updatedAt || demand.createdAt) && (
+                        <span className="cd-last-updated">· Updated {formatRelTime(demand.updatedAt || demand.createdAt)}</span>
+                      )}
                       {demand.committedFarmerId && ['deal_closed', 'in_progress', 'completed'].includes(demand.status) && (
                         reportedDemandIds.has(demand.id)
                           ? <span style={{ marginLeft:'auto', fontSize:11, fontWeight:600, color:'#9ca3af', display:'flex', alignItems:'center', gap:4, padding:'3px 8px', background:'#f3f4f6', borderRadius:6, border:'1px solid #e5e7eb' }}>
@@ -721,14 +775,22 @@ const ConsumerDashboard = () => {
             </div>
 
             {loading ? (
-              <div className="cd-loading">
-                <div className="cd-loading-spinner"></div>
-                <p>Fetching fresh products from farmers...</p>
+              <div className="products-grid-modern">
+                {[1,2,3,4,5,6].map(i => (
+                  <div key={i} className="cd-skeleton-card" aria-hidden="true">
+                    <div className="cd-sk-img" />
+                    <div className="cd-sk-body">
+                      <div className="cd-sk-line cd-sk-title" />
+                      <div className="cd-sk-line cd-sk-sub" />
+                      <div className="cd-sk-line cd-sk-price" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="products-grid-modern">
                 {filteredProducts.map(product => (
-                  <ProductCard key={product.id} product={product} onAddToCart={p => addToCart(p,1)} onToggleFavorite={toggleFavorite} isFavorite={isFavorite(product.id)} onBuyNow={p => setBuyNowProduct(p)} />
+                  <ProductCard key={product.id} product={product} onAddToCart={p => addToCart(p,1)} onToggleFavorite={toggleFavorite} isFavorite={isFavorite(product.id)} onRequestNow={() => setShowRequestModal(true)} />
                 ))}
               </div>
             ) : (
@@ -822,6 +884,93 @@ const ConsumerDashboard = () => {
         </div>
 
       </footer>
+
+      {/* ── Accept Offer Date Modal ── */}
+      {acceptDateModal && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.55)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ background:'#fff', borderRadius:18, padding:24, width:340, maxWidth:'96vw', boxShadow:'0 10px 40px rgba(0,0,0,0.25)' }}>
+            <div style={{ fontSize:22, marginBottom:6 }}>📅</div>
+            <h3 style={{ fontSize:17, fontWeight:800, color:'#15803d', marginBottom:4 }}>Select Pickup Date</h3>
+            <p style={{ fontSize:13, color:'#6b7280', marginBottom:16, lineHeight:1.5 }}>
+              When are you planning to visit / collect your order? The farmer will be notified.
+            </p>
+            <input
+              type="date"
+              value={pickupDateInput}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={e => setPickupDateInput(e.target.value)}
+              style={{ width:'100%', padding:'11px 13px', borderRadius:9, border:'2px solid #86efac', fontSize:14, boxSizing:'border-box', marginBottom:18, outline:'none' }}
+            />
+            <div style={{ display:'flex', gap:10 }}>
+              <button
+                onClick={() => { setAcceptDateModal(null); setPickupDateInput(''); }}
+                style={{ flex:1, padding:'10px', borderRadius:9, border:'1.5px solid #d1d5db', background:'#f9fafb', color:'#374151', fontWeight:600, cursor:'pointer', fontSize:13 }}
+              >Cancel</button>
+              <button
+                onClick={async () => {
+                  if (!pickupDateInput) { toastError('Please select a pickup date'); return; }
+                  const res = await acceptOffer(acceptDateModal, pickupDateInput);
+                  if (res.success) {
+                    toastSuccess('Offer accepted! Farmer has been notified.');
+                    setAcceptDateModal(null);
+                    setPickupDateInput('');
+                  } else {
+                    toastError(res.error || 'Failed to accept offer');
+                  }
+                }}
+                style={{ flex:2, padding:'10px', borderRadius:9, border:'none', background:'linear-gradient(135deg,#16a34a,#15803d)', color:'#fff', fontWeight:800, cursor:'pointer', fontSize:13 }}
+              >✓ Confirm &amp; Accept</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Prepone Date Modal ── */}
+      {preponeDealId && (() => {
+        const deal = myDemands.find(d => d.id === preponeDealId);
+        return (
+          <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.55)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+            <div style={{ background:'#fff', borderRadius:18, padding:24, width:340, maxWidth:'96vw', boxShadow:'0 10px 40px rgba(0,0,0,0.25)' }}>
+              <div style={{ fontSize:22, marginBottom:6 }}>⏰</div>
+              <h3 style={{ fontSize:17, fontWeight:800, color:'#0369a1', marginBottom:4 }}>Prepone Pickup Date</h3>
+              <p style={{ fontSize:13, color:'#6b7280', marginBottom:6, lineHeight:1.5 }}>
+                You can only <strong>prepone</strong> (select an earlier date than current). The farmer will be notified.
+              </p>
+              <div style={{ fontSize:12, color:'#0369a1', background:'#e0f2fe', borderRadius:8, padding:'6px 10px', marginBottom:14 }}>
+                Current pickup date: <strong>{deal?.pickupDate ? new Date(deal.pickupDate + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : 'Not set'}</strong>
+              </div>
+              <input
+                type="date"
+                value={preponeDate}
+                min={new Date().toISOString().split('T')[0]}
+                max={deal?.pickupDate ? (() => { const d = new Date(deal.pickupDate + 'T00:00:00'); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; })() : undefined}
+                onChange={e => setPreponeDate(e.target.value)}
+                style={{ width:'100%', padding:'11px 13px', borderRadius:9, border:'2px solid #7dd3fc', fontSize:14, boxSizing:'border-box', marginBottom:18, outline:'none' }}
+              />
+              <div style={{ display:'flex', gap:10 }}>
+                <button
+                  onClick={() => { setPreponeDealId(null); setPreponeDate(''); }}
+                  style={{ flex:1, padding:'10px', borderRadius:9, border:'1.5px solid #d1d5db', background:'#f9fafb', color:'#374151', fontWeight:600, cursor:'pointer', fontSize:13 }}
+                >Cancel</button>
+                <button
+                  onClick={async () => {
+                    if (!preponeDate) { toastError('Please select a date'); return; }
+                    const res = await preponePickupDate(preponeDealId, deal?.pickupDate, preponeDate);
+                    if (res.success) {
+                      toastSuccess('Pickup date preponed!');
+                      setPreponeDealId(null);
+                      setPreponeDate('');
+                    } else {
+                      toastError(res.error || 'Failed to update date');
+                    }
+                  }}
+                  style={{ flex:2, padding:'10px', borderRadius:9, border:'none', background:'linear-gradient(135deg,#0284c7,#0369a1)', color:'#fff', fontWeight:800, cursor:'pointer', fontSize:13 }}
+                >⏰ Confirm Prepone</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

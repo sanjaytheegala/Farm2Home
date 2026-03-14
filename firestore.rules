@@ -5,19 +5,29 @@ service cloud.firestore {
     // Helper Functions
     function isSignedIn() { return request.auth != null; }
     function isAdmin() {
+      // Strictly rely on roles_admin, with absolute master fallback
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        request.auth.token.email == 'eagletheegala@gmail.com'
+        request.auth.token.email == 'eagletheegala@gmail.com' ||
+        request.auth.uid == '9D6tcHS3AYRyez91BjcQHu0Bw5h2'
       );
     }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
 
+    // Grant absolute power to administrators across the entire document tree
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
     // 1. Users Collection
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin() || true;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow update: if (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if (isOwner(userId) || isAdmin())
+        && request.resource.data.uid == resource.data.uid;
       allow delete: if isAdmin();
 
       // Cart Persistence
@@ -34,8 +44,13 @@ service cloud.firestore {
     // 2. Crops Collection
     match /crops/{cropId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.farmerId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.farmerId == request.auth.uid;
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && resource.data.farmerId == request.auth.uid
+        && request.resource.data.farmerId == resource.data.farmerId
+      );
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.farmerId == request.auth.uid);
     }
 
     // 3. Orders Collection
@@ -47,7 +62,12 @@ service cloud.firestore {
         (resource != null && (resource.data.customerId == request.auth.uid || resource.data.farmerId == request.auth.uid))
       );
       
-      allow update: if isAdmin() || (isSignedIn() && resource.data.farmerId == request.auth.uid);
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && resource.data.farmerId == request.auth.uid
+        && request.resource.data.customerId == resource.data.customerId
+        && request.resource.data.farmerId == resource.data.farmerId
+      );
       allow delete: if isAdmin();
     }
 
@@ -67,8 +87,12 @@ service cloud.firestore {
       // Farmer can submit an offer (update status to quoted)
       // Admin can do anything
       allow update: if isAdmin()
-        || (isSignedIn() && resource.data.consumerId == request.auth.uid)
-        || (isSignedIn() && resource.data.status == 'open');
+        || (isSignedIn()
+            && resource.data.consumerId == request.auth.uid
+            && request.resource.data.consumerId == resource.data.consumerId)
+        || (isSignedIn()
+            && resource.data.status == 'open'
+            && request.resource.data.consumerId == resource.data.consumerId);
       allow delete: if isAdmin() || (isSignedIn() && resource.data.consumerId == request.auth.uid);
     }
 
@@ -94,7 +118,7 @@ service cloud.firestore {
     }
 
     match /roles_admin/{uid} {
-      allow read: if isSignedIn();
+      allow read: if (isSignedIn() && request.auth.uid == uid) || isAdmin();
       allow write: if false;
     }
 
@@ -102,6 +126,32 @@ service cloud.firestore {
     match /profile_photos/{userId} {
       allow read: if true;
       allow write: if isOwner(userId);
+    }
+
+    // 8. Resource Tools (farming equipment listed for rent)
+    match /resource_tools/{toolId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+      );
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+    }
+
+    // 9. Resource Requests (tool rental requests posted by users)
+    match /resource_requests/{requestId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.requesterId == request.auth.uid;
+      allow update: if isAdmin()
+        || (isSignedIn()
+            && resource.data.requesterId == request.auth.uid
+            && request.resource.data.requesterId == resource.data.requesterId)
+        || (isSignedIn()
+            && resource.data.status == 'Pending'
+            && request.resource.data.requesterId == resource.data.requesterId);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.requesterId == request.auth.uid);
     }
   }
 }

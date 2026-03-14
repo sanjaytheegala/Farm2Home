@@ -30,6 +30,12 @@ export const useFavorites = () => {
       return;
     }
 
+    // Double-check auth token is present before attaching listener
+    if (!auth.currentUser) {
+      setFavorites(localGet());
+      return;
+    }
+
     const favRef = collection(db, 'users', uid, 'favorites');
     const unsub = onSnapshot(
       favRef,
@@ -38,7 +44,11 @@ export const useFavorites = () => {
         setFavorites(ids);
         localStorage.setItem(LOCAL_KEY, JSON.stringify(ids));
       },
-      (err) => console.warn('useFavorites snapshot error:', err.message)
+      (err) => {
+        console.warn('useFavorites snapshot error:', err.message);
+        // Fall back to localStorage on any permission / network error
+        setFavorites(localGet());
+      }
     );
     return () => { try { unsub(); } catch (_) {} };
   }, [uid]);

@@ -84,6 +84,18 @@ const ProfilePage = () => {
   };
 
   const handleSaveProfile = async () => {
+    if (!userData.fullName.trim()) {
+      showMessage('error', 'Name cannot be empty');
+      return;
+    }
+    if (userData.phone && !/^[6-9]\d{9}$/.test(userData.phone.replace(/\s+/g, ''))) {
+      showMessage('error', 'Enter a valid 10-digit Indian phone number');
+      return;
+    }
+    if (userData.pincode && !/^\d{6}$/.test(userData.pincode)) {
+      showMessage('error', 'Enter a valid 6-digit pincode');
+      return;
+    }
     try {
       const user = auth.currentUser;
       if (!user) return;

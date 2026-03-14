@@ -144,8 +144,10 @@
     "review_error": "సమీక్షను సమర్పించడంలో లోపం",
     
     "profile_updated": "ప్రొఫైల్ విజయవంతంగా అప్‌డేట్ చేయబడింది",
-    "profile_update_error": "ప్రొఫైల్ అప్‌డేట్ చేయడంలో లోపం",
-    "password_changed": "పాస్‌వర్డ్ విజయవంతంగా మార్చబడింది",
+    "profile_update_error": "ప్రొఫైల్ అప్‌డేట్ చేయడంలో లోపం",    "profile_load_error": "ప్రొఫైల్ లోడ్ చేయడంలో లోపం",
+    "passwords_dont_match": "కొత్త పాస్‌వర్డ్‌లు సరిపోలలేదు",
+    "password_too_short": "పాస్‍వర్డ్ కనీసం 6 అక్షరాలు ఉండాలి",
+    "current_password_wrong": "ప్రస్తుత పాస్‌వర్డ్ తప్పు",    "password_changed": "పాస్‌వర్డ్ విజయవంతంగా మార్చబడింది",
     "password_change_error": "పాస్‌వర్డ్ మార్చడంలో లోపం",
     
     "ai_crop_recommendations": "AI పంట సిఫార్సులు",

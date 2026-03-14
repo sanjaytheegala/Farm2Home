@@ -68,17 +68,24 @@ export const useMarketOpportunities = () => {
   }, [])
 
   /* ── Submit a price offer for a demand ── */
-  const submitOffer = useCallback(async (demandId, offerPrice, offerUnit = 'kg') => {
+  const submitOffer = useCallback(async (demandId, offerPrice, offerUnit = 'kg', offerAvailableDate = '') => {
     const user = auth.currentUser
     if (!user) return { success: false, error: 'Not logged in' }
     const price = parseFloat(offerPrice)
     if (!price || price <= 0) return { success: false, error: 'Enter a valid price' }
     try {
-      // Fetch farmer's phone from their profile
+      // Fetch farmer's phone and location from their profile
       const profileSnap = await getDoc(doc(db, 'users', user.uid))
-      const farmerPhone = profileSnap.exists()
-        ? (profileSnap.data().phone || profileSnap.data().phoneNumber || 'Not provided')
-        : 'Not provided'
+      const profileData = profileSnap.exists() ? profileSnap.data() : {}
+      const farmerPhone = profileData.phone || profileData.phoneNumber || ''
+      const farmerDistrict = profileData.district || ''
+
+      if (!farmerPhone || farmerPhone.replace(/\D/g, '').length < 10) {
+        return { success: false, error: 'Please add your phone number in your profile before submitting offers.' }
+      }
+      if (!farmerDistrict) {
+        return { success: false, error: 'Please add your location (district) in your profile before submitting offers.' }
+      }
 
       // Normalise to per-kg for calculation, but store original display unit
       const unitMultiplier = offerUnit === 'quintal' ? 100 : offerUnit === 'ton' ? 1000 : 1
@@ -92,6 +99,7 @@ export const useMarketOpportunities = () => {
         farmerOfferDisplay:  price,             // original number entered
         farmerOfferUnit:     offerUnit,         // 'kg' | 'quintal' | 'ton'
         farmerPhone,
+        farmerAvailableUntil: offerAvailableDate || '',
         quotedAt:            serverTimestamp(),
       })
       return { success: true }
@@ -167,5 +175,22 @@ export const useMarketOpportunities = () => {
     }
   }, [])
 
-  return { openDemands, myQuotes, loading, submitOffer, updateOffer, withdrawOffer, markInProgress, toggleFulfilling }
+  /* ── Farmer updates pickup date (can extend or prepone) ── */
+  const farmerUpdatePickupDate = useCallback(async (demandId, newDate) => {
+    if (!newDate) return { success: false, error: 'Please select a date' }
+    const today = new Date().toISOString().split('T')[0]
+    if (newDate < today) return { success: false, error: 'Date cannot be in the past' }
+    try {
+      await updateDoc(doc(db, 'market_demands', demandId), {
+        pickupDate: newDate,
+        pickupDateUpdatedAt: serverTimestamp(),
+        pickupDateUpdatedBy: 'farmer',
+      })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
+  return { openDemands, myQuotes, loading, submitOffer, updateOffer, withdrawOffer, markInProgress, toggleFulfilling, farmerUpdatePickupDate }
 }

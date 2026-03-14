@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Navbar from '../../../components/Navbar'
 import { useCrops } from '../hooks/useCrops'
 import { useCropForm } from '../hooks/useCropForm'
@@ -69,6 +69,33 @@ const stateDistricts = {
   karnataka: ['bagalkot','ballari','belagavi','bengaluru_rural','bengaluru_urban','bidar','chamarajanagar','chikkaballapur','chikkamagaluru','chitradurga','dakshina_kannada','davanagere','dharwad','gadag','hassan','haveri','kalaburagi','kodagu','kolar','koppal','mandya','mysuru','raichur','ramanagara','shivamogga','tumakuru','udupi','uttara_kannada','vijayapura','yadgir','vijayanagara']
 }
 
+/* ── Relative time helper ── */
+const formatRelTime = (ts) => {
+  if (!ts) return null
+  const date = ts?.toDate ? ts.toDate() : ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts)
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
+
+/* ── Skeleton shimmer card ── */
+const SkeletonCard = () => (
+  <div className="fd-skeleton-card" aria-hidden="true">
+    <div className="fd-sk-row">
+      <div className="fd-sk-circle" />
+      <div style={{ flex: 1 }}>
+        <div className="fd-sk-line fd-sk-title" />
+        <div className="fd-sk-line fd-sk-body" />
+      </div>
+    </div>
+    <div className="fd-sk-line fd-sk-short" />
+    <div className="fd-sk-line fd-sk-mid" />
+  </div>
+)
+
 /* ─────────────────────────────────────────────────────────────
    DemandCard — one consumer request card in the market tab
 ───────────────────────────────────────────────────────────── */
@@ -78,23 +105,26 @@ const UNIT_OPTIONS = [
   { value: 'ton',     label: 'per Ton (1000 kg)' },
 ]
 
-const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastError, onToastSuccess }) => {
+const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastError, onToastSuccess, isBlinking = false }) => {
   const [showComplaint, setShowComplaint] = useState(false)
   const [showOfferForm, setShowOfferForm] = useState(false)
   const [offerPrice, setOfferPrice]       = useState('')
   const [offerUnit,  setOfferUnit]        = useState('kg')
+  const [offerAvailDate, setOfferAvailDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 10); return d.toISOString().split('T')[0]; })
   const [submitting, setSubmitting]       = useState(false)
   const hasPhone = demand.consumerPhone && demand.consumerPhone !== 'Not provided'
   const cropImg  = getCropImage(demand.cropName)
 
   const handleSubmitOffer = async () => {
     if (!offerPrice || parseFloat(offerPrice) <= 0) { onToastError('Enter a valid price'); return }
+    if (!offerAvailDate) { onToastError('Please set your crop availability date'); return }
     setSubmitting(true)
-    const res = await onSubmitOffer(demand.id, offerPrice, offerUnit)
+    const res = await onSubmitOffer(demand.id, offerPrice, offerUnit, offerAvailDate)
     setSubmitting(false)
     if (res.success) {
       onToastSuccess('Offer submitted! Consumer will be notified.')
-      setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg')
+      const def = new Date(); def.setDate(def.getDate() + 10);
+      setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg'); setOfferAvailDate(def.toISOString().split('T')[0])
     } else {
       onToastError(res.error || 'Could not submit offer')
     }
@@ -106,7 +136,10 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
     : null
 
   return (
-    <div className={`fd-demand-card${isPriority ? ' fd-demand-card--priority' : ''}`}>
+    <div
+      data-notif-id={demand.id}
+      className={`fd-demand-card${isPriority ? ' fd-demand-card--priority' : ''}${isBlinking ? ' fd-card-blink' : ''}`}
+    >
 
       {/* ── Top row: crop image (left) | Near You + Chat (right) ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -117,6 +150,9 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {isPriority && <div className="fd-priority-badge" style={{ margin: 0 }}>📍 Near You</div>}
+          {(demand.consumerTotalDeals || 0) >= 5 && (
+            <span className="fd-verified-badge">✓ Verified</span>
+          )}
           <button
             className="chat-trigger-btn"
             onClick={() => onOpenChat(demand)}
@@ -174,6 +210,18 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
               Total for {demand.quantityKg} kg → ₹{parseInt(totalEst).toLocaleString()}
             </div>
           )}
+          {/* Availability date */}
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Crop Available Until *</label>
+            <input
+              type="date"
+              value={offerAvailDate}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={e => setOfferAvailDate(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #86efac', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+            />
+            <span style={{ fontSize: 10, color: '#6b7280', marginTop: 2, display: 'block' }}>Consumer will know till when you have this crop</span>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={handleSubmitOffer} disabled={submitting}
@@ -182,7 +230,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
               {submitting ? 'Submitting…' : <><FaCheckCircle style={{ marginRight: 6 }} />Send Offer</>}
             </button>
             <button
-              onClick={() => { setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg') }}
+              onClick={() => { const def = new Date(); def.setDate(def.getDate()+10); setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg'); setOfferAvailDate(def.toISOString().split('T')[0]) }}
               style={{ padding: '9px 14px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
             >
               Cancel
@@ -243,8 +291,15 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
 
 const FarmerDashboard = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { currentUser, userData } = useAuth()
-  const [activeTab, setActiveTab] = useState('crops')
+  const VALID_TABS = ['crops', 'analytics', 'orders', 'market', 'notifications']
+  const tabFromUrl = searchParams.get('tab')
+  const [activeTab, setActiveTabState] = useState(VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'crops')
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab)
+    setSearchParams({ tab }, { replace: true })
+  }
   const [farmerName, setFarmerName] = useState('')
   const [farmerPhoto, setFarmerPhoto] = useState(null)
   const [farmerPhone, setFarmerPhone] = useState('')
@@ -254,8 +309,17 @@ const FarmerDashboard = () => {
   const [userLocation, setUserLocation] = useState({ state: '', district: '' })
   const [activeChatDemand, setActiveChatDemand] = useState(null)
   const [editingDeal, setEditingDeal] = useState({}) // { [dealId]: { price, unit } }
+  const [changingDateDeal, setChangingDateDeal] = useState(null) // dealId or null
+  const [farmerNewDate, setFarmerNewDate] = useState('')
   const [cropSearch, setCropSearch] = useState('')
   const [cropPickerStep, setCropPickerStep] = useState('pick') // 'pick' | 'details'
+
+  // Notification state
+  const [rentalNotifs, setRentalNotifs] = useState([])
+  const [blinkCardId, setBlinkCardId] = useState(null)
+  const [seenNotifIds, setSeenNotifIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(`farmerNotifSeen_init`) || '[]')) } catch { return new Set() }
+  })
 
   // Real-time Firestore listener for farmer profile
   useEffect(() => {
@@ -283,9 +347,29 @@ const FarmerDashboard = () => {
     return () => { try { unsub() } catch (_) {} }
   }, [currentUser, userData, navigate])
 
+  // Real-time listener for rental requests (resource tool requests incoming to this farmer)
+  useEffect(() => {
+    if (!currentUser?.uid) return
+    const q = query(collection(db, 'rental_requests'), where('toolOwnerId', '==', currentUser.uid))
+    const unsub = onSnapshot(q,
+      (snap) => setRentalNotifs(snap.docs.map(d => ({ ...d.data(), id: d.id })).filter(r => r.status === 'Requested')),
+      (err) => console.warn('rental_requests notif error:', err.message)
+    )
+    return () => { try { unsub() } catch (_) {} }
+  }, [currentUser?.uid])
+
+  // Load seen IDs from localStorage once uid is known
+  useEffect(() => {
+    if (!currentUser?.uid) return
+    try {
+      const stored = JSON.parse(localStorage.getItem(`farmerNotifSeen_${currentUser.uid}`) || '[]')
+      setSeenNotifIds(new Set(stored))
+    } catch {}
+  }, [currentUser?.uid])
+
   const { savedCrops, loading, analytics, addCrop, deleteCrop, updateCropStatus, updateCrop } = useCrops()
   const { orders, loading: ordersLoading, updateOrderStatus } = useOrders()
-  const { openDemands, myQuotes, submitOffer, updateOffer, withdrawOffer, markInProgress, toggleFulfilling } = useMarketOpportunities()
+  const { openDemands, myQuotes, submitOffer, updateOffer, withdrawOffer, markInProgress, toggleFulfilling, farmerUpdatePickupDate } = useMarketOpportunities()
   const { success: toastSuccess, error: toastError } = useToast()
 
   const [selectedOrder, setSelectedOrder] = useState(null)
@@ -332,7 +416,8 @@ const FarmerDashboard = () => {
       quantity: String(crop.quantity || ''),
       price: String(crop.price || ''),
       status: crop.status || 'available',
-      notes: crop.notes || ''
+      notes: crop.notes || '',
+      availableUntil: crop.availableUntil || ''
     }])
     setCropPickerStep('details')
     setShowAddForm(true)
@@ -369,6 +454,7 @@ const FarmerDashboard = () => {
         quantity: cropData.quantity,
         status: cropData.status,
         notes: cropData.notes,
+        availableUntil: cropData.availableUntil || '',
         state: cropData.state,
         district: cropData.district,
         image: cropData.image,
@@ -449,6 +535,77 @@ const FarmerDashboard = () => {
   const availableCount = savedCrops.filter(c => c.status === 'available' || c.status === 'pending').length
   // Revenue = sum of totalPrice from all orders (confirmed/shipped/delivered)
   const soldRevenue = orders.reduce((s, o) => s + (parseFloat(o.totalPrice || o.totalAmount || 0)), 0)
+
+  // ── Notifications ──
+  const farmerNotifications = [
+    ...openDemands
+      .slice()
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+      .slice(0, 30)
+      .map(d => ({
+        id: d.id,
+        type: 'demand',
+        icon: '🌾',
+        title: `Crop Request: ${d.cropName}`,
+        subtitle: `${d.quantityKg} kg needed · ${d.location}`,
+        timeLabel: formatRelTime(d.createdAt),
+        tabTarget: 'market',
+      })),
+    ...orders
+      .filter(o => o.status === 'pending')
+      .map(o => ({
+        id: o.id,
+        type: 'order',
+        icon: '📦',
+        title: `New Order: ${o.cropName || 'Crop'}`,
+        subtitle: `${o.quantity} ${o.unit || 'kg'} · ₹${parseFloat(o.totalPrice || 0).toFixed(0)}`,
+        timeLabel: formatRelTime(o.createdAt),
+        tabTarget: 'orders',
+      })),
+    ...rentalNotifs.map(r => ({
+      id: r.id,
+      type: 'resource',
+      icon: '🚜',
+      title: `Tool Request: ${r.toolName}`,
+      subtitle: `${r.requesterName} · ${r.ownerDistrict || ''}`,
+      timeLabel: formatRelTime(r.createdAt),
+      tabTarget: null,
+    })),
+  ].sort((a, b) => {
+    const ta = a.timeLabel === 'just now' ? Date.now() : 0
+    const tb = b.timeLabel === 'just now' ? Date.now() : 0
+    return tb - ta
+  })
+
+  const unseenCount = farmerNotifications.filter(n => !seenNotifIds.has(n.id)).length
+
+  const handleNotifOpen = useCallback(() => {
+    if (!currentUser?.uid) return
+    const newSeen = new Set([...seenNotifIds, ...farmerNotifications.map(n => n.id)])
+    setSeenNotifIds(newSeen)
+    try { localStorage.setItem(`farmerNotifSeen_${currentUser.uid}`, JSON.stringify([...newSeen])) } catch {}
+  }, [currentUser?.uid, seenNotifIds, farmerNotifications])
+
+  const handleNotifItemClick = useCallback((notif) => {
+    if (notif.type === 'resource') {
+      navigate('/resource-share')
+      return
+    }
+    setActiveTab(notif.tabTarget)
+    setBlinkCardId(notif.id)
+    setTimeout(() => setBlinkCardId(null), 2500)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate])
+
+  // Scroll to blinking card after tab switch renders
+  useEffect(() => {
+    if (!blinkCardId) return
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-notif-id="${blinkCardId}"]`)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [blinkCardId])
 
   return (
     <div className="fd-root">
@@ -546,7 +703,15 @@ const FarmerDashboard = () => {
         </div>
       )}
 
-      <Navbar isFarmerDashboard={true} activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navbar
+        isFarmerDashboard={true}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        farmerNotifCount={unseenCount}
+        farmerNotifications={farmerNotifications}
+        onFarmerNotifOpen={handleNotifOpen}
+        onFarmerNotifItemClick={handleNotifItemClick}
+      />
 
       {/* ─── Welcome Banner ─── */}
       <div className="fd-banner">
@@ -571,6 +736,9 @@ const FarmerDashboard = () => {
                 <p className="fd-location" style={{ marginTop: 2 }}>
                   <FaPhone style={{ marginRight: 5, color: '#16a34a' }} />{farmerPhone}
                 </p>
+              )}
+              {myQuotes.filter(d => d.status === 'completed').length >= 5 && (
+                <span className="fd-verified-badge fd-verified-badge--profile">✓ Verified Farmer</span>
               )}
               <button
                 onClick={handleOpenEditProfile}
@@ -806,6 +974,22 @@ const FarmerDashboard = () => {
                       <option value="reserved">Reserved</option>
                     </select>
                   </div>
+                  <div className="fd-field">
+                    <label className="fd-label">Available Until</label>
+                    <input
+                      type="date"
+                      value={row.availableUntil}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={e => updateField(index, 'availableUntil', e.target.value)}
+                      className="fd-input"
+                      title="The date until which this crop will be available"
+                    />
+                    {row.availableUntil && (
+                      <span style={{ fontSize:11, color:'#6b7280', marginTop:3, display:'block' }}>
+                        Consumers will see: Available till {new Date(row.availableUntil + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
+                      </span>
+                    )}
+                  </div>
                   <div className="fd-field fd-field--full">
                     <label className="fd-label">Notes (optional)</label>
                     <textarea
@@ -828,6 +1012,56 @@ const FarmerDashboard = () => {
             )
           })}
 
+          {/* Skeleton while loading */}
+          {loading && savedCrops.length === 0 && !showAddForm && (
+            <div className="fd-saved-crops-list">
+              {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+            </div>
+          )}
+
+          {/* Saved crops list */}
+          {savedCrops.length > 0 && !showAddForm && (
+            <div className="fd-saved-crops-list">
+              {savedCrops.map(crop => {
+                const sm = statusMeta[crop.status] || statusMeta.available
+                const img = getCropImage(crop.crop || crop.cropName)
+                const today = new Date().toISOString().split('T')[0]
+                const isExpired = crop.availableUntil && crop.availableUntil < today
+                return (
+                  <div key={crop.id} className="fd-saved-crop-row" style={{ borderLeft: `4px solid ${isExpired ? '#ef4444' : sm.color || '#2e7d32'}` }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+                      {img
+                        ? <img src={img} alt={crop.crop || crop.cropName} style={{ width:40, height:40, borderRadius:8, objectFit:'cover', flexShrink:0 }} onError={e => { e.target.style.display='none' }} />
+                        : <FaLeaf style={{ fontSize:28, color:'#2e7d32', flexShrink:0 }} />
+                      }
+                      <div style={{ minWidth:0 }}>
+                        <div style={{ fontWeight:700, fontSize:14, color:'#1a2e1a', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{crop.crop || crop.cropName}</div>
+                        <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>{crop.quantity} kg · ₹{crop.price}/kg</div>
+                        {crop.availableUntil && (
+                          <div style={{ fontSize:11, marginTop:3, fontWeight:600, color: isExpired ? '#dc2626' : '#059669', display:'flex', alignItems:'center', gap:4 }}>
+                            <FaCalendarAlt style={{ fontSize:10 }} />
+                            {isExpired ? 'Expired: ' : 'Available till: '}
+                            {new Date(crop.availableUntil + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
+                          </div>
+                        )}
+                        {formatRelTime(crop.updatedAt || crop.createdAt) && (
+                          <div className="fd-last-updated">
+                            🕐 {formatRelTime(crop.updatedAt || crop.createdAt)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                      <span style={{ fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:20, background:sm.bg, color:sm.color, border:`1px solid ${sm.color}40` }}>{sm.label}</span>
+                      <button onClick={() => handleEdit(crop)} style={{ padding:'5px 10px', borderRadius:7, border:'1.5px solid #3b82f6', background:'#eff6ff', color:'#1d4ed8', fontWeight:600, fontSize:11, cursor:'pointer' }}>✎ Edit</button>
+                      <button onClick={() => handleDelete(crop.id)} style={{ padding:'5px 10px', borderRadius:7, border:'1.5px solid #fca5a5', background:'#fef2f2', color:'#dc2626', fontWeight:600, fontSize:11, cursor:'pointer' }}>✕ Delete</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {/* Empty state */}
           {savedCrops.length === 0 && !showAddForm && (
             <div className="fd-empty">
@@ -836,6 +1070,7 @@ const FarmerDashboard = () => {
               <p className="fd-empty-sub">Click "Add New Crop" to start listing your produce and reach buyers directly.</p>
             </div>
           )}
+
 
         </div>
       )}
@@ -916,9 +1151,8 @@ const FarmerDashboard = () => {
           </h2>
 
           {ordersLoading ? (
-            <div className="fd-empty">
-              <div className="fd-empty-icon">⏳</div>
-              <h3 className="fd-empty-title">Loading orders…</h3>
+            <div className="fd-orders-list">
+              {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
             </div>
           ) : orders.length === 0 ? (
             <div className="fd-empty">
@@ -940,7 +1174,10 @@ const FarmerDashboard = () => {
                 const date = order.createdAtMs ? new Date(order.createdAtMs).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 
                 return (
-                  <div key={order.id} className={`fd-order-card ${selectedOrder?.id === order.id ? 'fd-order-card--open' : ''}`} style={{ borderLeftColor: statusCfg.color }}>
+                  <div key={order.id}
+                    data-notif-id={order.id}
+                    className={`fd-order-card ${selectedOrder?.id === order.id ? 'fd-order-card--open' : ''} ${blinkCardId === order.id ? 'fd-card-blink' : ''}`}
+                    style={{ borderLeftColor: statusCfg.color }}>
                     {/* ── Card Header (always visible) ── */}
                     <div className="fd-order-header" onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}>
                       <div className="fd-order-meta">
@@ -1036,84 +1273,12 @@ const FarmerDashboard = () => {
               })}
             </div>
           )}
-        </div>
-      )}
 
-      {/* ─── MARKET OPPORTUNITIES TAB ─── */}
-      {activeTab === 'market' && (
-        <div className="fd-content">
-          <h2 className="fd-content-title">
-            <FaBullseye style={{ color: '#7c3aed', marginRight: 8 }} />
-            Crop Requests
-            {openDemands.length > 0 && (
-              <span className="fd-notif-count" style={{ background: '#7c3aed' }}>{openDemands.length}</span>
-            )}
-          </h2>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
-            Consumers are requesting these crops -- submit your best price offer and win the deal!
-          </p>
-
-          {/* Open Demands — sorted by location match */}
-          {openDemands.length === 0 ? (
-            <div className="fd-empty">
-              <div className="fd-empty-icon">🎯</div>
-              <h3 className="fd-empty-title">No open requests yet</h3>
-              <p className="fd-empty-sub">When consumers request crops, they'll appear here.</p>
-            </div>
-          ) : (
-            <>
-              {/* Priority Leads */}
-              {priorityDemands.length > 0 && (
-                <>
-                  <div className="fd-market-section-label fd-market-section-label--priority">
-                    📍 Priority Leads — Near You ({priorityDemands.length})
-                  </div>
-                  <div className="fd-market-grid">
-                    {priorityDemands.map(demand => (
-                      <DemandCard
-                        key={demand.id}
-                        demand={demand}
-                        isPriority
-                        onSubmitOffer={submitOffer}
-                        onOpenChat={setActiveChatDemand}
-                        onToastError={toastError}
-                        onToastSuccess={toastSuccess}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Other Leads */}
-              {otherDemands.length > 0 && (
-                <>
-                  {priorityDemands.length > 0 && (
-                    <div className="fd-market-section-label" style={{ marginTop: 24 }}>
-                      📦 Other Requests ({otherDemands.length})
-                    </div>
-                  )}
-                  <div className="fd-market-grid">
-                    {otherDemands.map(demand => (
-                      <DemandCard
-                        key={demand.id}
-                        demand={demand}
-                        isPriority={false}
-                        onSubmitOffer={submitOffer}
-                        onOpenChat={setActiveChatDemand}
-                        onToastError={toastError}
-                        onToastSuccess={toastSuccess}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          {/* My Quotes & Active Deals — exclude completed */}
+          {/* ─── My Quotes & Active Deals ─── */}
           {myQuotes.filter(d => d.status !== 'completed').length > 0 && (
             <>
-              <h3 className="fd-market-section-title" style={{ marginTop: 32 }}>
+              <div style={{ borderTop: '2px solid #f3f4f6', margin: '32px 0 24px' }} />
+              <h3 className="fd-market-section-title" style={{ marginTop: 0 }}>
                 <FaCoins style={{ color: '#f59e0b', marginRight: 8 }} />
                 My Quotes & Active Deals ({myQuotes.filter(d => d.status !== 'completed').length})
               </h3>
@@ -1133,7 +1298,7 @@ const FarmerDashboard = () => {
                   }[deal.status] || deal.status
 
                   return (
-                    <div key={deal.id} className="fd-demand-card fd-committed-card">
+                    <div key={deal.id} data-notif-id={deal.id} className={`fd-demand-card fd-committed-card${blinkCardId === deal.id ? ' fd-card-blink' : ''}`}>
 
                       {/* Status badge */}
                       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
@@ -1188,6 +1353,74 @@ const FarmerDashboard = () => {
                               <FaPhone style={{ fontSize:11 }} />{deal.consumerPhone || 'Not provided'}
                             </a>
                           </div>
+                        </div>
+                      )}
+
+                      {/* Pickup date panel */}
+                      {['deal_closed','in_progress'].includes(deal.status) && (
+                        <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:10, padding:'10px 12px', marginBottom:10 }}>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <FaCalendarAlt style={{ color:'#15803d', fontSize:13 }} />
+                              <span style={{ fontSize:12, fontWeight:600, color:'#166534' }}>
+                                Consumer Pickup Date:
+                              </span>
+                              <span style={{ fontSize:13, fontWeight:700, color:'#15803d' }}>
+                                {deal.pickupDate
+                                  ? new Date(deal.pickupDate + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+                                  : 'Not set'}
+                              </span>
+                            </div>
+                            {deal.status === 'deal_closed' && (
+                              <button
+                                onClick={() => {
+                                  setChangingDateDeal(changingDateDeal === deal.id ? null : deal.id)
+                                  setFarmerNewDate(deal.pickupDate || '')
+                                }}
+                                style={{ fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:8, border:'1.5px solid #16a34a', background: changingDateDeal === deal.id ? '#dcfce7' : '#fff', color:'#15803d', cursor:'pointer' }}
+                              >
+                                <FaCalendarAlt style={{ marginRight:4, fontSize:10 }} />
+                                Change Date
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Farmer date change panel */}
+                          {changingDateDeal === deal.id && deal.status === 'deal_closed' && (
+                            <div style={{ marginTop:10, paddingTop:10, borderTop:'1px solid #bbf7d0' }}>
+                              <div style={{ fontSize:11, color:'#166534', fontWeight:600, marginBottom:6 }}>
+                                Select new date (you can extend or prepone):
+                              </div>
+                              <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                                <input
+                                  type="date"
+                                  value={farmerNewDate}
+                                  min={new Date().toISOString().split('T')[0]}
+                                  onChange={e => setFarmerNewDate(e.target.value)}
+                                  style={{ flex:1, padding:'7px 10px', borderRadius:8, border:'1.5px solid #86efac', fontSize:13, outline:'none' }}
+                                />
+                                <button
+                                  onClick={async () => {
+                                    const res = await farmerUpdatePickupDate(deal.id, farmerNewDate)
+                                    if (res.success) {
+                                      toastSuccess('Pickup date updated!')
+                                      setChangingDateDeal(null)
+                                      setFarmerNewDate('')
+                                    } else toastError(res.error || 'Failed to update date')
+                                  }}
+                                  style={{ padding:'7px 14px', borderRadius:8, border:'none', background:'#15803d', color:'#fff', fontWeight:700, fontSize:12, cursor:'pointer' }}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => { setChangingDateDeal(null); setFarmerNewDate('') }}
+                                  style={{ padding:'7px 10px', borderRadius:8, border:'1px solid #d1d5db', background:'#f9fafb', color:'#374151', fontWeight:600, fontSize:12, cursor:'pointer' }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1289,6 +1522,82 @@ const FarmerDashboard = () => {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* ─── MARKET OPPORTUNITIES TAB ─── */}
+      {activeTab === 'market' && (
+        <div className="fd-content">
+          <h2 className="fd-content-title">
+            <FaBullseye style={{ color: '#7c3aed', marginRight: 8 }} />
+            Crop Requests
+            {openDemands.length > 0 && (
+              <span className="fd-notif-count" style={{ background: '#7c3aed' }}>{openDemands.length}</span>
+            )}
+          </h2>
+          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
+            Consumers are requesting these crops -- submit your best price offer and win the deal!
+          </p>
+
+          {/* Open Demands — sorted by location match */}
+          {openDemands.length === 0 ? (
+            <div className="fd-empty">
+              <div className="fd-empty-icon">🎯</div>
+              <h3 className="fd-empty-title">No open requests yet</h3>
+              <p className="fd-empty-sub">When consumers request crops, they'll appear here.</p>
+            </div>
+          ) : (
+            <>
+              {/* Priority Leads */}
+              {priorityDemands.length > 0 && (
+                <>
+                  <div className="fd-market-section-label fd-market-section-label--priority">
+                    Near You ({priorityDemands.length})
+                  </div>
+                  <div className="fd-market-grid">
+                    {priorityDemands.map(demand => (
+                      <DemandCard
+                        key={demand.id}
+                        demand={demand}
+                        isPriority
+                        isBlinking={blinkCardId === demand.id}
+                        onSubmitOffer={submitOffer}
+                        onOpenChat={setActiveChatDemand}
+                        onToastError={toastError}
+                        onToastSuccess={toastSuccess}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Other Leads */}
+              {otherDemands.length > 0 && (
+                <>
+                  {priorityDemands.length > 0 && (
+                    <div className="fd-market-section-label" style={{ marginTop: 24 }}>
+                      📦 Other Requests ({otherDemands.length})
+                    </div>
+                  )}
+                  <div className="fd-market-grid">
+                    {otherDemands.map(demand => (
+                      <DemandCard
+                        key={demand.id}
+                        demand={demand}
+                        isPriority={false}
+                        isBlinking={blinkCardId === demand.id}
+                        onSubmitOffer={submitOffer}
+                        onOpenChat={setActiveChatDemand}
+                        onToastError={toastError}
+                        onToastSuccess={toastSuccess}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
         </div>
       )}
 

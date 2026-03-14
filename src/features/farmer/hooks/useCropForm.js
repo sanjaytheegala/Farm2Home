@@ -5,13 +5,20 @@ import { useState, useEffect } from 'react';
  * Handles form inputs, validation, and row management
  * @param {Object} userLocation - User's location data with state and district
  */
+const getDefault10Days = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 10);
+  return d.toISOString().split('T')[0];
+};
+
 export const useCropForm = (userLocation = {}) => {
   const [rows, setRows] = useState([{
     crop: '',
     quantity: '',
     price: '',
     status: 'available',
-    notes: ''
+    notes: '',
+    availableUntil: getDefault10Days()
   }]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedState, setSelectedState] = useState(userLocation.state || 'telangana');
@@ -34,7 +41,8 @@ export const useCropForm = (userLocation = {}) => {
       quantity: '',
       price: '',
       status: 'available',
-      notes: ''
+      notes: '',
+      availableUntil: getDefault10Days()
     }]);
   };
 
@@ -52,7 +60,8 @@ export const useCropForm = (userLocation = {}) => {
       quantity: '',
       price: '',
       status: 'available',
-      notes: ''
+      notes: '',
+      availableUntil: getDefault10Days()
     }]);
     setShowAddForm(false);
   };
@@ -77,6 +86,7 @@ export const useCropForm = (userLocation = {}) => {
       price: parseFloat(row.price),
       status: row.status,
       notes: row.notes,
+      availableUntil: row.availableUntil || '',
       state: selectedState,
       district: selectedDistrict
     };

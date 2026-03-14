@@ -912,12 +912,12 @@
 .fd-category-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #c62828;
+  color: #7c3aed;
   margin: 0 0 10px 0;
-  padding: 6px 14px;
-  background: linear-gradient(90deg, #e8f5e9 0%, transparent 100%);
-  border-left: 4px solid #4caf50;
-  border-radius: 4px;
+  padding: 2px 0;
+  background: none;
+  border-left: none;
+  border-radius: 0;
   letter-spacing: 0.3px;
 }
 
@@ -1803,4 +1803,118 @@
   background: #dcfce7;
   border-color: #16a34a;
   color: #15803d;
+}
+
+/* ─── Saved Crops List (Crops Tab) ─── */
+.fd-saved-crops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.fd-saved-crop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  flex-wrap: wrap;
+}
+.fd-saved-crop-row:hover {
+  box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+}
+
+/* ── Skeleton shimmer ───────────────────────────────── */
+@keyframes fd-shimmer {
+  0%   { background-position: -480px 0; }
+  100% { background-position: 480px 0; }
+}
+
+/* ── Card blink animation (triggered by notification click) ── */
+@keyframes fd-card-blink {
+  0%   { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);   outline: 3px solid transparent; }
+  20%  { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0.4); outline: 3px solid #f59e0b; }
+  40%  { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);   outline: 3px solid transparent; }
+  62%  { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0.4); outline: 3px solid #f59e0b; }
+  80%  { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);   outline: 3px solid transparent; }
+  100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);   outline: 3px solid transparent; }
+}
+
+.fd-card-blink {
+  animation: fd-card-blink 1.6s ease-in-out;
+  scroll-snap-margin-top: 120px;
+  scroll-margin-top: 120px;
+}
+
+.fd-skeleton-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  margin-bottom: 10px;
+}
+
+.fd-sk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.fd-sk-circle {
+  width: 44px; height: 44px;
+  border-radius: 10px; flex-shrink: 0;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 960px 100%;
+  animation: fd-shimmer 1.4s infinite linear;
+}
+
+.fd-sk-line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 960px 100%;
+  animation: fd-shimmer 1.4s infinite linear;
+  margin-bottom: 8px;
+}
+
+.fd-sk-title  { height: 14px; width: 55%; }
+.fd-sk-body   { height: 11px; width: 35%; }
+.fd-sk-short  { height: 11px; width: 40%; }
+.fd-sk-mid    { height: 11px; width: 65%; margin-bottom: 0; }
+
+/* ── Verified badge ─────────────────────────────────── */
+.fd-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.fd-verified-badge--profile {
+  margin-top: 6px;
+  font-size: 12px;
+  padding: 3px 11px;
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  border-color: rgba(255,255,255,0.6);
+}
+
+/* ── Last Updated timestamp ─────────────────────────── */
+.fd-last-updated {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }

@@ -50,9 +50,16 @@ export const useMarketDemands = () => {
     if (!user) return { success: false, error: 'Not logged in' }
     try {
       const profileSnap = await getDoc(doc(db, 'users', user.uid))
-      const consumerPhone = profileSnap.exists()
-        ? (profileSnap.data().phoneNumber || profileSnap.data().phone || 'Not provided')
-        : 'Not provided'
+      const profileData = profileSnap.exists() ? profileSnap.data() : {}
+      const consumerPhone = profileData.phoneNumber || profileData.phone || ''
+      const consumerDistrict = profileData.district || ''
+
+      if (!consumerPhone || consumerPhone.replace(/\D/g, '').length < 10) {
+        return { success: false, error: 'Please add your phone number in your profile before placing crop requests.' }
+      }
+      if (!consumerDistrict) {
+        return { success: false, error: 'Please add your location (district) in your profile before placing crop requests.' }
+      }
 
       await addDoc(collection(db, 'market_demands'), {
         cropName:      formData.cropName.trim(),
@@ -99,19 +106,44 @@ export const useMarketDemands = () => {
     }
   }, [])
   /* ── Consumer accepts farmer's offer → deal_closed ── */
-  const acceptOffer = useCallback(async (demandId) => {
+  const acceptOffer = useCallback(async (demandId, pickupDate) => {
     const user = auth.currentUser
     if (!user) return { success: false, error: 'Not logged in' }
+    if (!pickupDate) return { success: false, error: 'Please select a pickup date' }
     try {
       const profileSnap = await getDoc(doc(db, 'users', user.uid))
-      const consumerPhone = profileSnap.exists()
-        ? (profileSnap.data().phone || profileSnap.data().phoneNumber || 'Not provided')
-        : 'Not provided'
+      const profileData = profileSnap.exists() ? profileSnap.data() : {}
+      const consumerPhone = profileData.phone || profileData.phoneNumber || ''
+
+      if (!consumerPhone || consumerPhone.replace(/\D/g, '').length < 10) {
+        return { success: false, error: 'Please add your phone number in your profile before accepting offers.' }
+      }
 
       await updateDoc(doc(db, 'market_demands', demandId), {
         status:        'deal_closed',
         consumerPhone,
+        pickupDate,
         dealClosedAt:  serverTimestamp(),
+      })
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
+  /* ── Consumer prepones pickup date (cannot extend) ── */
+  const preponePickupDate = useCallback(async (demandId, currentPickupDate, newDate) => {
+    if (!newDate) return { success: false, error: 'Please select a date' }
+    if (currentPickupDate && newDate >= currentPickupDate) {
+      return { success: false, error: 'You can only prepone (select an earlier date)' }
+    }
+    const today = new Date().toISOString().split('T')[0]
+    if (newDate < today) return { success: false, error: 'Date cannot be in the past' }
+    try {
+      await updateDoc(doc(db, 'market_demands', demandId), {
+        pickupDate: newDate,
+        pickupDateUpdatedAt: serverTimestamp(),
+        pickupDateUpdatedBy: 'consumer',
       })
       return { success: true }
     } catch (err) {
@@ -210,5 +242,5 @@ export const useMarketDemands = () => {
     }
   }, [])
 
-  return { myDemands, loading, submitDemand, rejectOffer, acceptOffer, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal }
+  return { myDemands, loading, submitDemand, rejectOffer, acceptOffer, preponePickupDate, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal }
 }

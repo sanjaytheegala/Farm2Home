@@ -2183,6 +2183,7 @@
   min-height: 100vh;
   background: #f8fafc;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  padding-top: 70px; /* clear the fixed global navbar */
 }
 .cd-container {
   max-width: 1320px;
@@ -2193,7 +2194,7 @@
 /* ── Sticky Navbar ───────────────────────────────────────────── */
 .cd-navbar {
   position: sticky;
-  top: 0;
+  top: 70px; /* stick just below the fixed global navbar */
   z-index: 200;
   background: rgba(255,255,255,0.85);
   backdrop-filter: blur(12px);
@@ -3092,4 +3093,63 @@
   .cd-navbar-inner { padding: 0 16px; }
   .cd-container { padding: 0 16px; }
   .cd-navbar-brand-name { font-size: 15px; }
+}
+
+/* ── Skeleton shimmer (products grid) ───────────────── */
+@keyframes cd-shimmer {
+  0%   { background-position: -480px 0; }
+  100% { background-position: 480px 0; }
+}
+
+.cd-skeleton-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+}
+
+.cd-sk-img {
+  width: 100%;
+  height: 160px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 960px 100%;
+  animation: cd-shimmer 1.4s infinite linear;
+}
+
+.cd-sk-body {
+  padding: 12px 14px;
+}
+
+.cd-sk-line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 960px 100%;
+  animation: cd-shimmer 1.4s infinite linear;
+  margin-bottom: 9px;
+}
+
+.cd-sk-title { height: 14px; width: 65%; }
+.cd-sk-sub   { height: 11px; width: 45%; }
+.cd-sk-price { height: 13px; width: 30%; margin-bottom: 0; }
+
+/* ── Verified badge ─────────────────────────────────── */
+.cd-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* ── Last Updated timestamp ─────────────────────────── */
+.cd-last-updated {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-left: 4px;
 }
