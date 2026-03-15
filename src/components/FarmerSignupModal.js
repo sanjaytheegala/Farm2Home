@@ -159,8 +159,9 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
         userData.uid = user.uid;
       }
       
-      // Check if user is active and is a farmer
-      if (userData.status !== 'active') {
+      // Block only explicitly inactive/suspended accounts (legacy users may not have status)
+      const normalizedStatus = (userData.status || '').toLowerCase();
+      if (normalizedStatus === 'inactive' || normalizedStatus === 'suspended') {
         throw new Error('Your account is inactive. Please contact support.');
       }
 

@@ -2675,6 +2675,11 @@
   resolved "https://registry.npmjs.org/@vercel/analytics/-/analytics-1.5.0.tgz"
   integrity sha512-MYsBzfPki4gthY5HnYN7jgInhAZ7Ac1cYDoRWFomwGHWEX7odTEzbtg9kf/QSo7XEsEAqlQugA6gJ2WS2DEa3g==
 
+"@vercel/speed-insights@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.npmjs.org/@vercel/speed-insights/-/speed-insights-2.0.0.tgz"
+  integrity sha512-jwkNcrTeafWxjmWq4AHBaptSqZiJkYU5adLC9QBSqeim0GcqDMgN5Ievh8OG1rJ6W3A4l1oiP7qr9CWxGuzu3w==
+
 "@webassemblyjs/ast@^1.14.1", "@webassemblyjs/ast@1.14.1":
   version "1.14.1"
   resolved "https://registry.npmjs.org/@webassemblyjs/ast/-/ast-1.14.1.tgz"

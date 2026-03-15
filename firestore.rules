@@ -153,5 +153,22 @@ service cloud.firestore {
             && request.resource.data.requesterId == resource.data.requesterId);
       allow delete: if isAdmin() || (isSignedIn() && resource.data.requesterId == request.auth.uid);
     }
+
+    // 10. Rental Requests (used by ResourceSharePage / FarmerDashboard / App notifications)
+    match /rental_requests/{requestId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.requesterId == request.auth.uid;
+      allow update: if isAdmin()
+        || (isSignedIn() && resource.data.requesterId == request.auth.uid)
+        || (isSignedIn() && resource.data.toolOwnerId == request.auth.uid);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.requesterId == request.auth.uid);
+    }
+
+    // 11. Resource Reports (complaints for rental flows)
+    match /resource_reports/{reportId} {
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.reporterId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
   }
 }
