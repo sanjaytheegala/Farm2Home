@@ -5,6 +5,7 @@ import App from './App';
 import './i18n';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -12,6 +13,7 @@ root.render(
     <AuthProvider>
       <ToastProvider>
         <App />
+        <SpeedInsights />
       </ToastProvider>
     </AuthProvider>
   </React.StrictMode>
