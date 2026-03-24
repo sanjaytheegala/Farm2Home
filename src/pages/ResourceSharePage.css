@@ -1210,75 +1210,224 @@
 .rs-btn-decline:hover { background: #fecaca; }
 
 /* ── My Listings Tab ── */
-.rs-my-tools-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 20px;
+.rs-my-listings-wrap {
+  margin-top: 12px;
 }
 
-.rs-my-tool-card {
+.rs-my-listings-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.rs-my-listings-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rs-my-listings-sub {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.rs-my-listings-add-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  cursor: pointer;
+}
+
+.rs-my-listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: 16px;
+}
+
+.rs-mlc {
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-  transition: box-shadow 0.2s;
-}
-
-.rs-my-tool-card:hover {
-  box-shadow: 0 4px 18px rgba(0,0,0,0.1);
-}
-
-.rs-my-tool-image {
-  width: 90px;
-  height: 90px;
-  border-radius: 10px;
+  border-radius: 16px;
   overflow: hidden;
-  flex-shrink: 0;
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rs-mlc:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+.rs-mlc-img-wrap {
+  position: relative;
+  height: 168px;
   background: #f1f5f9;
+}
+
+.rs-mlc-img,
+.rs-mlc-img-placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.rs-mlc-img {
+  object-fit: cover;
+  display: block;
+}
+
+.rs-mlc-img-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.rs-my-tool-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.rs-my-tool-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.rs-my-tool-info h3 {
-  font-size: 1.05rem;
+.rs-mlc-status {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
   font-weight: 700;
-  color: #1e293b;
-  margin: 0;
+  backdrop-filter: blur(6px);
 }
 
-.rs-my-tool-info p {
-  font-size: 0.88rem;
-  color: #64748b;
-  margin: 0;
+.rs-mlc-status-open {
+  background: rgba(220, 252, 231, 0.95);
+  color: #166534;
+}
+
+.rs-mlc-status-busy {
+  background: rgba(254, 226, 226, 0.95);
+  color: #b91c1c;
+}
+
+.rs-mlc-req-badge {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: rgba(254, 243, 199, 0.95);
+  color: #92400e;
+}
+
+.rs-mlc-body {
+  padding: 14px;
+}
+
+.rs-mlc-name {
+  font-weight: 800;
+  font-size: 1.02rem;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.rs-mlc-cat {
+  margin-top: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.rs-mlc-info-rows {
+  margin-top: 11px;
+  display: grid;
+  gap: 8px;
+}
+
+.rs-mlc-info-row {
+  color: #475569;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 7px;
 }
 
-.rs-my-tool-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.rs-mlc-info-icon {
+  color: #16a34a;
   flex-shrink: 0;
+}
+
+.rs-mlc-actions {
+  margin-top: 13px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.rs-mlc-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 9px;
+  font-size: 0.77rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.rs-mlc-btn-maint {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.rs-mlc-btn-avail {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rs-mlc-btn-edit {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.rs-mlc-btn-del {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+@media (max-width: 640px) {
+  .rs-my-listings-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rs-my-listings-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .rs-mlc-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Accepted banner */
@@ -3217,6 +3366,268 @@ a.btn-secondary {
 
   .rs-service-toggle {
     flex-direction: column;
+  }
+}
+
+/* ── Resource cards: Farmer Dashboard style parity ── */
+.tools-grid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.tool-card.p2p-tool-card {
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+  border: none;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.tool-card.p2p-tool-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.13), 0 0 0 1px rgba(0,0,0,0.06);
+}
+
+.tool-card.p2p-tool-card .tool-image-container {
+  height: 180px;
+  background: #f4f9f4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.tool-card.p2p-tool-card .tool-image {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
+  padding: 0;
+  border-radius: 0;
+  transition: transform 0.3s ease;
+}
+
+.tool-card.p2p-tool-card:hover .tool-image {
+  transform: scale(1.06);
+}
+
+.tool-card.p2p-tool-card .availability-badge {
+  top: 10px;
+  left: 10px;
+  bottom: auto;
+  padding: 4px 11px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  backdrop-filter: blur(4px);
+}
+
+.tool-card.p2p-tool-card .tool-info {
+  padding: 14px 18px 14px;
+  gap: 10px;
+}
+
+.tool-card.p2p-tool-card .tool-name {
+  font-size: 19px;
+  font-weight: 800;
+  color: #1b5e20;
+  letter-spacing: -0.3px;
+}
+
+.tool-card.p2p-tool-card .tool-subtitle {
+  font-size: 0.82rem;
+  color: #5f6b6a;
+}
+
+.tool-card.p2p-tool-card .p2p-trust-badge {
+  font-size: 0.74rem;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.tool-card.p2p-tool-card .tool-meta {
+  margin-bottom: 6px;
+}
+
+.tool-card.p2p-tool-card .category-badge,
+.tool-card.p2p-tool-card .rs-svc-badge {
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.tool-card.p2p-tool-card .tool-description {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
+.tool-card.p2p-tool-card .tool-details {
+  background: #f8fdf8;
+  border: 1px solid #dff0df;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 0;
+}
+
+.tool-card.p2p-tool-card .detail-item {
+  font-size: 0.86rem;
+  margin-bottom: 8px;
+}
+
+.tool-card.p2p-tool-card .detail-icon {
+  width: 30px;
+  height: 30px;
+  font-size: 0.78rem;
+}
+
+.tool-card.p2p-tool-card .detail-text.price {
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #1565c0;
+}
+
+.tool-card.p2p-tool-card .tool-buttons .btn-primary {
+  border-radius: 10px;
+  min-height: 40px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Disable image hover effects on Resource cards */
+.tool-card:hover .tool-image,
+.tool-card.p2p-tool-card:hover .tool-image {
+  transform: none !important;
+}
+
+.tool-card:hover .tool-image-container::before,
+.tool-card.p2p-tool-card:hover .tool-image-container::before {
+  opacity: 0 !important;
+}
+
+/* ── Add Tool UX refresh ── */
+.add-tool-section {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+}
+
+.add-tool-section .section-title {
+  margin-bottom: 22px;
+  font-size: 1.65rem;
+  text-align: left;
+  color: #0f172a;
+  padding-bottom: 10px;
+}
+
+.add-tool-section .section-title::after {
+  left: 0;
+  transform: none;
+  width: 64px;
+  height: 3px;
+}
+
+.add-tool-form {
+  gap: 16px;
+}
+
+.form-row {
+  gap: 14px;
+}
+
+.form-group {
+  gap: 7px;
+}
+
+.form-label {
+  font-size: 0.9rem;
+  color: #334155;
+  font-weight: 700;
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+  border-radius: 12px;
+  border-width: 1.5px;
+  border-color: #d1d5db;
+  background: #fff;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
+}
+
+.form-textarea {
+  min-height: 96px;
+}
+
+.rs-picker-step,
+.rs-image-upload-section,
+.rs-profile-autofill-banner {
+  border-radius: 12px;
+}
+
+.rs-image-upload-area {
+  height: 150px;
+  border-radius: 12px;
+}
+
+.form-actions {
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn-submit,
+.btn-cancel {
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-size: 0.93rem;
+  gap: 8px;
+  box-shadow: none;
+}
+
+.btn-submit:hover,
+.btn-cancel:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .add-tool-section {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .add-tool-section .section-title {
+    font-size: 1.3rem;
+    margin-bottom: 16px;
+  }
+
+  .form-actions {
+    justify-content: stretch;
+  }
+
+  .btn-submit,
+  .btn-cancel {
+    flex: 1;
+    justify-content: center;
   }
 }
 

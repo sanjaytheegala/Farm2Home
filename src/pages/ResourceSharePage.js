@@ -50,19 +50,19 @@ const INITIAL_TOOLS = [
   { id:1,  name:'5Pcs Sprinklers',          category:'Irrigation',        costPerHour:80,  state:'Rajasthan',     district:'Jaipur',      village:'Chomu',        owner:'Mohan Lal',        phone:'+91 9876543227', description:'Complete 5-piece sprinkler irrigation set for efficient water distribution. Covers large area uniformly.',           availability:'Available', image:'/Farming Tools Images/5Pcs Sprinklers.jpg',          rating:4.5, totalBookings:62, yearMade:2021, featured:false, tags:['Water Efficient','Wide Coverage','Easy Install'] },
   { id:2,  name:'7.5HP Water Pump',         category:'Irrigation',        costPerHour:150, state:'Tamil Nadu',    district:'Chennai',     village:'Tambaram',     owner:'Murugan Raj',      phone:'+91 9876543213', description:'High-capacity water pump for field irrigation. Energy efficient with low maintenance.',                          availability:'Available', image:'/Farming Tools Images/7.5hp water pump.jpg',         rating:4.7, totalBookings:56, yearMade:2020, featured:false, tags:['Energy Efficient','Low Noise','Portable'] },
   { id:3,  name:'Chisel Plough',            category:'Tillage Equipment', costPerHour:220, state:'Punjab',        district:'Amritsar',    village:'Tarn Taran',   owner:'Amarjeet Singh',   phone:'+91 9876543222', description:'Deep tillage chisel plough for breaking hardpan and improving soil aeration.',                                   availability:'Available', image:'/Farming Tools Images/Chisel Plough.jpg',             rating:4.6, totalBookings:34, yearMade:2021, featured:true,  tags:['Deep Tillage','Heavy Duty','Adjustable Depth'] },
-  { id:4,  name:'Corn Thresher',            category:'Harvesting',        costPerHour:280, state:'Karnataka',     district:'Mysore',      village:'Nanjangud',    owner:'Mahesh Gowda',     phone:'+91 9876543223', description:'Efficient corn thresher for quick processing. High capacity with minimal grain damage.',                          availability:'Available', image:'/Farming Tools Images/Corn Thresher.jpg',             rating:4.7, totalBookings:28, yearMade:2020, featured:true,  tags:['High Capacity','Low Damage','Quick Processing'] },
+  { id:4,  name:'Corn Thresher',            category:'Harvesting',        costPerHour:280, state:'Karnataka',     district:'Mysuru (Mysore)', village:'Nanjangud',    owner:'Mahesh Gowda',     phone:'+91 9876543223', description:'Efficient corn thresher for quick processing. High capacity with minimal grain damage.',                          availability:'Available', image:'/Farming Tools Images/Corn Thresher.jpg',             rating:4.7, totalBookings:28, yearMade:2020, featured:true,  tags:['High Capacity','Low Damage','Quick Processing'] },
   { id:5,  name:'Crop Reaper',              category:'Harvesting',        costPerHour:250, state:'Rajasthan',     district:'Hanumangarh', village:'Bhadra',       owner:'Hemraj Choudhary', phone:'+91 9876543246', description:'Walk-behind crop reaper for cutting wheat, paddy and soybean. Reduces harvesting time by 80%.',                   availability:'Available', image:'/Farming Tools Images/crop reaper.jpg',              rating:4.5, totalBookings:44, yearMade:2020, featured:true,  tags:['Walk-Behind','Multi-Crop','Time Saving'] },
   { id:6,  name:'Cultivator',               category:'Tillage Equipment', costPerHour:180, state:'Gujarat',       district:'Ahmedabad',   village:'Dholka',       owner:'Kiran Patel',      phone:'+91 9876543218', description:'Multi-purpose cultivator for soil cultivation and weed management. Suitable for various crops.',                  availability:'Available', image:'/Farming Tools Images/Cultivator.jpg',                rating:4.2, totalBookings:19, yearMade:2021, featured:false, tags:['Multi-Purpose','Adjustable','Easy Operation'] },
-  { id:7,  name:'Disc Harrow',              category:'Tillage Equipment', costPerHour:200, state:'Karnataka',     district:'Bangalore',   village:'Devanahalli',  owner:'Prakash Singh',    phone:'+91 9876543212', description:'Professional disc harrow for soil preparation and weed control. Heavy-duty construction.',                       availability:'Available', image:'/Farming Tools Images/Disc Harrow.jpg',               rating:4.6, totalBookings:28, yearMade:2021, featured:false, tags:['Heavy Duty','Adjustable','Durable'] },
+  { id:7,  name:'Disc Harrow',              category:'Tillage Equipment', costPerHour:200, state:'Karnataka',     district:'Bengaluru Rural', village:'Devanahalli',  owner:'Prakash Singh',    phone:'+91 9876543212', description:'Professional disc harrow for soil preparation and weed control. Heavy-duty construction.',                       availability:'Available', image:'/Farming Tools Images/Disc Harrow.jpg',               rating:4.6, totalBookings:28, yearMade:2021, featured:false, tags:['Heavy Duty','Adjustable','Durable'] },
   { id:8,  name:'Disc Plough',              category:'Tillage Equipment', costPerHour:220, state:'Madhya Pradesh',district:'Indore',      village:'Mhow',         owner:'Akash Verma',      phone:'+91 9876543220', description:'Heavy-duty disc plough for primary tillage operations. Suitable for hard soil conditions.',                       availability:'Available', image:'/Farming Tools Images/Disc Plough.jpg',               rating:4.5, totalBookings:24, yearMade:2021, featured:false, tags:['Heavy Duty','Hard Soil','Durable'] },
   { id:9,  name:'Drip Pipes',               category:'Irrigation',        costPerHour:90,  state:'Maharashtra',   district:'Nashik',      village:'Dindori',      owner:'Santosh Patil',    phone:'+91 9876543243', description:'Complete drip irrigation pipe setup for efficient water usage. Saves up to 60% water vs flood irrigation.',     availability:'Available', image:'/Farming Tools Images/Drip Pipes.jpg',                rating:4.8, totalBookings:53, yearMade:2022, featured:true,  tags:['Water Saving','Fertigation Ready','Easy Install'] },
-  { id:10, name:'Drone Sprayer',            category:'Modern Technology', costPerHour:400, state:'Karnataka',     district:'Mysore',      village:'Hunsur',       owner:'Priya Reddy',      phone:'+91 9876543221', description:'Advanced drone sprayer for precision agriculture. GPS-enabled with automated spraying.',                          availability:'Available', image:'/Farming Tools Images/Drone Sprayer.jpg',             rating:4.9, totalBookings:18, yearMade:2023, featured:true,  tags:['GPS Enabled','Precision Agriculture','Automated'] },
+  { id:10, name:'Drone Sprayer',            category:'Modern Technology', costPerHour:400, state:'Karnataka',     district:'Mysuru (Mysore)', village:'Hunsur',       owner:'Priya Reddy',      phone:'+91 9876543221', description:'Advanced drone sprayer for precision agriculture. GPS-enabled with automated spraying.',                          availability:'Available', image:'/Farming Tools Images/Drone Sprayer.jpg',             rating:4.9, totalBookings:18, yearMade:2023, featured:true,  tags:['GPS Enabled','Precision Agriculture','Automated'] },
   { id:11, name:'Eicher Tractor',           category:'Heavy Machinery',   costPerHour:450, state:'Punjab',        district:'Ludhiana',    village:'Sahnewal',     owner:'Gurpreet Singh',   phone:'+91 9876543260', description:'Reliable Eicher tractor for plowing, cultivation and general farm work. Fuel efficient and easy to maintain.',    availability:'Available', image:'/Farming Tools Images/eicher tractor.jpg',           rating:4.6, totalBookings:22, yearMade:2021, featured:false, tags:['Fuel Efficient','Reliable','Multi-Purpose'] },
-  { id:12, name:'Ground Thresher',          category:'Harvesting',        costPerHour:190, state:'Andhra Pradesh',district:'Vijayawada',  village:'Gannavaram',   owner:'Venkatesh Reddy',  phone:'+91 9876543224', description:'Portable ground thresher for wheat, rice, and pulses. Easy to transport and operate.',                            availability:'Available', image:'/Farming Tools Images/Ground Thresher.jpg',           rating:4.4, totalBookings:36, yearMade:2021, featured:false, tags:['Portable','Multi-Crop','Easy Setup'] },
+  { id:12, name:'Ground Thresher',          category:'Harvesting',        costPerHour:190, state:'Andhra Pradesh',district:'NTR',         village:'Gannavaram',   owner:'Venkatesh Reddy',  phone:'+91 9876543224', description:'Portable ground thresher for wheat, rice, and pulses. Easy to transport and operate.',                            availability:'Available', image:'/Farming Tools Images/Ground Thresher.jpg',           rating:4.4, totalBookings:36, yearMade:2021, featured:false, tags:['Portable','Multi-Crop','Easy Setup'] },
   { id:13, name:'Harvester',                category:'Harvesting',        costPerHour:800, state:'Andhra Pradesh',district:'Guntur',      village:'Tenali',       owner:'Suresh Patel',     phone:'+91 9876543211', description:'Modern combine harvester for efficient crop harvesting. Perfect for wheat, rice, and corn.',                     availability:'Available', image:'/Farming Tools Images/Harvester.jpg',                 rating:4.9, totalBookings:32, yearMade:2019, featured:true,  tags:['High Capacity','GPS Tracking','Auto Steering'] },
   { id:14, name:'JCB',                      category:'Heavy Machinery',   costPerHour:600, state:'Rajasthan',     district:'Jaipur',      village:'Sanganer',     owner:'Ramesh Sharma',    phone:'+91 9876543217', description:'Heavy-duty JCB for land preparation and construction work. Experienced operator included.',                       availability:'Available', image:'/Farming Tools Images/JCB.jpg',                       rating:4.7, totalBookings:41, yearMade:2019, featured:true,  tags:['Operator Included','Heavy Duty','Multi-Purpose'] },
   { id:15, name:'Knapsack Power Sprayer',   category:'Irrigation',        costPerHour:60,  state:'Punjab',        district:'Patiala',     village:'Rajpura',      owner:'Balwinder Singh',  phone:'+91 9876543244', description:'Battery-powered knapsack sprayer for pesticide and fertilizer application. Covers large area quickly.',              availability:'Available', image:'/Farming Tools Images/knapsack power sprayer.jpg',   rating:4.2, totalBookings:30, yearMade:2021, featured:false, tags:['Battery Powered','Wide Coverage','Portable'] },
-  { id:16, name:'Kubota Tractor',           category:'Heavy Machinery',   costPerHour:480, state:'Karnataka',     district:'Tumkur',      village:'Tiptur',       owner:'Naresh Kumar',     phone:'+91 9876543261', description:'High-performance Kubota tractor for precision farming. Excellent for paddy fields and wet soil conditions.',       availability:'Available', image:'/Farming Tools Images/kubota tractor.jpg',           rating:4.7, totalBookings:18, yearMade:2022, featured:false, tags:['Precision Farming','4WD','Paddy Special'] },
+  { id:16, name:'Kubota Tractor',           category:'Heavy Machinery',   costPerHour:480, state:'Karnataka',     district:'Tumakuru (Tumkur)', village:'Tiptur',       owner:'Naresh Kumar',     phone:'+91 9876543261', description:'High-performance Kubota tractor for precision farming. Excellent for paddy fields and wet soil conditions.',       availability:'Available', image:'/Farming Tools Images/kubota tractor.jpg',           rating:4.7, totalBookings:18, yearMade:2022, featured:false, tags:['Precision Farming','4WD','Paddy Special'] },
   { id:17, name:'Mahindra Rotavator',       category:'Tillage Equipment', costPerHour:200, state:'Haryana',       district:'Karnal',      village:'Nilokheri',    owner:'Vikas Yadav',      phone:'+91 9876543262', description:'Mahindra heavy-duty rotavator for soil preparation and seedbed creation. Wide working width for fast coverage.',   availability:'Available', image:'/Farming Tools Images/Mahindra rotavator.jpg',        rating:4.5, totalBookings:26, yearMade:2021, featured:false, tags:['Heavy Duty','Wide Width','Tractor Mounted'] },
   { id:18, name:'Mahindra Tractor',         category:'Heavy Machinery',   costPerHour:500, state:'Maharashtra',   district:'Pune',        village:'Baramati',     owner:'Sanjay Patil',     phone:'+91 9876543263', description:'Popular Mahindra tractor for all-round farm operations. Powerful engine with excellent fuel efficiency.',           availability:'Available', image:'/Farming Tools Images/Mahindra tractor.jpg',          rating:4.8, totalBookings:35, yearMade:2020, featured:true,  tags:['High Torque','Fuel Efficient','All-Terrain'] },
   { id:19, name:'Massey Tractor',           category:'Heavy Machinery',   costPerHour:520, state:'Punjab',        district:'Amritsar',    village:'Majitha',      owner:'Harjit Singh',     phone:'+91 9876543264', description:'Massey Ferguson tractor well-suited for heavy ploughing and harvesting. GPS-ready and versatile.',                 availability:'Available', image:'/Farming Tools Images/massey tractor.jpg',            rating:4.7, totalBookings:30, yearMade:2019, featured:false, tags:['GPS Ready','Heavy Duty','Versatile'] },
@@ -76,7 +76,7 @@ const INITIAL_TOOLS = [
   { id:27, name:'Sonalika Tractor',         category:'Heavy Machinery',   costPerHour:460, state:'Haryana',       district:'Hisar',       village:'Fatehabad',    owner:'Rajpal Singh',     phone:'+91 9876543265', description:'Sonalika tractor known for durability in tough field conditions. Good for deep plowing and rotavation.',           availability:'Available', image:'/Farming Tools Images/sonalika tractor.jpg',          rating:4.5, totalBookings:25, yearMade:2021, featured:false, tags:['Durable','Deep Plowing','Powerful'] },
   { id:28, name:'Sprayer',                  category:'Irrigation',        costPerHour:120, state:'Uttar Pradesh', district:'Lucknow',     village:'Mohanlalganj', owner:'Sunil Kumar',      phone:'+91 9876543219', description:'High-pressure sprayer for pesticide and fertilizer application. Tank capacity 200 liters.',                      availability:'Available', image:'/Farming Tools Images/Sprayer.jpg',                   rating:4.6, totalBookings:37, yearMade:2020, featured:false, tags:['High Pressure','Large Tank','Even Spray'] },
   { id:29, name:'Sprinklers',               category:'Irrigation',        costPerHour:70,  state:'Rajasthan',     district:'Jodhpur',     village:'Phalodi',      owner:'Ramji Lal',        phone:'+91 9876543266', description:'Standard sprinkler system for field irrigation. Even water distribution for various crop types.',                 availability:'Available', image:'/Farming Tools Images/sprinklers.jpg',                rating:4.3, totalBookings:42, yearMade:2021, featured:false, tags:['Even Distribution','Simple Setup','Reliable'] },
-  { id:30, name:'Super Seeder',             category:'Planting Equipment',costPerHour:300, state:'Karnataka',     district:'Belgaum',     village:'Baramati',     owner:'Vikram Patil',     phone:'+91 9876543214', description:'Precision super seeder for accurate seed placement. Ideal for direct seeding operations.',                       availability:'Available', image:'/Farming Tools Images/Super Seeder.jpg',              rating:4.5, totalBookings:23, yearMade:2022, featured:true,  tags:['Precision Seeding','Multi-Crop','GPS Compatible'] },
+  { id:30, name:'Super Seeder',             category:'Planting Equipment',costPerHour:300, state:'Karnataka',     district:'Belagavi (Belgaum)', village:'Baramati',     owner:'Vikram Patil',     phone:'+91 9876543214', description:'Precision super seeder for accurate seed placement. Ideal for direct seeding operations.',                       availability:'Available', image:'/Farming Tools Images/Super Seeder.jpg',              rating:4.5, totalBookings:23, yearMade:2022, featured:true,  tags:['Precision Seeding','Multi-Crop','GPS Compatible'] },
   { id:31, name:'Swaraj Harvester',         category:'Harvesting',        costPerHour:750, state:'Punjab',        district:'Ludhiana',    village:'Raikot',       owner:'Kulwant Singh',    phone:'+91 9876543267', description:'Swaraj combine harvester ideal for paddy and wheat. High throughput with minimal crop loss.',                      availability:'Available', image:'/Farming Tools Images/swaraj harvestor.jpg',          rating:4.8, totalBookings:27, yearMade:2020, featured:true,  tags:['High Throughput','Low Crop Loss','Reliable'] },
   { id:32, name:'Swaraj Tractor',           category:'Heavy Machinery',   costPerHour:470, state:'Punjab',        district:'Patiala',     village:'Nabha',        owner:'Sukhdev Singh',    phone:'+91 9876543268', description:'Swaraj tractor for all types of farm operations. Known for ease of maintenance and good resale value.',            availability:'Available', image:'/Farming Tools Images/swaraj tractor.jpg',            rating:4.6, totalBookings:33, yearMade:2020, featured:false, tags:['Easy Maintenance','Versatile','Value for Money'] },
   { id:33, name:'Tractor',                  category:'Heavy Machinery',   costPerHour:500, state:'Telangana',     district:'Hyderabad',   village:'Gachibowli',   owner:'Rajesh Kumar',     phone:'+91 9876543210', description:'High-performance tractor suitable for plowing and cultivation. Well-maintained with latest features.',              availability:'Available', image:'/Farming Tools Images/Tractor.jpg',                   rating:4.8, totalBookings:47, yearMade:2020, featured:true,  tags:['GPS Enabled','Fuel Efficient','Air Conditioned'] },
@@ -84,10 +84,10 @@ const INITIAL_TOOLS = [
 
 /* ── State → Districts map ── */
 const STATE_DISTRICTS = {
-  'Andhra Pradesh':  ['Anantapur','Chittoor','East Godavari','Guntur','Kadapa','Krishna','Kurnool','Nellore','Prakasam','Srikakulam','Visakhapatnam','Vizianagaram','West Godavari'],
-  'Telangana':       ['Adilabad','Bhadradri Kothagudem','Hyderabad','Jagtial','Jangaon','Jayashankar Bhupalpally','Jogulamba Gadwal','Kamareddy','Karimnagar','Khammam','Komaram Bheem Asifabad','Mahabubabad','Mahabubnagar','Mancherial','Medak','Medchal Malkajgiri','Mulugu','Nagarkurnool','Nalgonda','Narayanpet','Nirmal','Nizamabad','Peddapalli','Rajanna Sircilla','Rangareddy','Sangareddy','Siddipet','Suryapet','Vikarabad','Wanaparthy','Warangal Rural','Warangal Urban','Yadadri Bhuvanagiri'],
-  'Tamil Nadu':      ['Ariyalur','Chengalpattu','Chennai','Coimbatore','Cuddalore','Dharmapuri','Dindigul','Erode','Kallakurichi','Kanchipuram','Kanniyakumari','Karur','Krishnagiri','Madurai','Mayiladuthurai','Nagapattinam','Namakkal','Nilgiris','Perambalur','Pudukkottai','Ramanathapuram','Ranipet','Salem','Sivaganga','Tenkasi','Thanjavur','Theni','Thoothukudi','Tiruchirappalli','Tirunelveli','Tirupathur','Tiruppur','Tiruvallur','Tiruvannamalai','Tiruvarur','Vellore','Viluppuram','Virudhunagar'],
-  'Karnataka':       ['Bagalkot','Ballari','Belagavi','Bengaluru Rural','Bengaluru Urban','Bidar','Chamarajanagar','Chikkaballapur','Chikkamagaluru','Chitradurga','Dakshina Kannada','Davanagere','Dharwad','Gadag','Hassan','Haveri','Kalaburagi','Kodagu','Kolar','Koppal','Mandya','Mysuru','Raichur','Ramanagara','Shivamogga','Tumakuru','Udupi','Uttara Kannada','Vijayapura','Yadgir'],
+  'Andhra Pradesh':  ['Srikakulam','Parvathipuram Manyam','Vizianagaram','Visakhapatnam','Alluri Sitharama Raju','Anakapalli','Polavaram','Kakinada','East Godavari','Dr. B.R. Ambedkar Konaseema','Eluru','West Godavari','NTR','Krishna','Palnadu','Guntur','Bapatla','Prakasam','Markapuram','Sri Potti Sriramulu Nellore','Kurnool','Nandyal','Ananthapuramu','Sri Sathya Sai','YSR Kadapa','Annamayya','Tirupati','Chittoor'],
+  'Telangana':       ['Adilabad','Bhadradri Kothagudem','Hanumakonda','Hyderabad','Jagtial','Jangaon','Jayashankar Bhupalpally','Jogulamba Gadwal','Kamareddy','Karimnagar','Khammam','Kumuram Bheem','Mahabubabad','Mahabubnagar','Mancherial','Medak','Medchal-Malkajgiri','Mulugu','Nagarkurnool','Nalgonda','Narayanpet','Nirmal','Nizamabad','Peddapalli','Rajanna Sircilla','Rangareddy','Sangareddy','Siddipet','Suryapet','Vikarabad','Wanaparthy','Warangal','Yadadri Bhuvanagiri'],
+  'Tamil Nadu':      ['Ariyalur','Chengalpattu','Chennai','Coimbatore','Cuddalore','Dharmapuri','Dindigul','Erode','Kallakurichi','Kancheepuram','Kanniyakumari','Karur','Krishnagiri','Madurai','Mayiladuthurai','Nagapattinam','Namakkal','Nilgiris','Perambalur','Pudukkottai','Ramanathapuram','Ranipet','Salem','Sivagangai','Tenkasi','Thanjavur','Theni','Thoothukudi','Tiruchirappalli','Tirunelveli','Tirupathur','Tiruppur','Tiruvallur','Tiruvannamalai','Tiruvarur','Vellore','Viluppuram','Virudhunagar'],
+  'Karnataka':       ['Bagalkot','Ballari (Bellary)','Belagavi (Belgaum)','Bengaluru Rural','Bengaluru Urban','Bidar','Chamarajanagara','Chikkaballapura','Chikkamagaluru','Chitradurga','Dakshina Kannada','Davanagere','Dharwad','Gadag','Hassan','Haveri','Kalaburagi (Gulbarga)','Kodagu','Kolar','Koppal','Mandya','Mysuru (Mysore)','Raichur','Ramanagara','Shivamogga (Shimoga)','Tumakuru (Tumkur)','Udupi','Uttara Kannada (Karwar)','Vijayapura (Bijapur)','Vijayanagara (Hospet)','Yadgir'],
   'Kerala':          ['Alappuzha','Ernakulam','Idukki','Kannur','Kasaragod','Kollam','Kottayam','Kozhikode','Malappuram','Palakkad','Pathanamthitta','Thiruvananthapuram','Thrissur','Wayanad'],
   'Maharashtra':     ['Ahmednagar','Akola','Amravati','Aurangabad','Beed','Bhandara','Buldhana','Chandrapur','Dhule','Gadchiroli','Gondia','Hingoli','Jalgaon','Jalna','Kolhapur','Latur','Mumbai City','Mumbai Suburban','Nagpur','Nanded','Nandurbar','Nashik','Osmanabad','Palghar','Parbhani','Pune','Raigad','Ratnagiri','Sangli','Satara','Sindhudurg','Solapur','Thane','Wardha','Washim','Yavatmal'],
   'Punjab':          ['Amritsar','Barnala','Bathinda','Faridkot','Fatehgarh Sahib','Fazilka','Firozpur','Gurdaspur','Hoshiarpur','Jalandhar','Kapurthala','Ludhiana','Mansa','Moga','Mohali','Muktsar','Nawanshahr','Pathankot','Patiala','Rupnagar','Sangrur','Tarn Taran'],
@@ -100,6 +100,24 @@ const STATE_DISTRICTS = {
   'Gujarat':         ['Ahmedabad','Amreli','Anand','Aravalli','Banaskantha','Bharuch','Bhavnagar','Botad','Chhota Udaipur','Dahod','Dang','Devbhumi Dwarka','Gandhinagar','Gir Somnath','Jamnagar','Junagadh','Kheda','Kutch','Mahisagar','Mehsana','Morbi','Narmada','Navsari','Panchmahal','Patan','Porbandar','Rajkot','Sabarkantha','Surat','Surendranagar','Tapi','Vadodara','Valsad'],
   'Bihar':           ['Araria','Arwal','Aurangabad','Banka','Begusarai','Bhagalpur','Bhojpur','Buxar','Darbhanga','East Champaran','Gaya','Gopalganj','Jamui','Jehanabad','Kaimur','Katihar','Khagaria','Kishanganj','Lakhisarai','Madhepura','Madhubani','Munger','Muzaffarpur','Nalanda','Nawada','Patna','Purnia','Rohtas','Saharsa','Samastipur','Saran','Sheikhpura','Sheohar','Sitamarhi','Siwan','Supaul','Vaishali','West Champaran'],
   'Jharkhand':       ['Bokaro','Chatra','Deoghar','Dhanbad','Dumka','East Singhbhum','Garhwa','Giridih','Godda','Gumla','Hazaribagh','Jamtara','Khunti','Koderma','Latehar','Lohardaga','Pakur','Palamu','Ramgarh','Ranchi','Sahebganj','Seraikela Kharsawan','Simdega','West Singhbhum'],
+};
+
+const RESOURCE_ALLOWED_STATES = [
+  'Andhra Pradesh',
+  'Telangana',
+  'Karnataka',
+  'Tamil Nadu',
+  'Kerala',
+  'Goa',
+];
+
+const sanitizeResourceState = (state = '') =>
+  RESOURCE_ALLOWED_STATES.includes(state) ? state : '';
+
+const sanitizeResourceDistrict = (state = '', district = '') => {
+  if (!state || !district) return '';
+  const allowedDistricts = STATE_DISTRICTS[state] || [];
+  return allowedDistricts.includes(district) ? district : '';
 };
 
 /* ── Simple BLANK_TOOL for P2P listing ── */
@@ -256,8 +274,8 @@ const BLANK_RENT_REQUEST = {
   dateOfUse: '',
   duration: '',
   durationType: 'hours', // 'hours' | 'days'
-  estimatedHours: '',   // Total estimated hours (for cost calc)
   workNote: '',         // Work conditions note
+  requesterPhone: '',   // phone entered in modal
 };
 
 const ResourceSharePage = () => {
@@ -292,7 +310,7 @@ const ResourceSharePage = () => {
 
   // Current farmer's district from profile
   const myDistrict  = authUserData?.district || '';
-  const myPhone     = authUserData?.phone || '';
+  const myPhone     = authUserData?.phone || authUserData?.phoneNumber || '';
 
   // Real-time Firestore listeners
   useEffect(() => {
@@ -308,6 +326,28 @@ const ResourceSharePage = () => {
     );
     return () => { unsubTools(); unsubRentals(); };
   }, []);
+
+  // Sync user profile data into the Add-Tool form whenever auth data loads
+  useEffect(() => {
+    if (authUserData) {
+      setNewTool(prev => {
+        const safePrevState = sanitizeResourceState(prev.state || '');
+        const profileState = sanitizeResourceState(authUserData?.state || '');
+        const finalState = safePrevState || profileState;
+        return {
+        ...prev,
+        owner:    prev.owner    || authUserData?.name    || authUserData?.displayName || '',
+        phone:    prev.phone    || authUserData?.phone   || authUserData?.phoneNumber || '',
+        state:    finalState,
+        district: sanitizeResourceDistrict(
+          finalState,
+          prev.district || authUserData?.district || ''
+        ),
+        village:  prev.village  || authUserData?.village || authUserData?.city || authUserData?.addressLine || '',
+        };
+      });
+    }
+  }, [authUserData]);
 
   /* browse search */
   const [searchTerm, setSearchTerm] = useState('');
@@ -326,8 +366,11 @@ const ResourceSharePage = () => {
   const profileDefaults = {
     owner:   authUserData?.name || authUserData?.displayName || '',
     phone:   authUserData?.phone || authUserData?.phoneNumber || '',
-    state:   authUserData?.state || '',
-    district: authUserData?.district || '',
+    state:   sanitizeResourceState(authUserData?.state || ''),
+    district: sanitizeResourceDistrict(
+      sanitizeResourceState(authUserData?.state || ''),
+      authUserData?.district || ''
+    ),
     village: authUserData?.village || authUserData?.city || authUserData?.addressLine || '',
   };
   const BLANK_TOOL_WITH_PROFILE = { ...BLANK_TOOL, ...profileDefaults };
@@ -346,7 +389,7 @@ const ResourceSharePage = () => {
   /* ── helpers ── */
   // Normalise legacy tools (INITIAL_TOOLS use `name`, new tools use `toolName`)
   const normTool = (t) => ({ ...t, toolName: t.toolName || t.name || '' });
-  const tools = [...INITIAL_TOOLS.map(normTool), ...userTools.map(normTool)];
+  const tools = userTools.map(normTool);
 
   const getEffectivePrice = (t) => t.priceAmount ? parseFloat(t.priceAmount) : (t.costPerHour || 0);
 
@@ -366,7 +409,11 @@ const ResourceSharePage = () => {
     const matchPrice = price === 0 || (price >= priceRange[0] && price <= priceRange[1]);
     const matchOperator = !withOperatorFilter ||
       t.withOperator || t.serviceType === 'with_operator';
-    return matchQuery && matchCategory && matchAvail && matchLocation && matchPrice && matchOperator;
+
+    // In Browse tab, hide tools listed by the currently logged-in farmer
+    const notOwnListing = !currentUser?.uid || t.ownerId !== currentUser.uid;
+
+    return matchQuery && matchCategory && matchAvail && matchLocation && matchPrice && matchOperator && notOwnListing;
   }).sort((a, b) => {
     if (sortBy === 'price-asc') return getEffectivePrice(a) - getEffectivePrice(b);
     if (sortBy === 'price-desc') return getEffectivePrice(b) - getEffectivePrice(a);
@@ -394,6 +441,33 @@ const ResourceSharePage = () => {
   const resolveImage = (tool) =>
     tool.image || (CATEGORY_META[tool.category] && CATEGORY_META[tool.category].fallback) || '';
 
+  const getEstimatedHours = (duration, durationType) => {
+    const numericDuration = parseFloat(duration);
+    if (!Number.isFinite(numericDuration) || numericDuration <= 0) return 0;
+    return durationType === 'days' ? numericDuration * 8 : numericDuration;
+  };
+
+  const requestTimeMs = (req) => {
+    const ts = req?.createdAt;
+    if (!ts) return 0;
+    if (typeof ts?.toDate === 'function') return ts.toDate().getTime();
+    if (typeof ts?.seconds === 'number') return (ts.seconds * 1000) + Math.floor((ts.nanoseconds || 0) / 1e6);
+    const parsed = new Date(ts).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const dedupeRequestsByToolAndRequester = (requests) => {
+    const latestByPair = new Map();
+    requests.forEach((req) => {
+      const pairKey = `${req.toolId || req.toolName || 'unknown'}::${req.requesterId || req.requesterPhone || 'anon'}`;
+      const existing = latestByPair.get(pairKey);
+      if (!existing || requestTimeMs(req) > requestTimeMs(existing)) {
+        latestByPair.set(pairKey, req);
+      }
+    });
+    return Array.from(latestByPair.values());
+  };
+
   /* ── open / close rent modal ── */
   const openRentModal = (tool) => {
     // Check district mismatch
@@ -403,55 +477,79 @@ const ResourceSharePage = () => {
       return;
     }
     setRentModalTool(tool);
-    setRentForm(BLANK_RENT_REQUEST);
+    setRentForm({ ...BLANK_RENT_REQUEST, requesterPhone: myPhone || '' });
   };
   const closeRentModal = () => { setRentModalTool(null); setRentForm(BLANK_RENT_REQUEST); };
   const proceedDespiteWarning = () => {
     setRentModalTool(districtWarnTool);
-    setRentForm(BLANK_RENT_REQUEST);
+    setRentForm({ ...BLANK_RENT_REQUEST, requesterPhone: myPhone || '' });
     setDistrictWarnTool(null);
   };
 
   /* ── submit rental request ── */
   const handleRentRequest = async () => {
+    if (!currentUser) {
+      toastError('Please log in to send a rental request.');
+      return;
+    }
     if (!rentForm.dateOfUse || !rentForm.duration) return;
-    if (!myPhone || myPhone.replace(/\D/g, '').length < 10) {
-      toastError('Please add your phone number in your profile before sending rental requests.');
+    const estimatedHours = getEstimatedHours(rentForm.duration, rentForm.durationType);
+    if (!estimatedHours) {
+      toastError('Please enter a valid duration (greater than 0).');
       return;
     }
-    if (!myDistrict) {
-      toastError('Please add your location (district) in your profile before sending rental requests.');
+    const phoneToUse = rentForm.requesterPhone || myPhone || '';
+    if (!phoneToUse || phoneToUse.replace(/\D/g, '').length < 10) {
+      toastError('Please enter your 10-digit phone number in the form below.');
       return;
     }
+
+    const sameToolMyRequests = rentalRequests
+      .filter(r => r.requesterId === currentUser.uid && r.toolId === (rentModalTool.id || null))
+      .sort((a, b) => requestTimeMs(b) - requestTimeMs(a));
+    const latestSameToolReq = sameToolMyRequests[0] || null;
+
+    if (latestSameToolReq && ['Requested', 'Accepted', 'In Progress'].includes(latestSameToolReq.status)) {
+      toastWarning('You already have an active request for this tool.');
+      closeRentModal();
+      setActiveTab('requests');
+      return;
+    }
+
     setRentSubmitting(true);
     try {
-      await addDoc(collection(db, 'rental_requests'), {
-        toolId:         rentModalTool.id || null,
-        toolName:       rentModalTool.toolName || rentModalTool.name,
-        toolOwnerId:    rentModalTool.ownerId || null,
-        ownerName:      rentModalTool.owner,
-        ownerPhone:     rentModalTool.phone,
-        ownerDistrict:  rentModalTool.district || '',
-        category:       rentModalTool.category,
-        withOperator:   rentModalTool.withOperator || false,
-        durationType:   rentForm.durationType,
-        duration:       rentForm.duration,
-        estimatedHours: rentForm.estimatedHours || '',
-        workNote:       rentForm.workNote || '',
-        dateOfUse:      rentForm.dateOfUse,
+      const requestPayload = {
+        toolId:           rentModalTool.id || null,
+        toolName:         rentModalTool.toolName || rentModalTool.name,
+        toolOwnerId:      rentModalTool.ownerId || null,
+        ownerName:        rentModalTool.owner,
+        ownerPhone:       rentModalTool.phone,
+        ownerDistrict:    rentModalTool.district || '',
+        category:         rentModalTool.category,
+        withOperator:     rentModalTool.withOperator || false,
+        durationType:     rentForm.durationType,
+        duration:         rentForm.duration,
+        estimatedHours,
+        workNote:         rentForm.workNote || '',
+        dateOfUse:        rentForm.dateOfUse,
         requesterId:      currentUser?.uid || null,
         requesterName:    authUserData?.name || currentUser?.displayName || '',
-        requesterPhone:   myPhone,
+        requesterPhone:   phoneToUse,
         requesterDistrict: myDistrict || '',
-        status:           'Requested', // Open → Requested → Accepted → In Progress → Completed
+        status:           'Requested',
         createdAt:        serverTimestamp(),
-      });
-      // Update the tool's availability to 'Requested'
-      if (rentModalTool.id && typeof rentModalTool.id === 'string') {
-        await updateDoc(doc(db, 'resource_tools', rentModalTool.id), { availability: 'Requested' });
+        reviewSubmitted:  false,
+      };
+
+      if (latestSameToolReq && ['Rejected', 'Completed', 'Cancelled'].includes(latestSameToolReq.status)) {
+        await updateDoc(doc(db, 'rental_requests', latestSameToolReq.id), requestPayload);
+      } else {
+        await addDoc(collection(db, 'rental_requests'), requestPayload);
       }
+
       toastSuccess(`🚜 Request sent for "${rentModalTool.toolName || rentModalTool.name}"! Owner will contact you soon.`);
       closeRentModal();
+      setActiveTab('requests');
     } catch (err) {
       console.error('Error sending rental request:', err);
       toastError('Failed to send request. Please try again.');
@@ -516,6 +614,34 @@ const ResourceSharePage = () => {
     }
   };
 
+  const handleCancelRequest = async (reqId, toolId) => {
+    try {
+      await updateDoc(doc(db, 'rental_requests', reqId), { status: 'Cancelled' });
+      if (toolId && typeof toolId === 'string') {
+        await updateDoc(doc(db, 'resource_tools', toolId), { availability: 'Available' });
+      }
+      toastSuccess('Request cancelled successfully.');
+    } catch (err) {
+      console.error('Error cancelling request:', err);
+      toastError('Failed to cancel request. Try again.');
+    }
+  };
+
+  const handleSubmitResourceReview = async (reqId, rating, comment) => {
+    try {
+      await updateDoc(doc(db, 'rental_requests', reqId), {
+        reviewSubmitted: true,
+        reviewRating: Number(rating),
+        reviewComment: comment || '',
+        reviewedAt: serverTimestamp(),
+      });
+      toastSuccess('⭐ Review submitted successfully.');
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      toastError('Failed to submit review. Try again.');
+    }
+  };
+
   /* ── Submit Report / Complaint ── */
   const handleSubmitReport = async () => {
     if (!reportForm.reason || !reportModal) return;
@@ -564,7 +690,14 @@ const ResourceSharePage = () => {
   };
 
   const handleAddTool = async () => {
-    if (!newTool.toolName || !newTool.category || !newTool.priceAmount || !newTool.owner || !newTool.phone || !newTool.district || !newTool.state) return;
+    if (!currentUser) {
+      toastError('Please log in to list a tool.');
+      return;
+    }
+    if (!newTool.toolName || !newTool.category || !newTool.priceAmount || !newTool.owner || !newTool.phone || !newTool.district || !newTool.state) {
+      toastError('Please fill in all required fields (tool, price, name, phone, state, district).');
+      return;
+    }
     setListingTool(true);
     try {
       const fallbackImage = CATEGORY_META[newTool.category]?.fallback || '';
@@ -596,18 +729,45 @@ const ResourceSharePage = () => {
         ownerId:      currentUser?.uid || '',
         createdAt:    serverTimestamp(),
       });
+
+      const optimisticTool = {
+        id:            docRef.id,
+        toolName:      newTool.toolName,
+        name:          newTool.toolName,
+        category:      newTool.category,
+        brand:         newTool.brand,
+        model:         newTool.model,
+        priceAmount:   parseFloat(newTool.priceAmount),
+        priceUnit:     newTool.priceUnit,
+        costPerHour:   newTool.priceUnit === 'hour' ? parseFloat(newTool.priceAmount) : 0,
+        state:         newTool.state,
+        district:      newTool.district,
+        village:       newTool.village,
+        houseNo:       newTool.houseNo || '',
+        owner:         newTool.owner,
+        phone:         newTool.phone,
+        description:   newTool.description,
+        hp:            newTool.hp || '',
+        withOperator:  newTool.withOperator,
+        availability:  'Available',
+        image:         fallbackImage,
+        ownerId:       currentUser?.uid || '',
+      };
+      setUserTools(prev => [...prev, optimisticTool]);
+
       if (imageFile) {
         const storageRef = ref(storage, `tool_images/${docRef.id}`);
         const snapshot = await uploadBytes(storageRef, imageFile);
         const downloadURL = await getDownloadURL(snapshot.ref);
         await updateDoc(doc(db, 'resource_tools', docRef.id), { image: downloadURL });
+        setUserTools(prev => prev.map(t => t.id === docRef.id ? { ...t, image: downloadURL } : t));
       }
-      setNewTool(BLANK_TOOL);
+      setNewTool({ ...BLANK_TOOL, ...profileDefaults });
       setImagePreview('');
       setImageFile(null);
       if (fileRef.current) fileRef.current.value = '';
       toastSuccess('✅ Tool listed successfully! Borrowers can now request it.');
-      setActiveTab('browse');
+      setActiveTab('my-tools');
     } catch (err) {
       console.error('Error listing tool:', err);
       toastError('Failed to list tool. Please try again.');
@@ -763,12 +923,25 @@ const ResourceSharePage = () => {
 
           <div className="tool-buttons">
             {(() => {
-              // Find if the logged-in user already has an active request for this tool
-              const myReq = currentUser && rentalRequests.find(
-                r => r.toolId === tool.id &&
-                     r.requesterId === currentUser.uid &&
-                     ['Requested', 'Accepted', 'In Progress'].includes(r.status)
-              );
+              // Find latest request thread for this tool by current user
+              const myReq = currentUser
+                ? [...rentalRequests]
+                    .filter(r => r.toolId === tool.id && r.requesterId === currentUser.uid)
+                    .sort((a, b) => requestTimeMs(b) - requestTimeMs(a))[0]
+                : null;
+
+              const hasActiveReq = myReq && ['Requested', 'Accepted', 'In Progress'].includes(myReq.status);
+
+              if (myReq?.status === 'Completed') {
+                return <div className="rs-card-req-pending">✅ Completed — check My Requests for details</div>;
+              }
+              if (myReq?.status === 'Cancelled') {
+                return <div className="rs-card-req-pending">⚪ Request cancelled</div>;
+              }
+              if (myReq?.status === 'Rejected') {
+                return <div className="rs-card-req-pending">❌ Request rejected — you can request again</div>;
+              }
+
               if (myReq) {
                 if (myReq.status === 'Requested') {
                   return (
@@ -796,7 +969,7 @@ const ResourceSharePage = () => {
                 );
               }
               // No active request — show Request button only if Available
-              if (isAvail) {
+              if (isAvail && !hasActiveReq) {
                 return (
                   <button className="btn-primary" onClick={() => openRentModal(tool)}>
                     <FaHandshake /> Request for Use
@@ -813,6 +986,11 @@ const ResourceSharePage = () => {
 
   /* ── RentalCard for My Listings (owner sees incoming requests) ── */
   const RentalRequestCard = ({ req }) => {
+    const [showReviewForm, setShowReviewForm] = useState(false);
+    const [reviewRating, setReviewRating] = useState('5');
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+
     const isOwner = req.toolOwnerId === currentUser?.uid;
     const isRequester = req.requesterId === currentUser?.uid;
     // Mutual phone reveal: each party only sees the other's number after Accepted
@@ -827,6 +1005,7 @@ const ResourceSharePage = () => {
       'In Progress':{ bg: '#fef9c3', color: '#b45309' },
       Rejected:     { bg: '#fee2e2', color: '#dc2626' },
       Completed:    { bg: '#e0e7ff', color: '#4338ca' },
+      Cancelled:    { bg: '#f1f5f9', color: '#475569' },
     };
     const sColor = statusColors[req.status] || { bg: '#f1f5f9', color: '#64748b' };
 
@@ -873,6 +1052,14 @@ const ResourceSharePage = () => {
             </button>
             <button className="rs-btn-reject" onClick={() => handleRejectRequest(req.id, req.toolId)}>
               <FaThumbsDown /> Reject
+            </button>
+          </div>
+        )}
+
+        {isRequester && ['Requested', 'Accepted'].includes(req.status) && (
+          <div className="rs-req-actions">
+            <button className="rs-btn-reject" onClick={() => handleCancelRequest(req.id, req.toolId)}>
+              <FaTimesCircle /> Cancel Request
             </button>
           </div>
         )}
@@ -941,6 +1128,56 @@ const ResourceSharePage = () => {
             <div className="rs-accepted-banner" style={{ background: '#e0e7ff', color: '#4338ca' }}>
               <FaCheckCircle /> Task Completed. Tool is back Open for others.
             </div>
+
+            {isRequester && !req.reviewSubmitted && (
+              <div style={{ marginTop: 12, padding: 12, border: '1px solid #dbeafe', borderRadius: 10, background: '#f8fbff' }}>
+                {!showReviewForm ? (
+                  <button className="rs-btn-inprogress" style={{ background: '#2563eb' }} onClick={() => setShowReviewForm(true)}>
+                    ⭐ Submit Review
+                  </button>
+                ) : (
+                  <div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
+                      <label style={{ fontWeight: 700, color: '#1e3a8a', fontSize: '0.9rem' }}>Rating</label>
+                      <select value={reviewRating} onChange={e => setReviewRating(e.target.value)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #bfdbfe' }}>
+                        <option value="5">5</option>
+                        <option value="4">4</option>
+                        <option value="3">3</option>
+                        <option value="2">2</option>
+                        <option value="1">1</option>
+                      </select>
+                    </div>
+                    <textarea
+                      placeholder="Write your experience (optional)..."
+                      value={reviewComment}
+                      onChange={e => setReviewComment(e.target.value)}
+                      style={{ width: '100%', minHeight: 74, borderRadius: 8, border: '1px solid #bfdbfe', padding: 8, marginBottom: 10 }}
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        className="rs-btn-approve"
+                        disabled={reviewSubmitting}
+                        onClick={async () => {
+                          setReviewSubmitting(true);
+                          await handleSubmitResourceReview(req.id, reviewRating, reviewComment);
+                          setReviewSubmitting(false);
+                          setShowReviewForm(false);
+                        }}>
+                        {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                      </button>
+                      <button className="rs-btn-cancel-offer" onClick={() => setShowReviewForm(false)}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isRequester && req.reviewSubmitted && (
+              <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: '#ecfdf5', color: '#166534', fontWeight: 700 }}>
+                ⭐ Your review: {req.reviewRating}/5 {req.reviewComment ? `— ${req.reviewComment}` : ''}
+              </div>
+            )}
+
             {canReport && (
               <button className="rs-btn-report" onClick={() => { setReportModal(req); setReportForm({ reason: '', details: '' }); }}>
                 🚩 Report an Issue
@@ -952,6 +1189,12 @@ const ResourceSharePage = () => {
         {req.status === 'Rejected' && (
           <div className="rs-accepted-banner" style={{ background: '#fee2e2', color: '#dc2626' }}>
             <FaTimesCircle /> This request was declined.
+          </div>
+        )}
+
+        {req.status === 'Cancelled' && (
+          <div className="rs-accepted-banner" style={{ background: '#f1f5f9', color: '#334155' }}>
+            <FaTimesCircle /> This request was cancelled.
           </div>
         )}
       </div>
@@ -1000,62 +1243,99 @@ const ResourceSharePage = () => {
         {activeTab === 'my-tools' && (() => {
           const myTools = userTools.filter(t => t.ownerId === currentUser?.uid);
           return (
-            <div className="add-tool-section">
-              <h2 className="section-title"><FaBoxOpen /> My Listed Tools</h2>
+            <div className="rs-my-listings-wrap">
+              <div className="rs-my-listings-header">
+                <div>
+                  <h2 className="rs-my-listings-title"><FaBoxOpen /> My Listed Tools</h2>
+                  <p className="rs-my-listings-sub">{myTools.length} tool{myTools.length !== 1 ? 's' : ''} listed by you</p>
+                </div>
+                <button className="rs-my-listings-add-btn" onClick={() => setActiveTab('list')}>
+                  <FaPlus /> Add New Tool
+                </button>
+              </div>
+
               {myTools.length === 0 ? (
                 <div className="no-results">
-                  <FaTools />
+                  <FaTools size={48} />
                   <h3>No Tools Listed Yet</h3>
-                  <p>Go to "List Your Tool" tab to add your first tool.</p>
+                  <p>List your farming equipment and start getting rental requests.</p>
                   <button className="btn-primary" style={{ marginTop: 16 }} onClick={() => setActiveTab('list')}>
-                    <FaPlus /> Add Tool
+                    <FaPlus /> Add Your First Tool
                   </button>
                 </div>
               ) : (
-                <div className="rs-my-tools-list">
+                <div className="rs-my-listings-grid">
                   {myTools.map(tool => {
-                    const img  = resolveImage(tool);
+                    const img = resolveImage(tool);
                     const meta = CATEGORY_META[tool.category] || {};
                     const isAvailNow = tool.availability === 'Available';
+                    const priceLabel = tool.priceAmount
+                      ? `₹${tool.priceAmount}/${tool.priceUnit || 'hour'}`
+                      : tool.costPerHour ? `₹${tool.costPerHour}/hour` : '';
+                    const pendingReqs = rentalRequests.filter(r => r.toolId === tool.id && r.status === 'Requested').length;
                     return (
-                      <div key={tool.id} className="rs-my-tool-card">
-                        <div className="rs-my-tool-image">
+                      <div key={tool.id} className="rs-mlc">
+                        <div className="rs-mlc-img-wrap">
                           {img ? (
-                            <img src={img} alt={tool.toolName || tool.name}
-                              onError={e => { e.target.onerror = null; e.target.src = meta.fallback || ''; }} />
+                            <img
+                              src={img}
+                              alt={tool.toolName || tool.name}
+                              className="rs-mlc-img"
+                              onError={e => { e.target.onerror = null; e.target.src = meta.fallback || ''; }}
+                            />
                           ) : (
-                            <div className="tool-image-placeholder" style={{ color: meta.color }}>
-                              <FaTools size={36} />
+                            <div className="rs-mlc-img-placeholder" style={{ color: meta.color || '#16a34a' }}>
+                              <FaTools size={44} />
+                            </div>
+                          )}
+                          <div className={`rs-mlc-status ${isAvailNow ? 'rs-mlc-status-open' : 'rs-mlc-status-busy'}`}>
+                            {isAvailNow ? <FaCheckCircle /> : <FaTimesCircle />} {tool.availability}
+                          </div>
+                          {pendingReqs > 0 && (
+                            <div className="rs-mlc-req-badge">
+                              <FaBell /> {pendingReqs} Request{pendingReqs > 1 ? 's' : ''}
                             </div>
                           )}
                         </div>
-                        <div className="rs-my-tool-info">
-                          <h3>{tool.toolName || tool.name}</h3>
-                          <span className="category-badge"
-                            style={{ background: (meta.color || '#16a34a') + '22', color: meta.color || '#16a34a' }}>
-                            {meta.emoji} {tool.category}
-                          </span>
-                          {tool.hp && <p><FaTachometerAlt style={{ display:'inline', marginRight:3 }} />{tool.hp} HP</p>}
-                          <p><FaRupeeSign style={{ display:'inline', marginRight:3 }} />₹{tool.priceAmount || tool.costPerHour}/{tool.priceUnit || 'hour'}</p>
-                          <p><FaMapMarkerAlt style={{ display:'inline', marginRight:3 }} />{[tool.village, tool.district, tool.state].filter(Boolean).join(', ')}</p>
-                          <div className={`availability-badge ${isAvailNow ? 'available' : 'unavailable'}`}
-                            style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:'0.8rem', padding:'2px 8px', borderRadius:20, marginTop:4,
-                              background: isAvailNow ? '#dcfce7' : '#fee2e2',
-                              color: isAvailNow ? '#16a34a' : '#dc2626' }}>
-                            {isAvailNow ? <FaCheckCircle /> : <FaTimesCircle />} {tool.availability}
+
+                        <div className="rs-mlc-body">
+                          <div className="rs-mlc-name">{tool.toolName || tool.name}</div>
+                          <div
+                            className="rs-mlc-cat"
+                            style={{ background: (meta.color || '#16a34a') + '18', color: meta.color || '#16a34a' }}>
+                            {meta.emoji || '🔧'} {tool.category}
                           </div>
-                        </div>
-                        <div className="rs-my-tool-actions">
-                          {/* Availability toggle */}
-                          <button
-                            className={isAvailNow ? 'rs-btn-toggle-maint' : 'rs-btn-toggle-avail'}
-                            onClick={() => handleToggleAvailability(tool)}
-                            title={isAvailNow ? 'Mark as Under Maintenance/Busy' : 'Mark as Available'}>
-                            {isAvailNow ? <><FaEyeSlash /> Set Maintenance</> : <><FaEye /> Set Available</>}
-                          </button>
-                          <button className="rs-btn-edit" onClick={() => openEditTool(tool)}>
-                            <FaAlignLeft /> Edit Details
-                          </button>
+
+                          <div className="rs-mlc-info-rows">
+                            {priceLabel && (
+                              <div className="rs-mlc-info-row">
+                                <FaRupeeSign className="rs-mlc-info-icon" /> {priceLabel}
+                              </div>
+                            )}
+                            <div className="rs-mlc-info-row">
+                              <FaMapMarkerAlt className="rs-mlc-info-icon" />
+                              {[tool.village, tool.district, tool.state].filter(Boolean).join(', ') || 'Location not set'}
+                            </div>
+                            {tool.phone && (
+                              <div className="rs-mlc-info-row">
+                                <FaPhone className="rs-mlc-info-icon" /> {tool.phone}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="rs-mlc-actions">
+                            <button
+                              className={`rs-mlc-btn ${isAvailNow ? 'rs-mlc-btn-maint' : 'rs-mlc-btn-avail'}`}
+                              onClick={() => handleToggleAvailability(tool)}>
+                              {isAvailNow ? <><FaEyeSlash /> Maintenance</> : <><FaEye /> Set Available</>}
+                            </button>
+                            <button className="rs-mlc-btn rs-mlc-btn-edit" onClick={() => openEditTool(tool)}>
+                              <FaAlignLeft /> Edit
+                            </button>
+                            <button className="rs-mlc-btn rs-mlc-btn-del" onClick={() => handleDeleteTool(tool.id)}>
+                              🗑 Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1253,9 +1533,9 @@ const ResourceSharePage = () => {
 
         {/* ═══════ REQUESTS TAB ═══════ */}
         {activeTab === 'requests' && (() => {
-          const myRequests = rentalRequests.filter(
+          const myRequests = dedupeRequestsByToolAndRequester(rentalRequests.filter(
             r => r.toolOwnerId === currentUser?.uid || r.requesterId === currentUser?.uid
-          );
+          ));
           return (
             <div className="rs-requests-page">
               <h2 className="section-title"><FaBell /> My Rental Requests</h2>
@@ -1498,12 +1778,18 @@ const ResourceSharePage = () => {
                         <label className="form-label"><FaMapMarkerAlt /> State <span className="p2p-required">*</span></label>
                         <select className="form-select"
                           value={newTool.state}
-                          onChange={e => setNewTool(p => ({ ...p, state: e.target.value, district: '' }))} required>
-                          <option value="">-- Select State --</option>
-                          {Object.keys(STATE_DISTRICTS).map(s => (
+                          onChange={e => setNewTool(p => ({ ...p, state: e.target.value, district: '' }))}
+                          required>
+                          <option value="">
+                            -- Select State --
+                          </option>
+                          {RESOURCE_ALLOWED_STATES.map(s => (
                             <option key={s} value={s}>{s}</option>
                           ))}
                         </select>
+                        <small style={{ color: '#64748b', marginTop: 6, display: 'block' }}>
+                          Available states are limited to Consumer dashboard regions.
+                        </small>
                       </div>
                       <div className="form-group">
                         <label className="form-label"><FaMapMarkerAlt /> District <span className="p2p-required">*</span></label>
@@ -1594,19 +1880,43 @@ const ResourceSharePage = () => {
             </div>
           </div>
 
-          {/* Total Estimated Hours */}
+          {/* Total Estimated Hours (auto) */}
           <div className="rs-modal-section">
-            <label className="rs-modal-label"><FaTachometerAlt /> Total Estimated Hours (for cost calculation)</label>
-            <input type="number" min="1" className="rs-modal-input"
-              placeholder="e.g., 8 (helps owner plan cost)"
-              value={rentForm.estimatedHours}
-              onChange={e => setRentForm(p => ({ ...p, estimatedHours: e.target.value }))} />
-            {rentForm.estimatedHours && (rentModalTool?.priceAmount || rentModalTool?.costPerHour) && (
+            <label className="rs-modal-label"><FaTachometerAlt /> Total Estimated Hours (auto-calculated)</label>
+            <input
+              type="text"
+              className="rs-modal-input"
+              value={
+                rentForm.duration
+                  ? `${getEstimatedHours(rentForm.duration, rentForm.durationType)} hrs`
+                  : 'Enter duration to auto-calculate'
+              }
+              readOnly
+            />
+            {rentForm.duration && (rentModalTool?.priceAmount || rentModalTool?.costPerHour) && (
               <p className="rs-modal-cost-hint">
-                💡 Estimated cost: ₹{(parseFloat(rentForm.estimatedHours) * parseFloat(rentModalTool.priceAmount || rentModalTool.costPerHour)).toLocaleString('en-IN')}
+                💡 Estimated cost: ₹{(
+                  getEstimatedHours(rentForm.duration, rentForm.durationType) *
+                  parseFloat(rentModalTool.priceAmount || rentModalTool.costPerHour)
+                ).toLocaleString('en-IN')}
                 {' '}(at ₹{rentModalTool.priceAmount || rentModalTool.costPerHour}/{rentModalTool.priceUnit || 'hour'})
               </p>
             )}
+          </div>
+
+          {/* Requester Phone */}
+          <div className="rs-modal-section">
+            <label className="rs-modal-label"><FaPhone /> Your Phone Number <span className="p2p-required">*</span></label>
+            <input type="tel" className="rs-modal-input"
+              placeholder="Enter your 10-digit mobile number"
+              value={rentForm.requesterPhone}
+              onChange={e => setRentForm(p => ({ ...p, requesterPhone: e.target.value }))}
+              style={!rentForm.requesterPhone ? { borderColor: '#f59e0b' } : {}} />
+            <p style={{ fontSize: '0.75rem', color: rentForm.requesterPhone ? '#16a34a' : '#b45309', marginTop: 4, fontWeight: 500 }}>
+              {rentForm.requesterPhone
+                ? '✅ Phone entered — owner will call you after approval.'
+                : '⚠️ Required: Type your mobile number so the owner can contact you.'}
+            </p>
           </div>
 
           {/* Work Conditions Note */}

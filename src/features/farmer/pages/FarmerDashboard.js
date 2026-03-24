@@ -34,8 +34,26 @@ const getGreeting = () => {
 }
 
 // Helper: title-case underscore keys
+const districtLabelOverrides = {
+  kanchipuram: 'Kancheepuram',
+  sivaganga: 'Sivagangai',
+  chamarajanagar: 'Chamarajanagara',
+  chikkaballapur: 'Chikkaballapura',
+  ballari: 'Ballari (Bellary)',
+  belagavi: 'Belagavi (Belgaum)',
+  kalaburagi: 'Kalaburagi (Gulbarga)',
+  mysuru: 'Mysuru (Mysore)',
+  shivamogga: 'Shivamogga (Shimoga)',
+  tumakuru: 'Tumakuru (Tumkur)',
+  uttara_kannada: 'Uttara Kannada (Karwar)',
+  vijayapura: 'Vijayapura (Bijapur)',
+  vijayanagara: 'Vijayanagara (Hospet)'
+}
+
 const fmt = (key) =>
-  key ? key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '—'
+  key
+    ? (districtLabelOverrides[key] || key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '))
+    : '—'
 
 // Get crop image from dictionary
 const getCropImage = (cropName) => {
@@ -61,11 +79,11 @@ const statusMeta = {
 
 // State/districts for dropdowns
 const stateDistricts = {
-  telangana: ['adilabad','bhadradri_kothagudem','hyderabad','jagtial','jangaon','jayashankar_bhupalpally','jogulamba_gadwal','kamareddy','karimnagar','khammam','komaram_bheem_asifabad','mahabubabad','mahabubnagar','mancherial','medak','medchal_malkajgiri','mulugu','nagarkurnool','nalgonda','narayanpet','nirmal','nizamabad','peddapalli','rajanna_sircilla','rangareddy','sangareddy','siddipet','suryapet','vikarabad','wanaparthy','warangal_rural','warangal_urban','yadadri_bhuvanagiri'],
-  andhra_pradesh: ['anantapur','chittoor','east_godavari','guntur','kadapa','krishna','kurnool','nellore','prakasam','srikakulam','visakhapatnam','vizianagaram','west_godavari'],
+  telangana: ['adilabad','bhadradri_kothagudem','hanumakonda','hyderabad','jagtial','jangaon','jayashankar_bhupalpally','jogulamba_gadwal','kamareddy','karimnagar','khammam','kumuram_bheem','mahabubabad','mahabubnagar','mancherial','medak','medchal_malkajgiri','mulugu','nagarkurnool','nalgonda','narayanpet','nirmal','nizamabad','peddapalli','rajanna_sircilla','rangareddy','sangareddy','siddipet','suryapet','vikarabad','wanaparthy','warangal','yadadri_bhuvanagiri'],
+  andhra_pradesh: ['srikakulam','parvathipuram_manyam','vizianagaram','visakhapatnam','alluri_sitharama_raju','anakapalli','polavaram','kakinada','east_godavari','dr_br_ambedkar_konaseema','eluru','west_godavari','ntr','krishna','palnadu','guntur','bapatla','prakasam','markapuram','sri_potti_sriramulu_nellore','kurnool','nandyal','ananthapuramu','sri_sathya_sai','ysr_kadapa','annamayya','tirupati','chittoor'],
   tamil_nadu: ['ariyalur','chengalpattu','chennai','coimbatore','cuddalore','dharmapuri','dindigul','erode','kallakurichi','kanchipuram','kanniyakumari','karur','krishnagiri','madurai','mayiladuthurai','nagapattinam','namakkal','nilgiris','perambalur','pudukkottai','ramanathapuram','ranipet','salem','sivaganga','tenkasi','thanjavur','theni','thoothukudi','tiruchirappalli','tirunelveli','tirupathur','tiruppur','tiruvallur','tiruvannamalai','tiruvarur','vellore','viluppuram','virudhunagar'],
   kerala: ['thiruvananthapuram','kollam','pathanamthitta','alappuzha','kottayam','idukki','ernakulam','thrissur','palakkad','malappuram','kozhikode','wayanad','kannur','kasaragod'],
-  goa: ['north_goa','south_goa'],
+  goa: ['north_goa','south_goa','kushavati'],
   karnataka: ['bagalkot','ballari','belagavi','bengaluru_rural','bengaluru_urban','bidar','chamarajanagar','chikkaballapur','chikkamagaluru','chitradurga','dakshina_kannada','davanagere','dharwad','gadag','hassan','haveri','kalaburagi','kodagu','kolar','koppal','mandya','mysuru','raichur','ramanagara','shivamogga','tumakuru','udupi','uttara_kannada','vijayapura','yadgir','vijayanagara']
 }
 
