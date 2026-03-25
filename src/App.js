@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
+import GlobalAutoTranslator from './components/GlobalAutoTranslator';
 import { useAuth } from './context/AuthContext';
 import { db } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
@@ -91,6 +92,7 @@ const AppContent = () => {
   const [resourceNotifCount, setResourceNotifCount] = useState(0);
 
   const isConsumerPage = location.pathname === '/consumer';
+  const isFarmerPage = location.pathname === '/farmer' || location.pathname === '/farmer-dashboard';
 
   // Update cart count from localStorage
   useEffect(() => {
@@ -118,12 +120,15 @@ const AppContent = () => {
     };
   }, []);
 
-  // Resource sharing notification count (pending requests + new tools added in last 24h)
+  // Resource sharing counts
   useEffect(() => {
-    if (!currentUser?.uid) { setResourceNotifCount(0); return; }
+    if (!currentUser?.uid) {
+      setResourceNotifCount(0);
+      return;
+    }
     const unsub = onSnapshot(collection(db, 'rental_requests'), (snap) => {
-      const pending = snap.docs.filter(d => {
-        const r = d.data();
+      const docs = snap.docs.map(d => d.data());
+      const pending = docs.filter(r => {
         return (
           (r.toolOwnerId === currentUser.uid && r.status === 'Requested') ||
           (r.requesterId === currentUser.uid && r.status === 'Accepted')
@@ -172,18 +177,21 @@ const AppContent = () => {
 
   return (
     <>
+      <GlobalAutoTranslator />
       {loading && <AuthSplash />}
-      <Navbar 
-        cartCount={cartCount}
-        notifications={[]}
-        isConsumerDashboard={isConsumerPage}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        onSearchClick={handleSearchClick}
-        showCart={true}
-        showOrders={true}
-        resourceNotifCount={resourceNotifCount}
-      />
+      {!isFarmerPage && (
+        <Navbar 
+          cartCount={cartCount}
+          notifications={[]}
+          isConsumerDashboard={isConsumerPage}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onSearchClick={handleSearchClick}
+          showCart={true}
+          showOrders={true}
+          resourceNotifCount={resourceNotifCount}
+        />
+      )}
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route

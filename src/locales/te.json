@@ -152,6 +152,10 @@
     
     "ai_crop_recommendations": "AI పంట సిఫార్సులు",
     "get_recommendations": "సిఫార్సులు పొందండి",
+    "recommendations": "సిఫార్సులు",
+    "requests": "అభ్యర్థనలు",
+    "crop_recommendations": "పంట సిఫార్సులు",
+    "crop_requests": "పంట అభ్యర్థనలు",
     "soil_type": "నేల రకం",
     "climate": "వాతావరణం",
     "season": "సీజన్",

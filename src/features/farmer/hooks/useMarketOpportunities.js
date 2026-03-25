@@ -68,7 +68,7 @@ export const useMarketOpportunities = () => {
   }, [])
 
   /* ── Submit a price offer for a demand ── */
-  const submitOffer = useCallback(async (demandId, offerPrice, offerUnit = 'kg', offerAvailableDate = '') => {
+  const submitOffer = useCallback(async (demandId, offerPrice, offerUnit = 'kg', offerAvailableDate = '', offerOrganic = false) => {
     const user = auth.currentUser
     if (!user) return { success: false, error: 'Not logged in' }
     const price = parseFloat(offerPrice)
@@ -78,7 +78,13 @@ export const useMarketOpportunities = () => {
       const profileSnap = await getDoc(doc(db, 'users', user.uid))
       const profileData = profileSnap.exists() ? profileSnap.data() : {}
       const farmerPhone = profileData.phone || profileData.phoneNumber || ''
-      const farmerDistrict = profileData.district || ''
+      const farmerDistrict = (
+        profileData.district ||
+        profileData.location?.district ||
+        profileData.address?.district ||
+        profileData.city ||
+        ''
+      )
 
       if (!farmerPhone || farmerPhone.replace(/\D/g, '').length < 10) {
         return { success: false, error: 'Please add your phone number in your profile before submitting offers.' }
@@ -98,6 +104,7 @@ export const useMarketOpportunities = () => {
         farmerOfferPrice:    pricePerKg,        // always stored per-kg
         farmerOfferDisplay:  price,             // original number entered
         farmerOfferUnit:     offerUnit,         // 'kg' | 'quintal' | 'ton'
+        farmerOfferOrganic:  !!offerOrganic,
         farmerPhone,
         farmerAvailableUntil: offerAvailableDate || '',
         quotedAt:            serverTimestamp(),

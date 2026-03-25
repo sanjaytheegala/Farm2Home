@@ -185,7 +185,6 @@ const Navbar = React.memo(({
               <option value="te">తెలుగు</option>
               <option value="ta">தமிழ்</option>
               <option value="ml">മലയാളം</option>
-              <option value="mr">मराठी</option>
               <option value="kn">ಕನ್ನಡ</option>
             </select>
           </div>

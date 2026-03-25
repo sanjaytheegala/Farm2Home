@@ -8,9 +8,10 @@ import {
   FaMapPin, FaSlidersH, FaEye, FaEyeSlash, FaTachometerAlt, FaTruck,
   FaShieldAlt, FaSortAmountDown, FaStickyNote
 } from 'react-icons/fa';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './ResourceSharePage.css';
 import { db, storage } from '../firebase';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -81,6 +82,12 @@ const INITIAL_TOOLS = [
   { id:32, name:'Swaraj Tractor',           category:'Heavy Machinery',   costPerHour:470, state:'Punjab',        district:'Patiala',     village:'Nabha',        owner:'Sukhdev Singh',    phone:'+91 9876543268', description:'Swaraj tractor for all types of farm operations. Known for ease of maintenance and good resale value.',            availability:'Available', image:'/Farming Tools Images/swaraj tractor.jpg',            rating:4.6, totalBookings:33, yearMade:2020, featured:false, tags:['Easy Maintenance','Versatile','Value for Money'] },
   { id:33, name:'Tractor',                  category:'Heavy Machinery',   costPerHour:500, state:'Telangana',     district:'Hyderabad',   village:'Gachibowli',   owner:'Rajesh Kumar',     phone:'+91 9876543210', description:'High-performance tractor suitable for plowing and cultivation. Well-maintained with latest features.',              availability:'Available', image:'/Farming Tools Images/Tractor.jpg',                   rating:4.8, totalBookings:47, yearMade:2020, featured:true,  tags:['GPS Enabled','Fuel Efficient','Air Conditioned'] },
 ];
+
+const TOOL_IMAGE_BY_NAME = INITIAL_TOOLS.reduce((acc, tool) => {
+  const key = (tool.name || '').trim().toLowerCase();
+  if (key && tool.image) acc[key] = tool.image;
+  return acc;
+}, {});
 
 /* ── State → Districts map ── */
 const STATE_DISTRICTS = {
@@ -278,7 +285,17 @@ const BLANK_RENT_REQUEST = {
   requesterPhone: '',   // phone entered in modal
 };
 
+const VALID_RESOURCE_TABS = new Set(['browse', 'requests', 'my-tools', 'list']);
+
+const getTabFromSearch = (search = '') => {
+  const tabValue = new URLSearchParams(search).get('tab');
+  if (!tabValue) return '';
+  return VALID_RESOURCE_TABS.has(tabValue) ? tabValue : '';
+};
+
 const ResourceSharePage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { currentUser, userData: authUserData } = useAuth();
   const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast();
   const [activeTab, setActiveTab]           = useState('browse');
@@ -307,6 +324,12 @@ const ResourceSharePage = () => {
   const [reportModal, setReportModal]   = useState(null); // req object
   const [reportForm, setReportForm]     = useState({ reason: '', details: '' });
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportedUserIds, setReportedUserIds] = useState(new Set());
+
+  // Cancel request modal
+  const [cancelModal, setCancelModal] = useState(null); // req object
+  const [cancelForm, setCancelForm] = useState({ reason: '', details: '' });
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
   // Current farmer's district from profile
   const myDistrict  = authUserData?.district || '';
@@ -326,6 +349,52 @@ const ResourceSharePage = () => {
     );
     return () => { unsubTools(); unsubRentals(); };
   }, []);
+
+  useEffect(() => {
+    if (!currentUser?.uid) {
+      setReportedUserIds(new Set());
+      return;
+    }
+    const reportsQ = query(
+      collection(db, 'resource_reports'),
+      where('reporterId', '==', currentUser.uid)
+    );
+    const unsubReports = onSnapshot(
+      reportsQ,
+      (snap) => {
+        const ids = new Set(
+          snap.docs
+            .map((docSnap) => docSnap.data()?.reportedUserId)
+            .filter(Boolean)
+        );
+        setReportedUserIds(ids);
+      },
+      (err) => console.error('resource_reports listener error:', err)
+    );
+    return () => { try { unsubReports(); } catch (_) {} };
+  }, [currentUser?.uid]);
+
+  useEffect(() => {
+    const tabFromSearch = getTabFromSearch(location.search);
+    if (tabFromSearch) {
+      setActiveTab(tabFromSearch);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    const currentQueryTab = getTabFromSearch(location.search) || 'browse';
+    if (activeTab === currentQueryTab) return;
+
+    const params = new URLSearchParams(location.search);
+    if (activeTab === 'browse') {
+      params.delete('tab');
+    } else {
+      params.set('tab', activeTab);
+    }
+
+    const search = params.toString();
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true });
+  }, [activeTab, location.pathname, location.search, navigate]);
 
   // Sync user profile data into the Add-Tool form whenever auth data loads
   useEffect(() => {
@@ -438,8 +507,17 @@ const ResourceSharePage = () => {
     sortBy !== 'default',
   ].filter(Boolean).length;
 
-  const resolveImage = (tool) =>
-    tool.image || (CATEGORY_META[tool.category] && CATEGORY_META[tool.category].fallback) || '';
+  const resolveImage = (tool) => {
+    const categoryFallback = CATEGORY_META[tool.category]?.fallback || '';
+    const explicitImage = tool.image || '';
+    const nameKey = (tool.toolName || tool.name || '').trim().toLowerCase();
+    const inferredByName = TOOL_IMAGE_BY_NAME[nameKey] || '';
+
+    if (explicitImage && explicitImage !== categoryFallback) return explicitImage;
+    if (inferredByName) return inferredByName;
+    if (explicitImage) return explicitImage;
+    return categoryFallback;
+  };
 
   const getEstimatedHours = (duration, durationType) => {
     const numericDuration = parseFloat(duration);
@@ -587,10 +665,10 @@ const ResourceSharePage = () => {
   };
 
   /* ── Owner or Borrower: Mark In Progress ── */
-  const handleMarkInProgress = async (reqId, toolId) => {
+  const handleMarkInProgress = async (reqId, toolId, toolOwnerId) => {
     try {
       await updateDoc(doc(db, 'rental_requests', reqId), { status: 'In Progress' });
-      if (toolId && typeof toolId === 'string') {
+      if (toolId && typeof toolId === 'string' && toolOwnerId === currentUser?.uid) {
         await updateDoc(doc(db, 'resource_tools', toolId), { availability: 'Rented' });
       }
       toastSuccess('🚜 Status updated to In Progress!');
@@ -601,10 +679,10 @@ const ResourceSharePage = () => {
   };
 
   /* ── Borrower: Mark Work Completed ── */
-  const handleMarkCompleted = async (reqId, toolId) => {
+  const handleMarkCompleted = async (reqId, toolId, toolOwnerId) => {
     try {
       await updateDoc(doc(db, 'rental_requests', reqId), { status: 'Completed' });
-      if (toolId && typeof toolId === 'string') {
+      if (toolId && typeof toolId === 'string' && toolOwnerId === currentUser?.uid) {
         await updateDoc(doc(db, 'resource_tools', toolId), { availability: 'Available' });
       }
       toastSuccess('🎉 Marked as completed! Tool is back to Available.');
@@ -614,16 +692,41 @@ const ResourceSharePage = () => {
     }
   };
 
-  const handleCancelRequest = async (reqId, toolId) => {
+  const openCancelModal = (req) => {
+    setCancelModal(req);
+    setCancelForm({ reason: '', details: '' });
+  };
+
+  const handleCancelRequest = async () => {
+    if (!cancelModal?.id) return;
+    if (!cancelForm.reason) {
+      toastError('Please select a cancellation reason.');
+      return;
+    }
+    setCancelSubmitting(true);
     try {
-      await updateDoc(doc(db, 'rental_requests', reqId), { status: 'Cancelled' });
-      if (toolId && typeof toolId === 'string') {
-        await updateDoc(doc(db, 'resource_tools', toolId), { availability: 'Available' });
+      await updateDoc(doc(db, 'rental_requests', cancelModal.id), {
+        status: 'Cancelled',
+        cancelReason: cancelForm.reason,
+        cancelDetails: (cancelForm.details || '').trim(),
+        cancelledBy: currentUser?.uid || null,
+        cancelledAt: serverTimestamp(),
+      });
+      if (
+        cancelModal.toolId &&
+        typeof cancelModal.toolId === 'string' &&
+        cancelModal.toolOwnerId === currentUser?.uid
+      ) {
+        await updateDoc(doc(db, 'resource_tools', cancelModal.toolId), { availability: 'Available' });
       }
       toastSuccess('Request cancelled successfully.');
+      setCancelModal(null);
+      setCancelForm({ reason: '', details: '' });
     } catch (err) {
       console.error('Error cancelling request:', err);
       toastError('Failed to cancel request. Try again.');
+    } finally {
+      setCancelSubmitting(false);
     }
   };
 
@@ -645,6 +748,22 @@ const ResourceSharePage = () => {
   /* ── Submit Report / Complaint ── */
   const handleSubmitReport = async () => {
     if (!reportForm.reason || !reportModal) return;
+    const isOwnerOfTool = reportModal.toolOwnerId === currentUser?.uid;
+    const reportedUserId = isOwnerOfTool ? reportModal.requesterId : reportModal.toolOwnerId;
+    const reportedUserName = isOwnerOfTool ? reportModal.requesterName : reportModal.ownerName;
+
+    if (!reportedUserId) {
+      toastError('Unable to identify the person to report.');
+      return;
+    }
+
+    if (reportedUserIds.has(reportedUserId)) {
+      toastWarning('You have already reported this person. Duplicate reporting is not allowed.');
+      setReportModal(null);
+      setReportForm({ reason: '', details: '' });
+      return;
+    }
+
     setReportSubmitting(true);
     try {
       await addDoc(collection(db, 'resource_reports'), {
@@ -653,6 +772,8 @@ const ResourceSharePage = () => {
         toolName:      reportModal.toolName,
         reporterId:    currentUser?.uid || null,
         reporterName:  authUserData?.name || currentUser?.displayName || '',
+        reportedUserId,
+        reportedUserName: reportedUserName || 'Unknown',
         reason:        reportForm.reason,
         details:       reportForm.details,
         status:        'Open',
@@ -666,18 +787,6 @@ const ResourceSharePage = () => {
       toastError('Failed to submit report. Try again.');
     } finally {
       setReportSubmitting(false);
-    }
-  };
-
-  /* ── Owner: Toggle tool availability (Available ↔ Under Maintenance) ── */
-  const handleToggleAvailability = async (tool) => {
-    const next = tool.availability === 'Available' ? 'Under Maintenance' : 'Available';
-    try {
-      await updateDoc(doc(db, 'resource_tools', tool.id), { availability: next });
-      toastSuccess(`Tool marked as ${next}.`);
-    } catch (err) {
-      console.error('Error toggling availability:', err);
-      toastError('Failed to update availability.');
     }
   };
 
@@ -700,7 +809,11 @@ const ResourceSharePage = () => {
     }
     setListingTool(true);
     try {
-      const fallbackImage = CATEGORY_META[newTool.category]?.fallback || '';
+      const fallbackImage =
+        newTool.image ||
+        selectedTemplate?.image ||
+        CATEGORY_META[newTool.category]?.fallback ||
+        '';
       const docRef = await addDoc(collection(db, 'resource_tools'), {
         toolName:     newTool.toolName,
         name:         newTool.toolName,
@@ -800,6 +913,7 @@ const ResourceSharePage = () => {
       state:       tool.state || '',
       phone:       tool.phone || '',
       description: tool.description || '',
+      availability: tool.availability || 'Available',
     });
   };
 
@@ -821,6 +935,7 @@ const ResourceSharePage = () => {
         state:       editForm.state,
         phone:       editForm.phone,
         description: editForm.description,
+        availability: editForm.availability || 'Available',
       });
       toastSuccess('Tool updated successfully!');
       setEditingTool(null);
@@ -859,7 +974,7 @@ const ResourceSharePage = () => {
         <div className="tool-image-container">
           {img ? (
             <img src={img} alt={displayName} className="tool-image"
-              onError={e => { e.target.onerror = null; e.target.src = meta.fallback || ''; }} />
+              onError={e => { e.target.onerror = null; e.target.src = TOOL_IMAGE_BY_NAME[(displayName || '').trim().toLowerCase()] || meta.fallback || ''; }} />
           ) : (
             <div className="tool-image-placeholder" style={{ color: meta.color || '#16a34a' }}>
               <FaTools size={60} />
@@ -999,6 +1114,8 @@ const ResourceSharePage = () => {
     const contactRole  = isOwner ? 'Renter' : 'Owner';
     const telHref = contactPhone ? `tel:${contactPhone.replace(/\s/g, '')}` : '#';
     const canReport = ['Accepted', 'In Progress', 'Completed'].includes(req.status);
+    const reportTargetId = isOwner ? req.requesterId : req.toolOwnerId;
+    const alreadyReportedThisPerson = !!(reportTargetId && reportedUserIds.has(reportTargetId));
     const statusColors = {
       Requested:    { bg: '#fef3c7', color: '#d97706' },
       Accepted:     { bg: '#dcfce7', color: '#16a34a' },
@@ -1008,9 +1125,14 @@ const ResourceSharePage = () => {
       Cancelled:    { bg: '#f1f5f9', color: '#475569' },
     };
     const sColor = statusColors[req.status] || { bg: '#f1f5f9', color: '#64748b' };
+    const statusClass =
+      req.status === 'Requested' ? 'rs-req-pending' :
+      req.status === 'Accepted' || req.status === 'In Progress' ? 'rs-req-accepted' :
+      req.status === 'Rejected' || req.status === 'Cancelled' ? 'rs-req-offered' :
+      '';
 
     return (
-      <div className="rs-request-card">
+      <div className={`rs-request-card ${statusClass}`}>
         <div className="rs-req-top">
           <div>
             <h3 className="rs-req-tool">{req.toolName}</h3>
@@ -1058,7 +1180,7 @@ const ResourceSharePage = () => {
 
         {isRequester && ['Requested', 'Accepted'].includes(req.status) && (
           <div className="rs-req-actions">
-            <button className="rs-btn-reject" onClick={() => handleCancelRequest(req.id, req.toolId)}>
+            <button className="rs-btn-reject" onClick={() => openCancelModal(req)}>
               <FaTimesCircle /> Cancel Request
             </button>
           </div>
@@ -1083,13 +1205,24 @@ const ResourceSharePage = () => {
               )}
             </div>
             {(isRequester || isOwner) && (
-              <button className="rs-btn-inprogress" onClick={() => handleMarkInProgress(req.id, req.toolId)}>
+              <button className="rs-btn-inprogress" onClick={() => handleMarkInProgress(req.id, req.toolId, req.toolOwnerId)}>
                 <FaTractor /> Start Work (Mark In Progress)
               </button>
             )}
             {canReport && (
-              <button className="rs-btn-report" onClick={() => { setReportModal(req); setReportForm({ reason: '', details: '' }); }}>
-                🚩 Report an Issue
+              <button
+                className="rs-btn-report"
+                disabled={alreadyReportedThisPerson}
+                style={alreadyReportedThisPerson ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                onClick={() => {
+                  if (alreadyReportedThisPerson) {
+                    toastWarning('You already reported this person.');
+                    return;
+                  }
+                  setReportModal(req);
+                  setReportForm({ reason: '', details: '' });
+                }}>
+                {alreadyReportedThisPerson ? '✅ Already Reported' : '🚩 Report an Issue'}
               </button>
             )}
           </div>
@@ -1111,13 +1244,24 @@ const ResourceSharePage = () => {
               )}
             </div>
             {isRequester && (
-              <button className="rs-btn-complete" onClick={() => handleMarkCompleted(req.id, req.toolId)}>
+              <button className="rs-btn-complete" onClick={() => handleMarkCompleted(req.id, req.toolId, req.toolOwnerId)}>
                 <FaCheckCircle /> Task Completed — Mark as Done
               </button>
             )}
             {canReport && (
-              <button className="rs-btn-report" onClick={() => { setReportModal(req); setReportForm({ reason: '', details: '' }); }}>
-                🚩 Report an Issue
+              <button
+                className="rs-btn-report"
+                disabled={alreadyReportedThisPerson}
+                style={alreadyReportedThisPerson ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                onClick={() => {
+                  if (alreadyReportedThisPerson) {
+                    toastWarning('You already reported this person.');
+                    return;
+                  }
+                  setReportModal(req);
+                  setReportForm({ reason: '', details: '' });
+                }}>
+                {alreadyReportedThisPerson ? '✅ Already Reported' : '🚩 Report an Issue'}
               </button>
             )}
           </div>
@@ -1179,8 +1323,19 @@ const ResourceSharePage = () => {
             )}
 
             {canReport && (
-              <button className="rs-btn-report" onClick={() => { setReportModal(req); setReportForm({ reason: '', details: '' }); }}>
-                🚩 Report an Issue
+              <button
+                className="rs-btn-report"
+                disabled={alreadyReportedThisPerson}
+                style={alreadyReportedThisPerson ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                onClick={() => {
+                  if (alreadyReportedThisPerson) {
+                    toastWarning('You already reported this person.');
+                    return;
+                  }
+                  setReportModal(req);
+                  setReportForm({ reason: '', details: '' });
+                }}>
+                {alreadyReportedThisPerson ? '✅ Already Reported' : '🚩 Report an Issue'}
               </button>
             )}
           </div>
@@ -1206,39 +1361,35 @@ const ResourceSharePage = () => {
     <div className="resource-share-page">
       <div className="resource-container">
 
-        {/* ═══════ TOP ACTION BAR ═══════ */}
+        {/* ═══════ TAB NAVIGATION BAR ═══════ */}
         <div className="rs-top-action-bar">
-          <button
+          <button 
             className={`rs-tab-action-btn ${activeTab === 'browse' ? 'rs-tab-btn-active' : ''}`}
             onClick={() => setActiveTab('browse')}>
-            Browse Tools
+            <FaSearch /> Browse Tools
           </button>
-          <button
+          <button 
             className={`rs-tab-action-btn ${activeTab === 'requests' ? 'rs-tab-btn-active' : ''}`}
             onClick={() => setActiveTab('requests')}>
-            My Requests
-            {rentalRequests.filter(r => r.toolOwnerId === currentUser?.uid || r.requesterId === currentUser?.uid).length > 0 && (
+            <FaBell /> My Requests
+            {rentalRequests.filter(r => (r.toolOwnerId === currentUser?.uid || r.requesterId === currentUser?.uid) && ['Requested', 'Accepted', 'In Progress'].includes(r.status)).length > 0 && (
               <span className="rs-tab-action-badge">
-                {rentalRequests.filter(r => r.toolOwnerId === currentUser?.uid || r.requesterId === currentUser?.uid).length}
+                {rentalRequests.filter(r => (r.toolOwnerId === currentUser?.uid || r.requesterId === currentUser?.uid) && ['Requested', 'Accepted', 'In Progress'].includes(r.status)).length}
               </span>
             )}
           </button>
-          <button
+          <button 
             className={`rs-tab-action-btn ${activeTab === 'my-tools' ? 'rs-tab-btn-active' : ''}`}
             onClick={() => setActiveTab('my-tools')}>
-            My Listings
-            {userTools.filter(t => t.ownerId === currentUser?.uid).length > 0 && (
-              <span className="rs-tab-action-badge">
-                {userTools.filter(t => t.ownerId === currentUser?.uid).length}
-              </span>
-            )}
+            <FaBoxOpen /> My Tools
           </button>
-          <button
-            className="rs-tab-action-btn rs-tab-add-btn"
+          <button 
+            className="rs-tab-add-btn"
             onClick={() => setActiveTab('list')}>
-          + Add Tool
+            <FaPlus /> Add Tool
           </button>
         </div>
+
         {/* ═══════ MY LISTINGS TAB ═══════ */}
         {activeTab === 'my-tools' && (() => {
           const myTools = userTools.filter(t => t.ownerId === currentUser?.uid);
@@ -1281,7 +1432,7 @@ const ResourceSharePage = () => {
                               src={img}
                               alt={tool.toolName || tool.name}
                               className="rs-mlc-img"
-                              onError={e => { e.target.onerror = null; e.target.src = meta.fallback || ''; }}
+                              onError={e => { e.target.onerror = null; e.target.src = TOOL_IMAGE_BY_NAME[((tool.toolName || tool.name || '').trim().toLowerCase())] || meta.fallback || ''; }}
                             />
                           ) : (
                             <div className="rs-mlc-img-placeholder" style={{ color: meta.color || '#16a34a' }}>
@@ -1292,9 +1443,13 @@ const ResourceSharePage = () => {
                             {isAvailNow ? <FaCheckCircle /> : <FaTimesCircle />} {tool.availability}
                           </div>
                           {pendingReqs > 0 && (
-                            <div className="rs-mlc-req-badge">
+                            <button
+                              type="button"
+                              className="rs-mlc-req-badge rs-mlc-req-badge-btn"
+                              onClick={() => setActiveTab('requests')}
+                              title="View rental requests">
                               <FaBell /> {pendingReqs} Request{pendingReqs > 1 ? 's' : ''}
-                            </div>
+                            </button>
                           )}
                         </div>
 
@@ -1324,13 +1479,8 @@ const ResourceSharePage = () => {
                           </div>
 
                           <div className="rs-mlc-actions">
-                            <button
-                              className={`rs-mlc-btn ${isAvailNow ? 'rs-mlc-btn-maint' : 'rs-mlc-btn-avail'}`}
-                              onClick={() => handleToggleAvailability(tool)}>
-                              {isAvailNow ? <><FaEyeSlash /> Maintenance</> : <><FaEye /> Set Available</>}
-                            </button>
                             <button className="rs-mlc-btn rs-mlc-btn-edit" onClick={() => openEditTool(tool)}>
-                              <FaAlignLeft /> Edit
+                              <FaAlignLeft /> Edit / Status
                             </button>
                             <button className="rs-mlc-btn rs-mlc-btn-del" onClick={() => handleDeleteTool(tool.id)}>
                               🗑 Delete
@@ -2005,6 +2155,62 @@ const ResourceSharePage = () => {
       </div>
     )}
 
+    {/* ══════ CANCEL REQUEST MODAL ══════ */}
+    {cancelModal && (
+      <div className="rs-modal-backdrop" onClick={() => setCancelModal(null)}>
+        <div className="rs-modal rs-report-modal" onClick={e => e.stopPropagation()}>
+          <div className="rs-modal-header">
+            <div className="rs-modal-title-block">
+              <h2 className="rs-modal-title">❌ Cancel Request</h2>
+              <p className="rs-modal-tool-name">{cancelModal.toolName}</p>
+            </div>
+            <button className="rs-modal-close" onClick={() => setCancelModal(null)}><FaTimes /></button>
+          </div>
+
+          <div className="rs-modal-section">
+            <label className="rs-modal-label">Reason <span className="p2p-required">*</span></label>
+            <select
+              className="rs-modal-input"
+              value={cancelForm.reason}
+              onChange={e => setCancelForm(p => ({ ...p, reason: e.target.value }))}
+            >
+              <option value="">-- Select a reason --</option>
+              <option value="Changed Plan">Changed Plan</option>
+              <option value="Found Another Tool">Found Another Tool</option>
+              <option value="Owner Not Responding">Owner Not Responding</option>
+              <option value="Price Too High">Price Too High</option>
+              <option value="Wrong Request Details">Wrong Request Details</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div className="rs-modal-section">
+            <label className="rs-modal-label">Additional details (optional)</label>
+            <textarea
+              className="rs-modal-textarea"
+              placeholder="Add context for cancellation..."
+              rows={4}
+              value={cancelForm.details}
+              onChange={e => setCancelForm(p => ({ ...p, details: e.target.value }))}
+            />
+          </div>
+
+          <div className="rs-modal-actions">
+            <button
+              className="rs-modal-btn-primary"
+              disabled={cancelSubmitting || !cancelForm.reason}
+              onClick={handleCancelRequest}
+            >
+              {cancelSubmitting ? <><FaSpinner /> Cancelling...</> : <><FaTimesCircle /> Confirm Cancel</>}
+            </button>
+            <button className="rs-modal-btn-cancel" onClick={() => setCancelModal(null)}>
+              Keep Request
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* ══════ DISTRICT WARNING MODAL ══════ */}
     {districtWarnTool && (
       <div className="rs-modal-backdrop" onClick={() => setDistrictWarnTool(null)}>
@@ -2021,6 +2227,95 @@ const ResourceSharePage = () => {
               <FaHandshake /> Proceed Anyway
             </button>
             <button className="rs-modal-btn-cancel" onClick={() => setDistrictWarnTool(null)}>
+              <FaTimesCircle /> Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ══════ EDIT TOOL MODAL ══════ */}
+    {editingTool && (
+      <div className="rs-modal-backdrop" onClick={() => setEditingTool(null)}>
+        <div className="rs-modal rs-edit-modal" onClick={e => e.stopPropagation()}>
+          <div className="rs-modal-header">
+            <div className="rs-modal-title-block">
+              <h2 className="rs-modal-title">Edit Tool</h2>
+              <p className="rs-modal-tool-name">{editingTool.toolName || editingTool.name}</p>
+            </div>
+            <button className="rs-modal-close" onClick={() => setEditingTool(null)}><FaTimes /></button>
+          </div>
+
+          <div className="rs-modal-section">
+            <label className="rs-modal-label"><FaTools /> Tool Name</label>
+            <input
+              className="rs-modal-input"
+              value={editForm.toolName || ''}
+              onChange={e => setEditForm(p => ({ ...p, toolName: e.target.value }))}
+            />
+          </div>
+
+          <div className="rs-modal-section">
+            <label className="rs-modal-label"><FaRupeeSign /> Price</label>
+            <div className="rs-modal-row">
+              <input
+                type="number"
+                className="rs-modal-input"
+                value={editForm.priceAmount || ''}
+                onChange={e => setEditForm(p => ({ ...p, priceAmount: e.target.value }))}
+              />
+              <select
+                className="rs-modal-input"
+                value={editForm.priceUnit || 'hour'}
+                onChange={e => setEditForm(p => ({ ...p, priceUnit: e.target.value }))}
+              >
+                <option value="hour">hour</option>
+                <option value="day">day</option>
+                <option value="acre">acre</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="rs-modal-section">
+            <label className="rs-modal-label"><FaEye /> Availability</label>
+            <select
+              className="rs-modal-input"
+              value={editForm.availability || 'Available'}
+              onChange={e => setEditForm(p => ({ ...p, availability: e.target.value }))}
+            >
+              <option value="Available">Set Available</option>
+              <option value="Under Maintenance">Maintenance</option>
+            </select>
+          </div>
+
+          <div className="rs-modal-section">
+            <label className="rs-modal-label"><FaPhone /> Phone</label>
+            <input
+              className="rs-modal-input"
+              value={editForm.phone || ''}
+              onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))}
+            />
+          </div>
+
+          <div className="rs-modal-section">
+            <label className="rs-modal-label"><FaAlignLeft /> Description</label>
+            <textarea
+              className="rs-modal-textarea"
+              rows={3}
+              value={editForm.description || ''}
+              onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
+            />
+          </div>
+
+          <div className="rs-modal-actions">
+            <button
+              className="rs-modal-btn-primary"
+              disabled={savingEdit || !editForm.toolName}
+              onClick={handleSaveEdit}
+            >
+              {savingEdit ? <><FaSpinner /> Saving...</> : <><FaCheckCircle /> Save Changes</>}
+            </button>
+            <button className="rs-modal-btn-cancel" onClick={() => setEditingTool(null)}>
               <FaTimesCircle /> Cancel
             </button>
           </div>

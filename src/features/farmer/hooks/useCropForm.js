@@ -16,6 +16,7 @@ export const useCropForm = (userLocation = {}) => {
     crop: '',
     quantity: '',
     price: '',
+    organic: false,
     status: 'available',
     notes: '',
     availableUntil: getDefault10Days()
@@ -40,6 +41,7 @@ export const useCropForm = (userLocation = {}) => {
       crop: '',
       quantity: '',
       price: '',
+      organic: false,
       status: 'available',
       notes: '',
       availableUntil: getDefault10Days()
@@ -59,6 +61,7 @@ export const useCropForm = (userLocation = {}) => {
       crop: '',
       quantity: '',
       price: '',
+      organic: false,
       status: 'available',
       notes: '',
       availableUntil: getDefault10Days()
@@ -84,6 +87,7 @@ export const useCropForm = (userLocation = {}) => {
       cropName: row.crop,
       quantity: row.quantity,
       price: parseFloat(row.price),
+      organic: !!row.organic,
       status: row.status,
       notes: row.notes,
       availableUntil: row.availableUntil || '',

@@ -153,9 +153,10 @@ const ProductCard = ({
             className="request-now-btn"
             onClick={handleRequestNow}
             disabled={isAlreadyRequested}
-            title={isAlreadyRequested ? 'You already requested this crop' : 'Request this crop'}
+            title={isAlreadyRequested ? 'You have already requested this crop' : 'Request this crop from farmers'}
+            style={{ opacity: isAlreadyRequested ? 0.6 : 1, cursor: isAlreadyRequested ? 'not-allowed' : 'pointer' }}
           >
-            {isAlreadyRequested ? 'Already Requested' : 'Request Now'}
+            {isAlreadyRequested ? '✓ Already Requested' : 'Request Now'}
           </button>
         </div>
       </div>

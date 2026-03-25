@@ -152,6 +152,10 @@
     
     "ai_crop_recommendations": "AI பயிர் பரிந்துரைகள்",
     "get_recommendations": "பரிந்துரைகளைப் பெறுங்கள்",
+    "recommendations": "பரிந்துரைகள்",
+    "requests": "கோரிக்கைகள்",
+    "crop_recommendations": "பயிர் பரிந்துரைகள்",
+    "crop_requests": "பயிர் கோரிக்கைகள்",
     "soil_type": "மண் வகை",
     "climate": "காலநிலை",
     "season": "பருவம்",

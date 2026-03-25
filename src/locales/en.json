@@ -154,6 +154,10 @@
     
     "ai_crop_recommendations": "AI Crop Recommendations",
     "get_recommendations": "Get Recommendations",
+    "recommendations": "Recommendations",
+    "requests": "Requests",
+    "crop_recommendations": "Crop Recommendations",
+    "crop_requests": "Crop Requests",
     "soil_type": "Soil Type",
     "climate": "Climate",
     "season": "Season",

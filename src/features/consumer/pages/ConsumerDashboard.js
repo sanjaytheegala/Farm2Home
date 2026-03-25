@@ -39,6 +39,8 @@ const formatRelTime = (ts) => {
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
 
+const getDemandUnit = (demand) => demand?.quantityUnit || 'kg';
+
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
   const { products: firestoreProducts, loading } = useProducts({ realtime: true });
@@ -52,6 +54,7 @@ const ConsumerDashboard = () => {
   const [editProfileSaving, setEditProfileSaving] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedProductForRequest, setSelectedProductForRequest] = useState(null);
   const [editingDemand, setEditingDemand] = useState(null);
   const [navScrolled, setNavScrolled] = useState(false);
   const { myDemands, submitDemand, rejectOffer, acceptOffer, preponePickupDate, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal } = useMarketDemands();
@@ -180,7 +183,7 @@ const ConsumerDashboard = () => {
 
   return (
     <div className="cd-root">
-      {showRequestModal && <RequestCropModal onClose={() => setShowRequestModal(false)} onSubmit={submitDemand} />}
+      {showRequestModal && <RequestCropModal onClose={() => { setShowRequestModal(false); setSelectedProductForRequest(null); }} onSubmit={submitDemand} initialProduct={selectedProductForRequest} />}
       {editingDemand && (
         <RequestCropModal
           editMode
@@ -252,7 +255,7 @@ const ConsumerDashboard = () => {
         </div>
       )}
 
-      {/* STICKY NAVBAR */}}
+      {/* STICKY NAVBAR */}
       <nav className={`cd-navbar ${navScrolled ? 'cd-navbar--scrolled' : ''}`}>
         <div className="cd-navbar-inner">
           <div className="cd-navbar-brand" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>
@@ -424,7 +427,7 @@ const ConsumerDashboard = () => {
                           </div>
                           {/* Row 2: qty left | location right */}
                           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:11, color:'#6b7280', marginBottom:8, paddingLeft:54}}>
-                            <span style={{display:'flex',alignItems:'center',gap:3}}><FaBox style={{fontSize:9}}/>{demand.quantityKg} kg</span>
+                            <span style={{display:'flex',alignItems:'center',gap:3}}><FaBox style={{fontSize:9}}/>{demand.quantityKg} {getDemandUnit(demand)}</span>
                             {demand.location && <span style={{display:'flex',alignItems:'center',gap:3}}><FaMapMarkerAlt style={{fontSize:9, color:'#ef4444'}}/>{demand.location}</span>}
                           </div>
                           {/* Row 3: edit + delete */}
@@ -465,7 +468,7 @@ const ConsumerDashboard = () => {
                             <div>
                               <div className="cd-demand-name">{demand.cropName}</div>
                               <div style={{fontSize:11, color:'#6b7280', marginTop:2, display:'flex', alignItems:'center', gap:6}}>
-                                <span><FaBox style={{fontSize:9, marginRight:3}}/>{demand.quantityKg} kg</span>
+                                <span><FaBox style={{fontSize:9, marginRight:3}}/>{demand.quantityKg} {getDemandUnit(demand)}</span>
                                 {demand.location && <span><FaMapMarkerAlt style={{fontSize:9, marginRight:2, color:'#ef4444'}}/>{demand.location}</span>}
                               </div>
                             </div>
@@ -481,7 +484,7 @@ const ConsumerDashboard = () => {
                     {demand.suggestedPriceMin && demand.suggestedPriceMax && (
                       <div className="cd-ai-badge">
                         <FaRobot className="cd-ai-icon" />
-                        <span>AI Fair Price: <strong>Rs.{demand.suggestedPriceMin}--Rs.{demand.suggestedPriceMax}/kg</strong></span>
+                        <span>AI Fair Price: <strong>Rs.{demand.suggestedPriceMin}--Rs.{demand.suggestedPriceMax}/{getDemandUnit(demand)}</strong></span>
                         {demand.suggestedPriceNote && <span className="cd-ai-note"> · {demand.suggestedPriceNote}</span>}
                       </div>
                     )}
@@ -530,11 +533,11 @@ const ConsumerDashboard = () => {
                         <div style={{ display:'flex', gap:6, marginBottom:10 }}>
                           <div style={{ flex:1, background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
                             <div style={{ fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2 }}>QTY</div>
-                            <div style={{ fontSize:13, fontWeight:700, color:'#1d4ed8' }}>{demand.quantityKg}<span style={{ fontSize:10 }}> kg</span></div>
+                            <div style={{ fontSize:13, fontWeight:700, color:'#1d4ed8' }}>{demand.quantityKg}<span style={{ fontSize:10 }}> {getDemandUnit(demand)}</span></div>
                           </div>
                           <div style={{ flex:1, background:'#fefce8', border:'1px solid #fde68a', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
                             <div style={{ fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2 }}>RATE</div>
-                            <div style={{ fontSize:13, fontWeight:700, color:'#b45309' }}>₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}<span style={{ fontSize:10 }}>/{demand.farmerOfferUnit || 'kg'}</span></div>
+                            <div style={{ fontSize:13, fontWeight:700, color:'#b45309' }}>₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}<span style={{ fontSize:10 }}>/{demand.farmerOfferUnit || getDemandUnit(demand)}</span></div>
                           </div>
                           <div style={{ flex:1, background:'#f0fdf4', border:'1px solid #86efac', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
                             <div style={{ fontSize:10, color:'#166534', fontWeight:600, marginBottom:2 }}>TOTAL</div>
@@ -581,11 +584,11 @@ const ConsumerDashboard = () => {
                         <div style={{display:'flex', gap:6, marginBottom:8}}>
                           <div style={{flex:1, background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
                             <div style={{fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2}}>QTY</div>
-                            <div style={{fontSize:14, fontWeight:700, color:'#1d4ed8'}}>{demand.quantityKg}<span style={{fontSize:10, fontWeight:500}}> kg</span></div>
+                            <div style={{fontSize:14, fontWeight:700, color:'#1d4ed8'}}>{demand.quantityKg}<span style={{fontSize:10, fontWeight:500}}> {getDemandUnit(demand)}</span></div>
                           </div>
                           <div style={{flex:1, background:'#fefce8', border:'1px solid #fde68a', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
                             <div style={{fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2}}>RATE</div>
-                            <div style={{fontSize:14, fontWeight:700, color:'#b45309'}}>₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}<span style={{fontSize:10, fontWeight:500, color:'#78350f'}}>/{demand.farmerOfferUnit || 'kg'}</span></div>
+                            <div style={{fontSize:14, fontWeight:700, color:'#b45309'}}>₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}<span style={{fontSize:10, fontWeight:500, color:'#78350f'}}>/{demand.farmerOfferUnit || getDemandUnit(demand)}</span></div>
                           </div>
                           <div style={{flex:1, background:'#f0fdf4', border:'1px solid #86efac', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
                             <div style={{fontSize:10, color:'#166534', fontWeight:600, marginBottom:2}}>TOTAL</div>
@@ -790,7 +793,7 @@ const ConsumerDashboard = () => {
             ) : filteredProducts.length > 0 ? (
               <div className="products-grid-modern">
                 {filteredProducts.map(product => (
-                  <ProductCard key={product.id} product={product} onAddToCart={p => addToCart(p,1)} onToggleFavorite={toggleFavorite} isFavorite={isFavorite(product.id)} onRequestNow={() => setShowRequestModal(true)} />
+                  <ProductCard key={product.id} product={product} onAddToCart={p => addToCart(p,1)} onToggleFavorite={toggleFavorite} isFavorite={isFavorite(product.id)} onRequestNow={(prod) => { setSelectedProductForRequest(prod); setShowRequestModal(true); }} isAlreadyRequested={myDemands.some(d => d.cropName?.toLowerCase() === product.name?.toLowerCase() && d.status === 'open')} />
                 ))}
               </div>
             ) : (

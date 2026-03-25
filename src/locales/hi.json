@@ -154,6 +154,10 @@
     
     "ai_crop_recommendations": "AI फसल सिफारिशें",
     "get_recommendations": "सिफारिशें प्राप्त करें",
+    "recommendations": "सिफारिशें",
+    "requests": "अनुरोध",
+    "crop_recommendations": "फसल सिफारिशें",
+    "crop_requests": "फसल अनुरोध",
     "soil_type": "मिट्टी का प्रकार",
     "climate": "जलवायु",
     "season": "मौसम",

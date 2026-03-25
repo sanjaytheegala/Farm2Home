@@ -5,8 +5,11 @@ import './RequestCropModal.css'
 
 const STATES    = geoData.en.states
 const DISTRICTS = geoData.en.districts
+const ALLOWED_STATE_KEYS = ['andhra_pradesh', 'telangana', 'tamil_nadu', 'karnataka', 'kerala', 'goa']
 
-const INITIAL = { cropName: '', quantityKg: '', location: '', notes: '' }
+const QUANTITY_UNIT_OPTIONS = ['kg', 'piece', 'dozen', 'bunch', 'packet', 'box', 'litre']
+
+const INITIAL = { cropName: '', quantityKg: '', quantityUnit: 'kg', location: '', notes: '' }
 
 /* -- Searchable two-level location picker */
 function LocationPicker({ onChange }) {
@@ -47,9 +50,9 @@ function LocationPicker({ onChange }) {
     onChange(`${districtName}, ${stateName}`)
   }
 
-  const filteredStates = Object.entries(STATES).filter(([, n]) =>
-    n.toLowerCase().includes(stateSearch.toLowerCase())
-  )
+  const filteredStates = Object.entries(STATES)
+    .filter(([key]) => ALLOWED_STATE_KEYS.includes(key))
+    .filter(([, n]) => n.toLowerCase().includes(stateSearch.toLowerCase()))
   const districtMap   = stateKey ? (DISTRICTS[stateKey] || {}) : {}
   const filteredDists = Object.entries(districtMap).filter(([, n]) =>
     n.toLowerCase().includes(districtSearch.toLowerCase())
@@ -156,13 +159,25 @@ function LocationPicker({ onChange }) {
 }
 
 /* -- Modal */
-const RequestCropModal = ({ onClose, onSubmit, initialData = null, editMode = false }) => {
+const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduct = null, editMode = false }) => {
+  const isRequestNowMode = !!initialProduct
+  const cropName = initialProduct?.name || initialProduct?.cropName || initialData?.cropName || ''
+  const prefilledQuantity = initialProduct?.quantity || initialProduct?.availableQuantity || initialProduct?.quantityKg || '1'
+  const prefilledUnit = initialProduct?.unit || initialProduct?.quantityUnit || 'kg'
+  
   const [form, setForm]       = useState(initialData ? {
     cropName:   initialData.cropName   || '',
     quantityKg: initialData.quantityKg || '',
+    quantityUnit: initialData.quantityUnit || 'kg',
     location:   initialData.location   || '',
     notes:      initialData.notes      || '',
-  } : INITIAL)
+  } : {
+    cropName:   cropName,
+    quantityKg: String(prefilledQuantity),
+    quantityUnit: prefilledUnit,
+    location:   '',
+    notes:      '',
+  })
   const [submitting, setSub]  = useState(false)
   const [error, setError]     = useState('')
   const [success, setSuccess] = useState(false)
@@ -174,10 +189,17 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, editMode = fa
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!form.cropName.trim())
+    
+    // If it's a product request (Request Now), crop name is pre-filled
+    // If it's a new request, validate crop name
+    if (!isRequestNowMode && !form.cropName.trim()) {
       return setError('Please enter a crop name.')
+    }
+    
     if (!form.quantityKg || isNaN(form.quantityKg) || +form.quantityKg <= 0)
-      return setError('Enter a valid quantity (kg).')
+      return setError('Enter a valid quantity.')
+    if (!form.quantityUnit)
+      return setError('Please select a unit.')
     if (!form.location.trim())
       return setError('Please select your state and district.')
 
@@ -199,8 +221,12 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, editMode = fa
         <div className="rcm-header">
           <div className="rcm-header-icon"><FaLeaf /></div>
           <div>
-            <h2 className="rcm-title">{editMode ? 'Edit Request' : 'Request a Crop'}</h2>
-            <p className="rcm-subtitle">{editMode ? 'Update your crop request details' : 'Tell farmers exactly what you need'}</p>
+            <h2 className="rcm-title">
+              {editMode ? 'Edit Request' : isRequestNowMode ? 'Request This Crop' : 'New Crop Request'}
+            </h2>
+            <p className="rcm-subtitle">
+              {editMode ? 'Update your crop request details' : isRequestNowMode ? 'Crop details are auto-filled from farmer listing. Select your location.' : 'Tell farmers exactly what you need'}
+            </p>
           </div>
           <button className="rcm-close" onClick={onClose}><FaTimes /></button>
         </div>
@@ -209,26 +235,60 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, editMode = fa
           <div className="rcm-success">
             <div className="rcm-success-icon">&#10003;</div>
             <h3>Request Submitted!</h3>
-            <p>{editMode ? 'Request updated successfully!' : 'Farmers near you will see your request. Our AI will suggest a fair price, and farmers will send you their offer!'}</p>
+            <p>{editMode ? 'Request updated successfully!' : 'Your request has been sent to farmers in your area. They will send you their best offers!'}</p>
           </div>
         ) : (
           <form className="rcm-form" onSubmit={submit}>
             {error && <div className="rcm-error">{error}</div>}
-            <div className="rcm-field">
-              <label className="rcm-label"><FaLeaf className="rcm-ico" /> Crop Name</label>
-              <input
-                name="cropName" value={form.cropName} onChange={handle}
-                className="rcm-input" placeholder="e.g. Tomato, Rice, Mango..."
-                autoComplete="off" required
-              />
-            </div>
+            
+            {isRequestNowMode ? (
+              // REQUEST NOW MODE - Show pre-filled crop name
+              <div className="rcm-field" style={{ background: '#f0fdf4', padding: '14px 16px', borderRadius: '12px', border: '1px solid #86efac' }}>
+                <label className="rcm-label"><FaLeaf className="rcm-ico" /> Crop</label>
+                <div style={{ fontSize: '16px', fontWeight: '500', color: '#059669', marginTop: '6px' }}>
+                  {cropName}
+                </div>
+                {typeof initialProduct?.organic === 'boolean' && (
+                  <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: initialProduct.organic ? '#166534' : '#6b7280' }}>
+                    {initialProduct.organic ? 'Organic Crop' : 'Non-Organic Crop'}
+                  </div>
+                )}
+              </div>
+            ) : !editMode ? (
+              // NEW REQUEST MODE - Editable crop name field
+              <div className="rcm-field">
+                <label className="rcm-label"><FaLeaf className="rcm-ico" /> Crop Name</label>
+                <input
+                  name="cropName" value={form.cropName} onChange={handle}
+                  className="rcm-input" placeholder="e.g. Tomato, Rice, Mango..."
+                  autoComplete="off" required
+                />
+              </div>
+            ) : null}
 
             <div className="rcm-field">
-              <label className="rcm-label"><FaRulerCombined className="rcm-ico" /> Quantity (kg)</label>
-              <input
-                name="quantityKg" value={form.quantityKg} onChange={handle}
-                className="rcm-input" type="number" min="1" placeholder="e.g. 50" required
-              />
+              <label className="rcm-label"><FaRulerCombined className="rcm-ico" /> Quantity</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  name="quantityKg" value={form.quantityKg} onChange={handle}
+                  className="rcm-input" type="number" min="1" placeholder="e.g. 50" required
+                  style={{ flex: 1 }}
+                  readOnly={isRequestNowMode}
+                />
+                <select
+                  name="quantityUnit"
+                  value={form.quantityUnit}
+                  onChange={handle}
+                  className="rcm-input"
+                  style={{ maxWidth: 160 }}
+                  required
+                  disabled={isRequestNowMode}
+                >
+                  {QUANTITY_UNIT_OPTIONS.map((unit) => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="rcm-field">
@@ -243,19 +303,21 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, editMode = fa
               )}
             </div>
 
-            <div className="rcm-field">
-              <label className="rcm-label"><FaStickyNote className="rcm-ico" /> Notes <span className="rcm-optional">(optional)</span></label>
-              <textarea
-                name="notes" value={form.notes} onChange={handle}
-                className="rcm-input rcm-textarea"
-                placeholder="Quality preferences, delivery window, etc." rows={3}
-              />
-            </div>
+            {!isRequestNowMode && !editMode && (
+              <div className="rcm-field">
+                <label className="rcm-label"><FaStickyNote className="rcm-ico" /> Notes <span className="rcm-optional">(optional)</span></label>
+                <textarea
+                  name="notes" value={form.notes} onChange={handle}
+                  className="rcm-input rcm-textarea"
+                  placeholder="Quality preferences, delivery window, etc." rows={3}
+                />
+              </div>
+            )}
 
             <button type="submit" className="rcm-submit" disabled={submitting}>
               {submitting
                 ? <span className="rcm-spinner" />
-                : <>{editMode ? 'Save Changes' : 'Submit Request'}</>
+                : <>{editMode ? 'Save Changes' : isRequestNowMode ? 'Send Request' : 'Submit Request'}</>
               }
             </button>
           </form>

@@ -51,8 +51,31 @@ export const useMarketDemands = () => {
     try {
       const profileSnap = await getDoc(doc(db, 'users', user.uid))
       const profileData = profileSnap.exists() ? profileSnap.data() : {}
-      const consumerPhone = profileData.phoneNumber || profileData.phone || ''
-      const consumerDistrict = profileData.district || ''
+      const localUser = (() => {
+        try { return JSON.parse(localStorage.getItem('currentUser') || '{}') } catch { return {} }
+      })()
+
+      const consumerPhone = (
+        profileData.phoneNumber ||
+        profileData.phone ||
+        profileData.mobileNumber ||
+        profileData.contactNumber ||
+        localUser.phoneNumber ||
+        localUser.phone ||
+        user.phoneNumber ||
+        ''
+      )
+
+      const locationDistrict = (formData.location || '').split(',')[0]?.trim() || ''
+      const consumerDistrict = (
+        profileData.district ||
+        profileData.location?.district ||
+        profileData.address?.district ||
+        profileData.city ||
+        localUser.district ||
+        locationDistrict ||
+        ''
+      )
 
       if (!consumerPhone || consumerPhone.replace(/\D/g, '').length < 10) {
         return { success: false, error: 'Please add your phone number in your profile before placing crop requests.' }
@@ -61,9 +84,19 @@ export const useMarketDemands = () => {
         return { success: false, error: 'Please add your location (district) in your profile before placing crop requests.' }
       }
 
+      if (!profileData.district && locationDistrict) {
+        try {
+          await updateDoc(doc(db, 'users', user.uid), {
+            district: locationDistrict,
+            updatedAt: serverTimestamp(),
+          })
+        } catch (_) {}
+      }
+
       await addDoc(collection(db, 'market_demands'), {
         cropName:      formData.cropName.trim(),
         quantityKg:    parseFloat(formData.quantityKg),
+        quantityUnit:  formData.quantityUnit || 'kg',
         location:      formData.location.trim(),
         notes:         (formData.notes || '').trim(),
         consumerId:    user.uid,
@@ -211,6 +244,7 @@ export const useMarketDemands = () => {
       await updateDoc(doc(db, 'market_demands', demandId), {
         cropName:   formData.cropName.trim(),
         quantityKg: parseFloat(formData.quantityKg),
+        quantityUnit: formData.quantityUnit || 'kg',
         location:   formData.location.trim(),
         notes:      (formData.notes || '').trim(),
         updatedAt:  serverTimestamp(),

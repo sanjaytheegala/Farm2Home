@@ -22,6 +22,7 @@ const Navbar = React.memo(({
   onFarmerNotifOpen = () => {},
   onFarmerNotifItemClick = () => {},
   resourceNotifCount = 0,
+  onFarmerProfileClick = () => {},
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -41,6 +42,7 @@ const Navbar = React.memo(({
   // Check if we're on farmer dashboard
   const isFarmerDashboard = isFarmerDashboardProp || location.pathname === '/farmer' || location.pathname === '/farmer-dashboard'
   const isConsumerPage = location.pathname === '/consumer'
+  const isResourceSharePage = location.pathname === '/resource-share'
 
   // Optimized scroll handler with useCallback
   const handleScroll = useCallback(() => {
@@ -153,6 +155,10 @@ const Navbar = React.memo(({
           {/* Farmer Dashboard Navigation */}
           {isFarmerDashboard && (
             <>
+              <button className="nav-item" onClick={onFarmerProfileClick}>
+                <FaUserCircle className="nav-icon" />
+                <span className="nav-text">Profile</span>
+              </button>
               <button className="nav-item" onClick={handleCropRecommendations}>
                 <FaLeaf className="nav-icon" />
                 <span className="nav-text">Crop Recommendations</span>
@@ -221,12 +227,12 @@ const Navbar = React.memo(({
               )}
             </div>
           )}
-          {/* Resource Notification Bell — visible for all logged-in users */}
-          {currentUser && (
+          {/* Resource Notification Bell — hide on farmer dashboard to avoid duplicate bells */}
+          {currentUser && !isFarmerDashboard && !isResourceSharePage && (
             <button
               className="rs-notif-bell-btn"
               title="Resource Sharing Notifications"
-              onClick={() => navigate('/resource-share')}
+              onClick={() => navigate('/resource-share?tab=requests')}
             >
               <FaBell />
               {resourceNotifCount > 0 && (
@@ -250,7 +256,6 @@ const Navbar = React.memo(({
               <option value="te">తెలుగు</option>
               <option value="ta">தமிழ்</option>
               <option value="ml">മലയാളം</option>
-              <option value="mr">मराठी</option>
               <option value="kn">ಕನ್ನಡ</option>
             </select>
           </div>
@@ -303,6 +308,10 @@ const Navbar = React.memo(({
           )}
           {isFarmerDashboard && (
             <>
+              <button className="mobile-menu-item" onClick={() => { onFarmerProfileClick(); setShowMobileMenu(false); }}>
+                <FaUserCircle className="nav-icon" />
+                <span>Profile</span>
+              </button>
               <button className="mobile-menu-item" onClick={() => { handleCropRecommendations(); setShowMobileMenu(false); }}>
                 <FaLeaf className="nav-icon" />
                 <span>Crop Recommendations</span>

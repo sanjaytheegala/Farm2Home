@@ -98,6 +98,7 @@ export const useCrops = () => {
         crop: cropNameField, // For backwards compatibility
         price: parseFloat(cropData.price) || 0,
         quantity: cropData.quantity,
+        organic: !!cropData.organic,
         category: cropData.category || '',
         notes: cropData.notes || '',
         status: 'pending',  // Exactly as required

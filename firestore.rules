@@ -92,7 +92,12 @@ service cloud.firestore {
             && request.resource.data.consumerId == resource.data.consumerId)
         || (isSignedIn()
             && resource.data.status == 'open'
-            && request.resource.data.consumerId == resource.data.consumerId);
+            && (
+              // Preferred path: consumerId remains unchanged
+              request.resource.data.consumerId == resource.data.consumerId
+              // Legacy path: some older demands may not have consumerId field
+              || !resource.data.keys().hasAll(['consumerId'])
+            ));
       allow delete: if isAdmin() || (isSignedIn() && resource.data.consumerId == request.auth.uid);
     }
 

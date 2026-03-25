@@ -1,11 +1,14 @@
 .navbar-container {
   position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   width: 100%;
-  padding: 12px 0;
+  height: 70px;
+  padding: 0;
   backdrop-filter: blur(15px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
   background: rgba(255, 255, 255, 0.98);
   color: #333333;
   z-index: 1000;
@@ -16,13 +19,15 @@
   background: rgba(255, 255, 255, 0.98) !important;
   color: #333333;
   box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
-  padding: 8px 0;
+  height: 70px;
+  padding: 0;
 }
 
 .navbar-content {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 24px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -133,6 +138,79 @@
 .nav-text {
   font-size: 14px;
   font-weight: 600;
+}
+
+/* Resource Share navbar tabs */
+.rs-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rs-nav-tab {
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #334155;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+}
+
+.rs-nav-tab:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+  background: #f0fdf4;
+}
+
+.rs-nav-tab--active {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  border-color: #16a34a;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+
+.rs-nav-tab--active:hover {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.rs-nav-tab--active:focus,
+.rs-nav-tab--active:active {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.rs-nav-tab--add {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.rs-nav-tab-badge {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  line-height: 1;
+}
+
+.rs-nav-tab--active .rs-nav-tab-badge {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 /* Cart Badge */
@@ -1037,6 +1115,22 @@
 
 .mobile-menu-item .nav-icon {
   font-size: 18px;
+}
+
+.mobile-menu-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  line-height: 1;
 }
 
 @media (max-width: 768px) {

@@ -2183,7 +2183,7 @@
   min-height: 100vh;
   background: #f8fafc;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  padding-top: 70px; /* clear the fixed global navbar */
+  padding-top: 0;
 }
 .cd-container {
   max-width: 1320px;

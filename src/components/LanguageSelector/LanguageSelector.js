@@ -10,7 +10,9 @@ const LanguageSelector = () => {
     { code: 'en', name: 'English', flag: '🇬🇧' },
     { code: 'te', name: 'తెలుగు', flag: '🇮🇳' },
     { code: 'hi', name: 'हिंदी', flag: '🇮🇳' },
-    { code: 'ta', name: 'தமிழ்', flag: '🇮🇳' }
+    { code: 'ta', name: 'தமிழ்', flag: '🇮🇳' },
+    { code: 'ml', name: 'മലയാളം', flag: '🇮🇳' },
+    { code: 'kn', name: 'ಕನ್ನಡ', flag: '🇮🇳' }
   ];
 
   const changeLanguage = (lng) => {

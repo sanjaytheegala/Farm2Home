@@ -55,18 +55,48 @@ const fmt = (key) =>
     ? (districtLabelOverrides[key] || key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '))
     : '—'
 
-// Get crop image from dictionary
+// Get crop image from dictionary with fallback
 const getCropImage = (cropName) => {
   if (!cropName) return null
+  
+  const normalized = cropName.toLowerCase().trim()
+  
   // Exact match first
   const exact = CROP_DICTIONARY.find(c =>
-    c.name.toLowerCase() === cropName.toLowerCase() ||
-    c.keywords.some(k => k.toLowerCase() === cropName.toLowerCase())
+    c.name.toLowerCase() === normalized ||
+    c.keywords.some(k => k.toLowerCase() === normalized)
   )
-  if (exact) return exact.image
+  if (exact?.image) {
+    // Ensure image path is absolute
+    return exact.image.startsWith('/') ? exact.image : '/' + exact.image
+  }
+  
+  // Try partial match (first word)
+  const firstWord = normalized.split(/\s+/)[0]
+  const partial = CROP_DICTIONARY.find(c =>
+    c.name.toLowerCase().startsWith(firstWord) ||
+    c.keywords.some(k => k.toLowerCase().startsWith(firstWord))
+  )
+  if (partial?.image) {
+    return partial.image.startsWith('/') ? partial.image : '/' + partial.image
+  }
+  
   // Fuzzy fallback via findCropByKeyword
-  const fuzzy = findCropByKeyword(cropName.toLowerCase())
-  return fuzzy ? fuzzy.image : null
+  const fuzzy = findCropByKeyword(normalized)
+  if (fuzzy?.image) {
+    return fuzzy.image.startsWith('/') ? fuzzy.image : '/' + fuzzy.image
+  }
+  
+  // Try to guess image category from crop name
+  const vegImages = ['/images/vegetables/tomato.jpg', '/images/vegetables/onion.jpg', '/images/vegetables/potato.jpg']
+  const fruitImages = ['/images/fruits/apple.jpg', '/images/fruits/banana.jpg', '/images/fruits/mango.jpg']
+  const dryImages = ['/images/dryfruits/cashew.jpg', '/images/dryfruits/almond.jpg']
+  
+  if (normalized.includes('tomato') || normalized.includes('onion') || normalized.includes('potato')) {
+    return vegImages[Math.floor(Math.random() * vegImages.length)]
+  }
+  
+  return null
 }
 
 // Status display config
@@ -99,6 +129,15 @@ const formatRelTime = (ts) => {
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
+const getTimestampMs = (ts) => {
+  if (!ts) return 0
+  if (typeof ts?.toMillis === 'function') return ts.toMillis()
+  if (typeof ts?.toDate === 'function') return ts.toDate().getTime()
+  if (typeof ts?.seconds === 'number') return ts.seconds * 1000
+  const parsed = new Date(ts).getTime()
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
 /* ── Skeleton shimmer card ── */
 const SkeletonCard = () => (
   <div className="fd-skeleton-card" aria-hidden="true">
@@ -117,17 +156,22 @@ const SkeletonCard = () => (
 /* ─────────────────────────────────────────────────────────────
    DemandCard — one consumer request card in the market tab
 ───────────────────────────────────────────────────────────── */
-const UNIT_OPTIONS = [
+const WEIGHT_UNIT_OPTIONS = [
   { value: 'kg',      label: 'per kg' },
   { value: 'quintal', label: 'per Quintal (100 kg)' },
   { value: 'ton',     label: 'per Ton (1000 kg)' },
 ]
 
 const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastError, onToastSuccess, isBlinking = false }) => {
+  const demandUnit = demand.quantityUnit || 'kg'
+  const isWeightDemand = demandUnit === 'kg'
+  const offerUnitOptions = isWeightDemand ? WEIGHT_UNIT_OPTIONS : [{ value: demandUnit, label: `per ${demandUnit}` }]
+  const demandQty = parseFloat(demand.quantityKg || 0) || 0
   const [showComplaint, setShowComplaint] = useState(false)
   const [showOfferForm, setShowOfferForm] = useState(false)
   const [offerPrice, setOfferPrice]       = useState('')
-  const [offerUnit,  setOfferUnit]        = useState('kg')
+  const [offerUnit,  setOfferUnit]        = useState(demandUnit)
+  const [offerOrganic, setOfferOrganic]   = useState('non-organic')
   const [offerAvailDate, setOfferAvailDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 10); return d.toISOString().split('T')[0]; })
   const [submitting, setSubmitting]       = useState(false)
   const hasPhone = demand.consumerPhone && demand.consumerPhone !== 'Not provided'
@@ -137,12 +181,12 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
     if (!offerPrice || parseFloat(offerPrice) <= 0) { onToastError('Enter a valid price'); return }
     if (!offerAvailDate) { onToastError('Please set your crop availability date'); return }
     setSubmitting(true)
-    const res = await onSubmitOffer(demand.id, offerPrice, offerUnit, offerAvailDate)
+    const res = await onSubmitOffer(demand.id, offerPrice, offerUnit, offerAvailDate, offerOrganic === 'organic')
     setSubmitting(false)
     if (res.success) {
       onToastSuccess('Offer submitted! Consumer will be notified.')
       const def = new Date(); def.setDate(def.getDate() + 10);
-      setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg'); setOfferAvailDate(def.toISOString().split('T')[0])
+      setShowOfferForm(false); setOfferPrice(''); setOfferUnit(demandUnit); setOfferOrganic('non-organic'); setOfferAvailDate(def.toISOString().split('T')[0])
     } else {
       onToastError(res.error || 'Could not submit offer')
     }
@@ -150,7 +194,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
 
   const unitMult = offerUnit === 'quintal' ? 100 : offerUnit === 'ton' ? 1000 : 1
   const totalEst = offerPrice
-    ? (demand.quantityKg * parseFloat(offerPrice) / unitMult).toFixed(0)
+    ? (demandQty * parseFloat(offerPrice) / unitMult).toFixed(0)
     : null
 
   return (
@@ -199,7 +243,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
           </div>
           {/* Unit selector as pill tabs */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-            {UNIT_OPTIONS.map(u => (
+            {offerUnitOptions.map(u => (
               <button
                 key={u.value}
                 onClick={() => setOfferUnit(u.value)}
@@ -217,7 +261,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
             <span style={{ padding: '0 10px', fontSize: 16, fontWeight: 700, color: '#15803d', borderRight: '1px solid #86efac', height: '100%', display: 'flex', alignItems: 'center' }}>₹</span>
             <input
               type="number" min="1" step="0.01"
-              placeholder={`Amount ${offerUnit === 'kg' ? 'per kg' : offerUnit === 'quintal' ? 'per quintal' : 'per ton'}`}
+              placeholder={isWeightDemand ? `Amount ${offerUnit === 'kg' ? 'per kg' : offerUnit === 'quintal' ? 'per quintal' : 'per ton'}` : `Amount per ${offerUnit}`}
               value={offerPrice}
               onChange={e => setOfferPrice(e.target.value)}
               style={{ flex: 1, padding: '9px 10px', border: 'none', fontSize: 15, outline: 'none', background: 'transparent' }}
@@ -225,9 +269,20 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
           </div>
           {totalEst && (
             <div style={{ fontSize: 12, color: '#15803d', fontWeight: 600, marginBottom: 10, background: '#dcfce7', borderRadius: 6, padding: '5px 8px' }}>
-              Total for {demand.quantityKg} kg → ₹{parseInt(totalEst).toLocaleString()}
+              Total for {demandQty} {demandUnit} → ₹{parseInt(totalEst).toLocaleString()}
             </div>
           )}
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Crop Type</label>
+            <select
+              value={offerOrganic}
+              onChange={e => setOfferOrganic(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #86efac', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', outline: 'none', background: '#fff' }}
+            >
+              <option value="non-organic">Non-Organic</option>
+              <option value="organic">Organic</option>
+            </select>
+          </div>
           {/* Availability date */}
           <div style={{ marginBottom: 10 }}>
             <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Crop Available Until *</label>
@@ -248,7 +303,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
               {submitting ? 'Submitting…' : <><FaCheckCircle style={{ marginRight: 6 }} />Send Offer</>}
             </button>
             <button
-              onClick={() => { const def = new Date(); def.setDate(def.getDate()+10); setShowOfferForm(false); setOfferPrice(''); setOfferUnit('kg'); setOfferAvailDate(def.toISOString().split('T')[0]) }}
+              onClick={() => { const def = new Date(); def.setDate(def.getDate()+10); setShowOfferForm(false); setOfferPrice(''); setOfferUnit(demandUnit); setOfferOrganic('non-organic'); setOfferAvailDate(def.toISOString().split('T')[0]) }}
               style={{ padding: '9px 14px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
             >
               Cancel
@@ -260,7 +315,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
       {/* ── Bottom: qty left, location right ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, padding: '8px 10px', background: '#f9fafb', borderRadius: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <FaWeightHanging style={{ color: '#6b7280', fontSize: 11 }} /> {demand.quantityKg} kg
+          <FaWeightHanging style={{ color: '#6b7280', fontSize: 11 }} /> {demandQty} {demandUnit}
         </span>
         <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 4 }}>
           <FaMapMarkerAlt style={{ color: '#ef4444', fontSize: 11 }} /> {demand.location}
@@ -311,7 +366,7 @@ const FarmerDashboard = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { currentUser, userData } = useAuth()
-  const VALID_TABS = ['crops', 'analytics', 'orders', 'market', 'notifications']
+  const VALID_TABS = ['crops', 'analytics', 'market']
   const tabFromUrl = searchParams.get('tab')
   const [activeTab, setActiveTabState] = useState(VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'crops')
   const setActiveTab = (tab) => {
@@ -433,6 +488,7 @@ const FarmerDashboard = () => {
       crop: crop.crop || crop.cropName || '',
       quantity: String(crop.quantity || ''),
       price: String(crop.price || ''),
+      organic: !!crop.organic,
       status: crop.status || 'available',
       notes: crop.notes || '',
       availableUntil: crop.availableUntil || ''
@@ -470,6 +526,7 @@ const FarmerDashboard = () => {
         category: cropData.category,
         price: parseFloat(cropData.price),
         quantity: cropData.quantity,
+        organic: !!cropData.organic,
         status: cropData.status,
         notes: cropData.notes,
         availableUntil: cropData.availableUntil || '',
@@ -550,6 +607,33 @@ const FarmerDashboard = () => {
     }
   }
 
+  const handleSubmitOffer = useCallback(async (demandId, offerPrice, offerUnit = 'kg', offerAvailableDate = '', offerOrganic = false) => {
+    if (!currentUser?.uid) return { success: false, error: 'Not logged in' }
+
+    const profileDistrict = (userLocation?.district || '').trim()
+    const profileState = (userLocation?.state || '').trim()
+    const selectedDistrictValue = (selectedDistrict || '').trim()
+    const selectedStateValue = (selectedState || '').trim()
+
+    if (!profileDistrict && selectedDistrictValue) {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          district: selectedDistrictValue,
+          state: selectedStateValue || profileState,
+          updatedAt: new Date().toISOString(),
+        })
+        setUserLocation((prev) => ({
+          state: selectedStateValue || prev.state || '',
+          district: selectedDistrictValue,
+        }))
+      } catch (err) {
+        console.warn('Failed to auto-save selected district before offer submit:', err?.message || err)
+      }
+    }
+
+    return submitOffer(demandId, offerPrice, offerUnit, offerAvailableDate, offerOrganic)
+  }, [currentUser?.uid, selectedDistrict, selectedState, submitOffer, userLocation?.district, userLocation?.state])
+
   const availableCount = savedCrops.filter(c => c.status === 'available' || c.status === 'pending').length
   // Revenue = sum of totalPrice from all orders (confirmed/shipped/delivered)
   const soldRevenue = orders.reduce((s, o) => s + (parseFloat(o.totalPrice || o.totalAmount || 0)), 0)
@@ -565,8 +649,9 @@ const FarmerDashboard = () => {
         type: 'demand',
         icon: '🌾',
         title: `Crop Request: ${d.cropName}`,
-        subtitle: `${d.quantityKg} kg needed · ${d.location}`,
+        subtitle: `${d.quantityKg} ${d.quantityUnit || 'kg'} needed · ${d.location}`,
         timeLabel: formatRelTime(d.createdAt),
+        createdAtMs: getTimestampMs(d.createdAt),
         tabTarget: 'market',
       })),
     ...orders
@@ -578,7 +663,8 @@ const FarmerDashboard = () => {
         title: `New Order: ${o.cropName || 'Crop'}`,
         subtitle: `${o.quantity} ${o.unit || 'kg'} · ₹${parseFloat(o.totalPrice || 0).toFixed(0)}`,
         timeLabel: formatRelTime(o.createdAt),
-        tabTarget: 'orders',
+        createdAtMs: getTimestampMs(o.createdAt),
+        tabTarget: 'market',
       })),
     ...rentalNotifs.map(r => ({
       id: r.id,
@@ -587,13 +673,10 @@ const FarmerDashboard = () => {
       title: `Tool Request: ${r.toolName}`,
       subtitle: `${r.requesterName} · ${r.ownerDistrict || ''}`,
       timeLabel: formatRelTime(r.createdAt),
+      createdAtMs: getTimestampMs(r.createdAt),
       tabTarget: null,
     })),
-  ].sort((a, b) => {
-    const ta = a.timeLabel === 'just now' ? Date.now() : 0
-    const tb = b.timeLabel === 'just now' ? Date.now() : 0
-    return tb - ta
-  })
+  ].sort((a, b) => b.createdAtMs - a.createdAtMs)
 
   const unseenCount = farmerNotifications.filter(n => !seenNotifIds.has(n.id)).length
 
@@ -729,61 +812,8 @@ const FarmerDashboard = () => {
         farmerNotifications={farmerNotifications}
         onFarmerNotifOpen={handleNotifOpen}
         onFarmerNotifItemClick={handleNotifItemClick}
+        onFarmerProfileClick={handleOpenEditProfile}
       />
-
-      {/* ─── Welcome Banner ─── */}
-      <div className="fd-banner">
-        <div className="fd-banner-inner">
-          <div className="fd-banner-left">
-            <div className="fd-avatar">
-              {farmerPhoto
-                ? <img src={farmerPhoto} alt={farmerName} className="fd-avatar-img" />
-                : <div className="fd-avatar-letter" style={{ background: getAvatarColor(farmerName) }}>{(farmerName || 'F').charAt(0).toUpperCase()}</div>
-              }
-            </div>
-            <div>
-              <p className="fd-greeting">{getGreeting()},</p>
-              <h1 className="fd-farmer-name">{farmerName}</h1>
-              {(selectedDistrict || selectedState) && (
-                <p className="fd-location">
-                  <FaMapMarkerAlt style={{ marginRight: 5 }} />
-                  {fmt(selectedDistrict)}{selectedDistrict && selectedState ? ', ' : ''}{fmt(selectedState)}
-                </p>
-              )}
-              {farmerPhone && (
-                <p className="fd-location" style={{ marginTop: 2 }}>
-                  <FaPhone style={{ marginRight: 5, color: '#16a34a' }} />{farmerPhone}
-                </p>
-              )}
-              {myQuotes.filter(d => d.status === 'completed').length >= 5 && (
-                <span className="fd-verified-badge fd-verified-badge--profile">✓ Verified Farmer</span>
-              )}
-              <button
-                onClick={handleOpenEditProfile}
-                style={{ marginTop: 8, padding: '5px 14px', background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 20, color: 'inherit', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}
-              >
-                <FaEdit style={{ fontSize: 11 }} /> Edit Profile
-              </button>
-            </div>
-          </div>
-          <div className="fd-banner-stats">
-            <div className="fd-stat">
-              <span className="fd-stat-num">{savedCrops.length}</span>
-              <span className="fd-stat-label">Total Crops</span>
-            </div>
-            <div className="fd-stat-divider" />
-            <div className="fd-stat">
-              <span className="fd-stat-num">{availableCount}</span>
-              <span className="fd-stat-label">Active</span>
-            </div>
-            <div className="fd-stat-divider" />
-            <div className="fd-stat">
-              <span className="fd-stat-num">₹{soldRevenue.toLocaleString()}</span>
-              <span className="fd-stat-label">Revenue</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* ─── Tab Bar + Location Selectors ─── */}
       <div className="fd-tabbar-wrap">
@@ -993,6 +1023,17 @@ const FarmerDashboard = () => {
                     </select>
                   </div>
                   <div className="fd-field">
+                    <label className="fd-label">Crop Type</label>
+                    <select
+                      value={row.organic ? 'organic' : 'non-organic'}
+                      onChange={e => updateField(index, 'organic', e.target.value === 'organic')}
+                      className="fd-input"
+                    >
+                      <option value="non-organic">Non-Organic</option>
+                      <option value="organic">Organic</option>
+                    </select>
+                  </div>
+                  <div className="fd-field">
                     <label className="fd-label">Available Until</label>
                     <input
                       type="date"
@@ -1042,37 +1083,63 @@ const FarmerDashboard = () => {
             <div className="fd-saved-crops-list">
               {savedCrops.map(crop => {
                 const sm = statusMeta[crop.status] || statusMeta.available
-                const img = getCropImage(crop.crop || crop.cropName)
+                // Use stored image first, then try to generate from crop name
+                const img = crop.image || getCropImage(crop.crop || crop.cropName)
                 const today = new Date().toISOString().split('T')[0]
                 const isExpired = crop.availableUntil && crop.availableUntil < today
                 return (
-                  <div key={crop.id} className="fd-saved-crop-row" style={{ borderLeft: `4px solid ${isExpired ? '#ef4444' : sm.color || '#2e7d32'}` }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
-                      {img
-                        ? <img src={img} alt={crop.crop || crop.cropName} style={{ width:40, height:40, borderRadius:8, objectFit:'cover', flexShrink:0 }} onError={e => { e.target.style.display='none' }} />
-                        : <FaLeaf style={{ fontSize:28, color:'#2e7d32', flexShrink:0 }} />
-                      }
-                      <div style={{ minWidth:0 }}>
-                        <div style={{ fontWeight:700, fontSize:14, color:'#1a2e1a', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{crop.crop || crop.cropName}</div>
-                        <div style={{ fontSize:12, color:'#6b7280', marginTop:2 }}>{crop.quantity} kg · ₹{crop.price}/kg</div>
-                        {crop.availableUntil && (
-                          <div style={{ fontSize:11, marginTop:3, fontWeight:600, color: isExpired ? '#dc2626' : '#059669', display:'flex', alignItems:'center', gap:4 }}>
-                            <FaCalendarAlt style={{ fontSize:10 }} />
-                            {isExpired ? 'Expired: ' : 'Available till: '}
-                            {new Date(crop.availableUntil + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
-                          </div>
-                        )}
-                        {formatRelTime(crop.updatedAt || crop.createdAt) && (
-                          <div className="fd-last-updated">
-                            🕐 {formatRelTime(crop.updatedAt || crop.createdAt)}
-                          </div>
-                        )}
-                      </div>
+                  <div key={crop.id} className="fd-saved-crop-row">
+                    {/* Image */}
+                    <div style={{ width: '100%', height: 98, borderRadius: '0 8px 0 8px', overflow: 'hidden', background: '#f1f5f1', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {img ? (
+                        <img 
+                          src={img} 
+                          alt={crop.crop || crop.cropName}
+                          loading="lazy"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center center' }} 
+                          onError={e => { 
+                            e.currentTarget.style.display = 'none'
+                            if (e.currentTarget.nextSibling) {
+                              e.currentTarget.nextSibling.style.display = 'flex'
+                            }
+                          }} 
+                        />
+                      ) : null}
+                      <div className="fd-crop-fallback" style={{ width: '100%', height: '100%', display: img ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f5e9', position: 'absolute', top: 0, left: 0 }}><FaLeaf style={{ fontSize: 40, color: '#2e7d32', opacity: 0.6 }} /></div>
                     </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                      <span style={{ fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:20, background:sm.bg, color:sm.color, border:`1px solid ${sm.color}40` }}>{sm.label}</span>
-                      <button onClick={() => handleEdit(crop)} style={{ padding:'5px 10px', borderRadius:7, border:'1.5px solid #3b82f6', background:'#eff6ff', color:'#1d4ed8', fontWeight:600, fontSize:11, cursor:'pointer' }}>✎ Edit</button>
-                      <button onClick={() => handleDelete(crop.id)} style={{ padding:'5px 10px', borderRadius:7, border:'1.5px solid #fca5a5', background:'#fef2f2', color:'#dc2626', fontWeight:600, fontSize:11, cursor:'pointer' }}>✕ Delete</button>
+
+                    {/* Content */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: '#1a2e1a', marginBottom: 3 }}>{crop.crop || crop.cropName}</div>
+                      <div style={{ fontSize: 11, color: '#5b7d5b', fontWeight: 600, marginBottom: 3 }}>💰 ₹{crop.price}/kg</div>
+                      <div style={{ fontSize: 11, color: '#6b7d6b', marginBottom: 5 }}>📦 {crop.quantity} kg</div>
+                      
+                      {crop.availableUntil && (
+                        <div style={{ fontSize: 10, fontWeight: 700, color: isExpired ? '#dc2626' : '#059669', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, padding: '3px 7px', background: isExpired ? '#fef2f2' : '#f0fdf4', borderRadius: 5 }}>
+                          <FaCalendarAlt style={{ fontSize: 10 }} />
+                          {isExpired ? 'Expired' : 'Till'} {new Date(crop.availableUntil + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </div>
+                      )}
+
+                      {formatRelTime(crop.updatedAt || crop.createdAt) && (
+                        <div className="fd-last-updated" style={{ fontSize: 9, color: '#94a3b8', marginBottom: 5 }}>
+                          🕐 {formatRelTime(crop.updatedAt || crop.createdAt)}
+                        </div>
+                      )}
+
+                      {crop.organic && (
+                        <div style={{ fontSize: 9, fontWeight: 800, color: '#166534', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 12, padding: '2px 7px', display: 'inline-block', marginBottom: 5 }}>
+                          Organic
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 14, background: sm.bg, color: sm.color, border: `1.5px solid ${sm.color}`, display: 'inline-block', marginBottom: 6 }}>{sm.label}</div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', gap: 5, width: '100%' }}>
+                      <button onClick={() => handleEdit(crop)} style={{ flex: 1, padding: '6px 8px', borderRadius: 6, border: '1.5px solid #3b82f6', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', color: '#1d4ed8', fontWeight: 700, fontSize: 10, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }} onMouseEnter={(e)=>e.target.style.boxShadow='0 2px 6px rgba(29,78,216,0.3)'} onMouseLeave={(e)=>e.target.style.boxShadow='none'} title="Edit this crop">✎ Edit</button>
+                      <button onClick={() => handleDelete(crop.id)} style={{ flex: 1, padding: '6px 8px', borderRadius: 6, border: '1.5px solid #fca5a5', background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', color: '#dc2626', fontWeight: 700, fontSize: 10, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }} onMouseEnter={(e)=>e.target.style.boxShadow='0 2px 6px rgba(220,38,38,0.3)'} onMouseLeave={(e)=>e.target.style.boxShadow='none'} title="Delete this crop">🗑 Delete</button>
                     </div>
                   </div>
                 )
@@ -1579,7 +1646,7 @@ const FarmerDashboard = () => {
                         demand={demand}
                         isPriority
                         isBlinking={blinkCardId === demand.id}
-                        onSubmitOffer={submitOffer}
+                        onSubmitOffer={handleSubmitOffer}
                         onOpenChat={setActiveChatDemand}
                         onToastError={toastError}
                         onToastSuccess={toastSuccess}
@@ -1604,7 +1671,7 @@ const FarmerDashboard = () => {
                         demand={demand}
                         isPriority={false}
                         isBlinking={blinkCardId === demand.id}
-                        onSubmitOffer={submitOffer}
+                        onSubmitOffer={handleSubmitOffer}
                         onOpenChat={setActiveChatDemand}
                         onToastError={toastError}
                         onToastSuccess={toastSuccess}
@@ -1625,11 +1692,11 @@ const FarmerDashboard = () => {
           <h2 className="fd-content-title">
             <FaBell style={{ color: '#e65100', marginRight: 8 }} />
             Notifications
-            {orders.length > 0 && (
-              <span className="fd-notif-count">{orders.length}</span>
+            {farmerNotifications.length > 0 && (
+              <span className="fd-notif-count">{farmerNotifications.length}</span>
             )}
           </h2>
-          {orders.length === 0 ? (
+          {farmerNotifications.length === 0 ? (
             <div className="fd-empty">
               <div className="fd-empty-icon">🔔</div>
               <h3 className="fd-empty-title">All caught up!</h3>
@@ -1637,45 +1704,23 @@ const FarmerDashboard = () => {
             </div>
           ) : (
             <div className="fd-notif-list">
-              {[...orders].sort((a, b) => {
-                const ta = a.createdAt?.toDate?.() || new Date(a.createdAt || 0)
-                const tb = b.createdAt?.toDate?.() || new Date(b.createdAt || 0)
-                return tb - ta
-              }).map(order => {
-                const ts = order.createdAt?.toDate?.() || new Date(order.createdAt || 0)
-                const timeAgo = (() => {
-                  const diff = Math.floor((Date.now() - ts.getTime()) / 1000)
-                  if (diff < 60) return `${diff}s ago`
-                  if (diff < 3600) return `${Math.floor(diff/60)}m ago`
-                  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`
-                  return `${Math.floor(diff/86400)}d ago`
-                })()
-                const statusEmoji = { pending:'🛒', confirmed:'✅', shipped:'🚚', delivered:'🎉' }[order.status] || '📦'
-                const statusColor = { pending:'#e65100', confirmed:'#1565c0', shipped:'#6a1b9a', delivered:'#2e7d32' }[order.status] || '#555'
-                const itemNames = (order.items || [order]).map(i => i.cropName || i.crop || i.name || 'Item').join(', ')
+              {farmerNotifications.map((notif) => {
                 return (
-                  <div key={order.id} className="fd-notif-item">
+                  <button
+                    key={`${notif.type}_${notif.id}`}
+                    className="fd-notif-item"
+                    onClick={() => handleNotifItemClick(notif)}
+                    style={{ width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer' }}
+                  >
                     <div className="fd-notif-icon-wrap">
-                      <span className="fd-notif-emoji">{statusEmoji}</span>
+                      <span className="fd-notif-emoji">{notif.icon}</span>
                     </div>
                     <div className="fd-notif-body">
-                      <p className="fd-notif-title">
-                        Order <strong>#{order.id.slice(-6).toUpperCase()}</strong> — {itemNames}
-                      </p>
-                      <p className="fd-notif-meta">
-                        <span style={{ color: statusColor, fontWeight: 600, textTransform: 'capitalize' }}>{order.status}</span>
-                        &nbsp;·&nbsp;₹{parseFloat(order.totalPrice || order.totalAmount || 0).toLocaleString()}
-                        &nbsp;·&nbsp;{order.buyerName || order.userName || 'Customer'}
-                      </p>
-                      {order.shippingAddress && (
-                        <p className="fd-notif-address">
-                          <FaMapMarkerAlt style={{ marginRight: 4, fontSize: 11 }} />
-                          {[order.shippingAddress.street, order.shippingAddress.city, order.shippingAddress.state].filter(Boolean).join(', ')}
-                        </p>
-                      )}
+                      <p className="fd-notif-title">{notif.title}</p>
+                      <p className="fd-notif-meta">{notif.subtitle}</p>
                     </div>
-                    <span className="fd-notif-time">{timeAgo}</span>
-                  </div>
+                    <span className="fd-notif-time">{notif.timeLabel || 'recently'}</span>
+                  </button>
                 )
               })}
             </div>
