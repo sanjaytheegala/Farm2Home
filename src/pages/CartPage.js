@@ -27,12 +27,16 @@ const CartPage = () => {
 
   const updateQuantity = (item, change) => {
     const newQuantity = (parseInt(item.quantity) || 1) + change
-    if (newQuantity > 0) updateQty(item.id, newQuantity)
-    else removeFromCart(item.id)
+    const itemId = item.id || item.firestoreId
+    if (!itemId) return
+    if (newQuantity > 0) updateQty(itemId, newQuantity)
+    else removeFromCart(itemId)
   }
 
   const removeItem = (item) => {
-    removeFromCart(item.id)
+    const itemId = item.id || item.firestoreId
+    if (!itemId) return
+    removeFromCart(itemId)
   }
 
   const calculateTotal = () => {
@@ -141,29 +145,32 @@ const CartPage = () => {
       ) : (
         <div style={cartContent}>
           <div style={itemsSection}>
-            {cartItems.map((item, index) => (
-              <div key={item.id || index} style={cartItem}>
+                  {cartItems.map((item, index) => {
+                    const itemId = item.id || item.firestoreId || index
+                    return (
+                    <div key={itemId} style={cartItem}>
                 <div style={itemDetails}>
                   <h3 style={itemName}>{item.name || item.cropName || item.crop}</h3>
                   <p style={itemPrice}>₹{item.pricePerKg || item.price} / {item.unit || 'kg'}</p>
                 </div>
                 <div style={quantityControls}>
-                  <button onClick={() => updateQuantity(item, -1)} style={qtyBtn}>
+                      <button onClick={() => updateQuantity(item, -1)} style={qtyBtn} disabled={loading}>
                     <FaMinus />
                   </button>
-                  <span style={qtyDisplay}>{item.quantity || 1} {item.unit || 'kg'}</span>
-                  <button onClick={() => updateQuantity(item, 1)} style={qtyBtn}>
+                      <span style={qtyDisplay}>{item.quantity || 1} {item.unit || 'kg'}</span>
+                      <button onClick={() => updateQuantity(item, 1)} style={qtyBtn} disabled={loading}>
                     <FaPlus />
                   </button>
                 </div>
                 <div style={itemTotal}>
                   <p style={totalPrice}>₹{(parseFloat(item.pricePerKg || item.price) * (parseInt(item.quantity) || 1)).toFixed(2)}</p>
-                  <button onClick={() => removeItem(item)} style={removeBtn}>
+                      <button onClick={() => removeItem(item)} style={removeBtn} disabled={loading}>
                     <FaTrash /> {t('remove') || 'Remove'}
                   </button>
                 </div>
-              </div>
-            ))}
+                  </div>
+                    )
+                  })}
           </div>
 
           <div style={summarySection}>

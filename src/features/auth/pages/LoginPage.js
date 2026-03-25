@@ -12,8 +12,6 @@ const LoginPage = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -22,61 +20,18 @@ const LoginPage = () => {
     navigate('/');
   };
 
-  const handleSendOTP = async () => {
-    setError('');
-    setLoading(true);
-    
-    if (!phone) {
-      setError('Please enter a phone number.');
-      setLoading(false);
-      return;
-    }
-
-    // Mock OTP sending
-    setTimeout(() => {
-      setConfirmationResult(true);
-      setLoading(false);
-    }, 500);
-  };
-
-  const handleVerifyOTP = async () => {
-    setError('');
-    setLoading(true);
-    
-    if (!otp) {
-      setError('Please enter the OTP.');
-      setLoading(false);
-      return;
-    }
-
-    // Mock OTP verification
-    if (otp.length === 6) {
-      const mockUser = {
-        uid: 'user_' + Date.now(),
-        phone: phone,
-        role: isFarmer ? 'farmer' : 'consumer',
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('mockUserData', JSON.stringify(mockUser));
-      navigate(isFarmer ? '/farmer' : '/consumer');
-    } else {
-      setError('Invalid OTP. Please enter 6 digits.');
-    }
-    setLoading(false);
-  };
-
-  const handleEmailLogin = async () => {
+  const handleEmailLogin = async (emailInput = email, passwordInput = password) => {
     setError('');
     setLoading(true);
 
-    if (!email || !password) {
+    if (!emailInput || !passwordInput) {
       setError('Please enter your email (or phone number) and password.');
       setLoading(false);
       return;
     }
 
     try {
-      let emailToUse = email.trim();
+      let emailToUse = emailInput.trim();
 
       // Detect phone number: only digits (with optional +, spaces, dashes)
       const isPhoneNumber = /^[\d\s\-+()]+$/.test(emailToUse);
@@ -92,7 +47,7 @@ const LoginPage = () => {
       // Ensure session persists across page-reload and browser-restart
       await setPersistence(auth, browserLocalPersistence);
       // Sign in with Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(auth, emailToUse, password);
+      const userCredential = await signInWithEmailAndPassword(auth, emailToUse, passwordInput);
       const user = userCredential.user;
 
       // Fetch user profile from Firestore
@@ -140,15 +95,8 @@ const LoginPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (loginMethod === 'phone') {
-      if (confirmationResult) {
-        handleVerifyOTP();
-      } else {
-        handleSendOTP();
-      }
-    } else {
-      handleEmailLogin();
-    }
+    if (loginMethod === 'phone') return handleEmailLogin(phone, password);
+    return handleEmailLogin(email, password);
   };
 
   return (
@@ -193,32 +141,31 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit}>
           {loginMethod === 'phone' ? (
             <>
-              {!confirmationResult ? (
-                <div style={{ marginBottom: '15px' }}>
-                  <input
-                    placeholder="Enter Phone Number with country code"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
-                  />
-                </div>
-              ) : (
-                <div style={{ marginBottom: '15px' }}>
-                  <input
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={e => setOtp(e.target.value)}
-                    style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
-                  />
-                </div>
-              )}
+              <div style={{ marginBottom: '15px' }}>
+                <input
+                  type="text"
+                  placeholder="Enter Phone Number with country code"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
+                />
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
+                />
+              </div>
             </>
           ) : (
             <>
               <div style={{ marginBottom: '15px' }}>
                 <input
                   type="text"
-                  placeholder="Email or Phone Number"
+                  placeholder="Email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
@@ -250,10 +197,9 @@ const LoginPage = () => {
               fontSize: '16px' 
             }}
           >
-            {loading ? 'Loading...' : (loginMethod === 'phone' ? (confirmationResult ? 'Verify OTP' : 'Send OTP') : 'Login')}
+            {loading ? 'Loading...' : 'Login'}
           </button>
         </form>
-        <div id="recaptcha-container" style={{ marginTop: '20px' }}></div>
       </div>
     </div>
   );

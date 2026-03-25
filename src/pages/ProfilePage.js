@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { auth, db, storage } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -34,11 +34,12 @@ const ProfilePage = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  useEffect(() => {
-    fetchUserData();
+  const showMessage = useCallback((type, text) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
   }, []);
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -66,7 +67,11 @@ const ProfilePage = () => {
       showMessage('error', t('profile_load_error'));
       setLoading(false);
     }
-  };
+  }, [showMessage, t]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -76,11 +81,6 @@ const ProfilePage = () => {
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData({ ...passwordData, [name]: value });
-  };
-
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
   };
 
   const handleSaveProfile = async () => {

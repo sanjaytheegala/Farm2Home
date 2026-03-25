@@ -133,7 +133,6 @@ export const translationDict = {
   'भिंडी': 'okra',
   'करेला': 'bitter gourd',
   'हरी मिर्च': 'green chilli',
-  'धनिया': 'coriander',
   'पालक': 'spinach',
   'पुदीना': 'mint',
   'खीरा': 'cucumber',
@@ -167,7 +166,6 @@ export const translationDict = {
   'വഴുതന': 'brinjal',
   'വെണ്ട': 'okra',
   'പച്ചമുളക്': 'green chilli',
-  'മല്ലി': 'coriander',
   'ചീര': 'spinach',
   'വെള്ളരി': 'cucumber',
   

@@ -6,16 +6,16 @@ import './HomePage.css'
 // Optimized icon imports - import only what's needed
 import { 
   FaLeaf, FaShoppingCart, FaChartLine, FaUsers, FaMapMarkerAlt, 
-  FaArrowRight, FaSeedling, FaTruck, FaHandshake, FaStar, 
-  FaQuoteLeft, FaTimes, FaPhone, FaEnvelope, FaEye, FaEyeSlash,
-  FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaApple, FaGooglePlay, FaUserTie
+  FaTruck, FaHandshake, FaStar, 
+  FaQuoteLeft, FaTimes, FaEnvelope, FaEye, FaEyeSlash,
+  FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaApple, FaGooglePlay
 } from 'react-icons/fa'
 import { logger } from '../../../utils/logger'
 import FarmerSignupModal from '../../../components/FarmerSignupModal'
 import { auth, db, functions } from '../../../firebase'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const HomePage = () => {
   const { t } = useTranslation()
@@ -29,13 +29,9 @@ const HomePage = () => {
   
   // Auth form states
   const [formType, setFormType] = useState('login') // 'login' or 'signup'
-  const [loginMethod, setLoginMethod] = useState('email') // 'phone' or 'email' - default to email/password
-  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [otp, setOtp] = useState('')
-  const [confirmationResult, setConfirmationResult] = useState(null)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -52,91 +48,9 @@ const HomePage = () => {
     satisfaction: 0
   })
   
-  // Typewriter animation states
-  const [currentText, setCurrentText] = useState('')
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [textIndex, setTextIndex] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
-  
   // Testimonial carousel state
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0)
-  
-  // Messages to cycle through
-  const typewriterMessages = [
-    t('typewriter_message_1') || "Empowering local farmers to connect directly with consumers. Fresh produce, fair prices, sustainable agriculture.",
-    t('typewriter_message_2') || "Supporting sustainable farming practices that benefit both farmers and the environment.",
-    t('typewriter_message_3') || "Building stronger communities through direct farmer-consumer relationships and local food systems.",
-    t('typewriter_message_4') || "Providing fresh, nutritious produce while ensuring fair compensation for hardworking farmers."
-  ]
-
-  // Expanded testimonials data for continuous scrolling
-  const testimonials = [
-    { name: 'Rajesh Kumar', role: 'Farmer', text: 'Farm 2 Home helped me connect directly with consumers. My income has increased by 40%!', rating: 5 },
-    { name: 'Priya Sharma', role: 'Consumer', text: 'I love getting fresh vegetables directly from local farmers. The quality is amazing!', rating: 5 },
-    { name: 'Amit Patel', role: 'Farmer', text: 'This platform has revolutionized how I sell my produce. Highly recommended!', rating: 5 },
-    { name: 'Sita Devi', role: 'Farmer', text: 'Before Farm 2 Home, I struggled to sell my organic vegetables. Now I have regular customers!', rating: 5 },
-    { name: 'Mohammed Ali', role: 'Consumer', text: 'The freshness and quality of produce is unmatched. Supporting local farmers feels great!', rating: 5 },
-    { name: 'Lakshmi Reddy', role: 'Farmer', text: 'The direct connection with customers has transformed my farming business completely.', rating: 5 },
-    { name: 'Ravi Krishnan', role: 'Consumer', text: 'Farm-fresh produce delivered to my doorstep. What more could I ask for?', rating: 5 },
-    { name: 'Sunita Gupta', role: 'Farmer', text: 'Thanks to this platform, I can now focus on growing quality crops without worrying about sales.', rating: 5 },
-    { name: 'Arjun Singh', role: 'Consumer', text: 'Supporting sustainable agriculture while getting the best produce. Win-win situation!', rating: 5 }
-  ]
-
-  // Mock authentication functions
-  const setupRecaptcha = () => {
-    // Mock implementation - no Firebase needed
-    logger.log("Mock recaptcha setup");
-  };
-
-  const handleSendOTP = async () => {
-    setError('');
-    setLoading(true);
-    if (!phone) {
-      setError('Please enter a phone number.');
-      setLoading(false);
-      return;
-    }
-    
-    // Mock OTP sending
-    try {
-      setConfirmationResult({ phone }); // Mock confirmation result
-      logger.log('Mock OTP sent successfully!');
-    } catch (err) {
-      setError('Failed to send OTP. Please try again.');
-      logger.error(err);
-    }
-    setLoading(false);
-  };
-
-  const handleVerifyOTP = async () => {
-    setError('');
-    setLoading(true);
-    if (!otp || !confirmationResult) {
-      setError('Please enter the OTP.');
-      setLoading(false);
-      return;
-    }
-    try {
-      // Mock OTP verification - any 6-digit OTP works
-      if (otp.length === 6) {
-        const userId = `user_${Date.now()}`;
-        const userData = {
-          role: selectedRole,
-          name: 'Demo User',
-          email: phone || `${userId}@phone.com`,
-          uid: userId
-        };
-        localStorage.setItem('mockUserData', JSON.stringify(userData));
-        navigate(selectedRole === 'farmer' ? '/farmer' : '/consumer');
-      } else {
-        setError('Invalid OTP. Please enter 6 digits.');
-      }
-    } catch (err) {
-      setError('Invalid OTP. Please try again.');
-    }
-    setLoading(false);
-  };
+  const [testimonials, setTestimonials] = useState([])
 
   const handleForgotPassword = async (e) => {
     e.preventDefault()
@@ -311,14 +225,10 @@ const HomePage = () => {
   };
 
   const resetForm = () => {
-    setPhone('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
-    setOtp('');
     setError('');
-    setConfirmationResult(null);
-    setLoginMethod('email'); // Default to email/password method
     setLoading(false);
     setShowPassword(false);
     setShowForgotPassword(false);
@@ -352,7 +262,6 @@ const HomePage = () => {
     setSelectedRole(role)
     setShowLoginCard(true)
     setFormType('login');
-    setLoginMethod('email');
     setTimeout(() => {
       const loginSection = document.getElementById('login-section')
       if (loginSection) {
@@ -360,10 +269,6 @@ const HomePage = () => {
       }
     }, 100)
   };
-
-  const handleRoleSelect = (role) => {
-    openLoginCard(role);
-  }
 
   // Auto-open login modal when redirected from a ProtectedRoute
   useEffect(() => {
@@ -375,111 +280,47 @@ const HomePage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Add CSS animation for cursor blinking
+  // Real user reviews for testimonials
   useEffect(() => {
-    const style = document.createElement('style')
-    style.textContent = `
-      @keyframes blink {
-        0%, 50% { opacity: 1; }
-        51%, 100% { opacity: 0; }
-      }
-    `
-    document.head.appendChild(style)
-    
-    return () => {
-      document.head.removeChild(style)
-    }
+    const reviewsQuery = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(30))
+
+    const unsubscribe = onSnapshot(reviewsQuery, (snapshot) => {
+      const items = snapshot.docs
+        .map((reviewDoc) => {
+          const review = reviewDoc.data() || {}
+          const reviewText = (review.comment || '').trim()
+          const rating = Number(review.rating)
+
+          return {
+            name: (review.consumerName || 'User').toString(),
+            role: 'Consumer',
+            text: reviewText,
+            rating: Number.isFinite(rating) ? Math.max(1, Math.min(5, Math.round(rating))) : 5,
+          }
+        })
+        .filter((review) => review.text.length > 0)
+
+      setTestimonials(items)
+      setCurrentTestimonialIndex(0)
+    }, (error) => {
+      logger.error('Failed to load reviews for testimonials:', error)
+      setTestimonials([])
+      setCurrentTestimonialIndex(0)
+    })
+
+    return () => unsubscribe()
   }, [])
 
   // Testimonials carousel animation
   useEffect(() => {
+    if (testimonials.length <= 1) return
+
     const interval = setInterval(() => {
       setCurrentTestimonialIndex((prevIndex) => (prevIndex + 1) % testimonials.length)
     }, 3000) // Change testimonial every 3 seconds
     
     return () => clearInterval(interval)
   }, [testimonials.length])
-
-  // Typewriter animation effect using requestAnimationFrame for smooth consistent timing
-  useEffect(() => {
-    const currentMessage = typewriterMessages[textIndex]
-    let lastTime = 0
-    let elapsed = 0
-    let pauseElapsed = 0
-    let animationFrameId
-
-    const TYPING_SPEED = 55 // ms per character when typing
-    const ERASING_SPEED = 30 // ms per character when erasing
-    const PAUSE_AFTER_TYPING = 1800 // ms pause after finishing typing
-    const PAUSE_AFTER_ERASING = 500 // ms pause after finishing erasing
-
-    const tick = (timestamp) => {
-      if (!lastTime) {
-        lastTime = timestamp
-      }
-
-      const delta = timestamp - lastTime
-      lastTime = timestamp
-
-      if (isPaused) {
-        // Handle pause state
-        pauseElapsed += delta
-
-        if (isDeleting && pauseElapsed >= PAUSE_AFTER_TYPING) {
-          // Finished pause after typing, start erasing
-          setIsPaused(false)
-          pauseElapsed = 0
-        } else if (!isDeleting && pauseElapsed >= PAUSE_AFTER_ERASING) {
-          // Finished pause after erasing, move to next message
-          setIsPaused(false)
-          pauseElapsed = 0
-          setTextIndex((prevIndex) => (prevIndex + 1) % typewriterMessages.length)
-        }
-      } else {
-        // Handle typing/erasing state
-        elapsed += delta
-        const interval = isDeleting ? ERASING_SPEED : TYPING_SPEED
-
-        if (elapsed >= interval) {
-          elapsed = 0
-
-          if (!isDeleting) {
-            // Typing
-            if (currentIndex < currentMessage.length) {
-              setCurrentText(currentMessage.substring(0, currentIndex + 1))
-              setCurrentIndex((prev) => prev + 1)
-            } else {
-              // Finished typing, pause then start deleting
-              setIsPaused(true)
-              pauseElapsed = 0
-              setIsDeleting(true)
-            }
-          } else {
-            // Erasing
-            if (currentIndex > 0) {
-              setCurrentText(currentMessage.substring(0, currentIndex - 1))
-              setCurrentIndex((prev) => prev - 1)
-            } else {
-              // Finished erasing, pause then move to next message
-              setIsPaused(true)
-              pauseElapsed = 0
-              setIsDeleting(false)
-            }
-          }
-        }
-      }
-
-      animationFrameId = requestAnimationFrame(tick)
-    }
-
-    animationFrameId = requestAnimationFrame(tick)
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId)
-      }
-    }
-  }, [currentIndex, isDeleting, textIndex, typewriterMessages, isPaused])
 
   // Animate statistics on scroll
   useEffect(() => {
@@ -500,7 +341,7 @@ const HomePage = () => {
   }, [])
 
   const animateStats = () => {
-    const targets = { farmers: 1200, consumers: 4500, products: 350, satisfaction: 96 }
+    const targets = { farmers: 0, consumers: 0, products: 0, satisfaction: 0 }
     const duration = 2000
     const steps = 60
     const stepValue = {}
@@ -548,10 +389,6 @@ const HomePage = () => {
               </>
             </h1>
             <p style={heroSubtitle} className="hero-subtitle">Connecting Farmers Directly to Consumers</p>
-            <p style={heroDescription} className="hero-description">
-              {currentText}
-              <span style={cursorStyle}>|</span>
-            </p>
             <div style={ctaButtons} className="cta-buttons">
               <button 
                 onClick={() => {
@@ -911,40 +748,50 @@ const HomePage = () => {
       <div style={testimonialsSection}>
         <h2 style={sectionTitle}>{t('what_users_say')}</h2>
         <div style={testimonialsCarousel}>
-          <div style={testimonialsSlider}>
-            {[0, 1, 2].map((offset) => {
-              const testimonialIndex = (currentTestimonialIndex + offset) % testimonials.length;
-              const testimonial = testimonials[testimonialIndex];
-              return (
-                <div 
-                  key={`${currentTestimonialIndex}-${offset}`}
-                  style={{
-                    ...testimonialCard,
-                    transform: `translateX(${offset * 103}%)`,
-                  }}
-                >
-                  <div style={testimonialHeader}>
-                    <FaQuoteLeft style={{ fontSize: '1.5rem', color: '#28a745', opacity: 0.3 }} />
-                    <div style={ratingContainer}>
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <FaStar key={i} style={{ color: '#ffd700', fontSize: '0.9rem' }} />
-                      ))}
+          {testimonials.length === 0 ? (
+            <div style={{ ...testimonialCard, position: 'relative', width: '100%', left: 'auto', height: 'auto' }}>
+              <p style={{ ...testimonialText, marginBottom: 0, textAlign: 'center' }}>
+                No user reviews yet.
+              </p>
+            </div>
+          ) : (
+            <div style={testimonialsSlider}>
+              {Array.from({ length: Math.min(3, testimonials.length) }).map((_, offset) => {
+                const testimonialIndex = (currentTestimonialIndex + offset) % testimonials.length
+                const testimonial = testimonials[testimonialIndex]
+
+                return (
+                  <div 
+                    key={`${currentTestimonialIndex}-${offset}-${testimonialIndex}`}
+                    style={{
+                      ...testimonialCard,
+                      width: testimonials.length === 1 ? '100%' : testimonials.length === 2 ? '48.5%' : '32%',
+                      transform: `translateX(${testimonials.length === 1 ? 0 : testimonials.length === 2 ? offset * 104 : offset * 103}%)`,
+                    }}
+                  >
+                    <div style={testimonialHeader}>
+                      <FaQuoteLeft style={{ fontSize: '1.5rem', color: '#28a745', opacity: 0.3 }} />
+                      <div style={ratingContainer}>
+                        {[...Array(testimonial.rating)].map((__, i) => (
+                          <FaStar key={i} style={{ color: '#ffd700', fontSize: '0.9rem' }} />
+                        ))}
+                      </div>
+                    </div>
+                    <p style={testimonialText}>{testimonial.text}</p>
+                    <div style={testimonialAuthor}>
+                      <div style={authorAvatar}>
+                        <FaUsers style={{ fontSize: '1.2rem', color: '#28a745' }} />
+                      </div>
+                      <div>
+                        <h4 style={authorName}>{testimonial.name}</h4>
+                        <p style={authorRole}>{testimonial.role}</p>
+                      </div>
                     </div>
                   </div>
-                  <p style={testimonialText}>{testimonial.text}</p>
-                  <div style={testimonialAuthor}>
-                    <div style={authorAvatar}>
-                      <FaUsers style={{ fontSize: '1.2rem', color: '#28a745' }} />
-                    </div>
-                    <div>
-                      <h4 style={authorName}>{testimonial.name}</h4>
-                      <p style={authorRole}>{testimonial.role}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1028,10 +875,10 @@ const HomePage = () => {
           {/* Social Media & Copyright */}
           <div className="social-row">
             <div className="social-icons-container">
-              <a href="#" className="social-icon"><FaFacebookF /></a>
-              <a href="#" className="social-icon"><FaInstagram /></a>
-              <a href="#" className="social-icon"><FaLinkedinIn /></a>
-              <a href="#" className="social-icon"><FaTwitter /></a>
+              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="social-icon"><FaFacebookF /></a>
+              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="social-icon"><FaInstagram /></a>
+              <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="social-icon"><FaLinkedinIn /></a>
+              <a href="https://twitter.com" target="_blank" rel="noreferrer" className="social-icon"><FaTwitter /></a>
             </div>
             <div className="copyright-text">
               &copy; 2026, Farm2Home | Privacy Policy | Sitemap | Terms & Conditions
@@ -1147,30 +994,6 @@ const heroSubtitle = {
   lineHeight: '50px',
 };
 
-const heroDescription = {
-  fontSize: '1.2rem',
-  marginBottom: '0', // Remove margin, use margin on buttons instead
-  color: '#000000',
-  opacity: 1,
-  lineHeight: 1.6,
-  minHeight: '115px', // Fixed height to accommodate exactly 2 lines of text and prevent button jumping
-  maxHeight: '115px',
-  width: '100%', // Full width to prevent horizontal movement
-  overflow: 'hidden',
-  textAlign: 'left',
-  position: 'relative',
-  display: 'block',
-  textShadow: '1px 1px 2px rgba(255,255,255,0.8)',
-};
-
-const cursorStyle = {
-  animation: 'blink 1s infinite',
-  marginLeft: '2px',
-  fontWeight: 'bold',
-  display: 'inline',
-  color: '#000000',
-};
-
 const ctaButtons = {
   display: 'flex',
   gap: '20px',
@@ -1184,8 +1007,13 @@ const ctaButtons = {
 
 const secondaryBtn = {
   backgroundColor: 'transparent',
+  backgroundImage: 'linear-gradient(135deg, #5b21b6, #7c3aed, #6d28d9), linear-gradient(120deg, #f59e0b, #fde68a, #fbbf24, #fef3c7)',
+  backgroundOrigin: 'border-box',
+  backgroundClip: 'padding-box, border-box',
+  backgroundSize: '100% 100%, 250% 250%',
+  animation: 'goldBorderFlow 3.2s linear infinite, purplePulse 2.4s ease-in-out infinite',
   color: '#ffffff',
-  border: '2px solid rgba(255,255,255,0.6)',
+  border: '2px solid transparent',
   padding: '12px 26px',
   borderRadius: '22px',
   fontSize: '1.05rem',
@@ -1193,6 +1021,7 @@ const secondaryBtn = {
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
+  boxShadow: '0 6px 16px rgba(91, 33, 182, 0.35)',
   transition: 'all 0.2s ease',
 };
 
@@ -1764,6 +1593,17 @@ style.textContent = `
       opacity: 1; 
       transform: scale(1); 
     }
+  }
+
+  @keyframes goldBorderFlow {
+    0% { background-position: 0% 50%, 0% 50%; }
+    50% { background-position: 0% 50%, 100% 50%; }
+    100% { background-position: 0% 50%, 0% 50%; }
+  }
+
+  @keyframes purplePulse {
+    0%, 100% { box-shadow: 0 6px 16px rgba(91, 33, 182, 0.35); }
+    50% { box-shadow: 0 10px 24px rgba(124, 58, 237, 0.5); }
   }
   
   /* Footer Link Hover Effects */

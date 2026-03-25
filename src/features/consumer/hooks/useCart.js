@@ -36,7 +36,9 @@ export const useCart = () => {
 
     const cartRef = collection(db, 'users', uid, 'cart');
     const unsub = onSnapshot(cartRef, (snap) => {
-      const items = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+      // Firestore cart doc id acts as the productId for cart operations.
+      // Keep both `id` and `firestoreId` for compatibility with existing UI.
+      const items = snap.docs.map(d => ({ id: d.id, firestoreId: d.id, ...d.data() }));
       setCartItems(items);
       // Keep localStorage in sync for Navbar badge (no auth needed there)
       localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
@@ -58,7 +60,10 @@ export const useCart = () => {
   }, [uid]);
 
   /* ── Helpers ── */
-  const cartRef = (productId) => uid ? doc(db, 'users', uid, 'cart', productId) : null;
+  const cartDocRef = useCallback(
+    (productId) => (uid ? doc(db, 'users', uid, 'cart', productId) : null),
+    [uid]
+  );
 
   const addToCart = useCallback(async (product, quantity = 1) => {
     if (!uid) {
@@ -74,8 +79,8 @@ export const useCart = () => {
     }
     const existing = cartItems.find(i => i.id === product.id);
     const newQty = (existing?.quantity || 0) + quantity;
-    await setDoc(cartRef(product.id), { ...product, quantity: newQty }, { merge: true });
-  }, [uid, cartItems]);
+    await setDoc(cartDocRef(product.id), { ...product, quantity: newQty }, { merge: true });
+  }, [uid, cartItems, cartDocRef]);
 
   const removeFromCart = useCallback(async (productId) => {
     if (!uid) {
@@ -85,8 +90,8 @@ export const useCart = () => {
       window.dispatchEvent(new Event('cartUpdated'));
       return;
     }
-    await deleteDoc(cartRef(productId));
-  }, [uid]);
+    await deleteDoc(cartDocRef(productId));
+  }, [uid, cartDocRef]);
 
   const updateQuantity = useCallback(async (productId, newQuantity) => {
     if (newQuantity <= 0) { removeFromCart(productId); return; }
@@ -97,8 +102,8 @@ export const useCart = () => {
       window.dispatchEvent(new Event('cartUpdated'));
       return;
     }
-    await setDoc(cartRef(productId), { quantity: newQuantity }, { merge: true });
-  }, [uid, removeFromCart]);
+    await setDoc(cartDocRef(productId), { quantity: newQuantity }, { merge: true });
+  }, [uid, removeFromCart, cartDocRef]);
 
   const clearCart = useCallback(async () => {
     if (!uid) {

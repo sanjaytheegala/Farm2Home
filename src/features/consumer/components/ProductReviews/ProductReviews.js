@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../../../context/ToastContext';
-// import { db, collection, addDoc, getDocs, query, where, orderBy, auth } from '../../../../firebase';
+import { auth, db } from '../../../../firebase';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { FaStar, FaThumbsUp, FaThumbsDown, FaFlag, FaCheckCircle } from 'react-icons/fa';
 import './ProductReviews.css';
 
@@ -24,32 +25,55 @@ const ProductReviews = ({ productId, productName }) => {
 
   useEffect(() => {
     fetchReviews();
-  }, [productId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, productName]);
 
   const fetchReviews = async () => {
     try {
-      // TODO: Uncomment when Firebase is configured
-      // const reviewsRef = collection(db, 'reviews');
-      // const q = query(reviewsRef, where('productId', '==', productId), orderBy('createdAt', 'desc'));
-      // const querySnapshot = await getDocs(q);
-      // const reviewsList = [];
-      // querySnapshot.forEach((doc) => { reviewsList.push({ id: doc.id, ...doc.data() }); });
-      // setReviews(reviewsList);
-      
-      // Mock reviews for now
-      setReviews([]);
-      setLoading(false);
+      setLoading(true);
+      if (!productName) {
+        setReviews([]);
+        setLoading(false);
+        return;
+      }
+
+      // Reviews are written by useMarketDemands.submitReview() with cropName.
+      // Filter by cropName to show the reviews for this product/crop.
+      const q = query(collection(db, 'reviews'), where('cropName', '==', productName));
+      const snap = await getDocs(q);
+
+      const reviewsList = snap.docs.map((docSnap) => {
+        const data = docSnap.data() || {}
+        const createdAtIso = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt
+        return {
+          id: docSnap.id,
+          ...data,
+          userName: data.userName || data.consumerName || data.consumerId || 'User',
+          verified: typeof data.verified === 'boolean' ? data.verified : !!data.consumerId,
+          createdAt: createdAtIso,
+        }
+      })
+
+      // Sort client-side newest first (avoids Firestore composite index requirements).
+      reviewsList.sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        return tb - ta
+      })
+
+      setReviews(reviewsList);
     } catch (error) {
+      console.error('fetchReviews error:', error)
       setLoading(false);
+      setReviews([]);
     }
   };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     
-    // Check if user is logged in using localStorage
-    const currentUser = JSON.parse(localStorage.getItem('mockUserData') || '{}');
-    if (!currentUser.uid) {
+    const user = auth.currentUser;
+    if (!user) {
       toastWarning(t('please_login_to_review'));
       return;
     }
@@ -57,7 +81,36 @@ const ProductReviews = ({ productId, productName }) => {
     setSubmitting(true);
 
     try {
-      // Mock review submission (can be replaced with actual Firestore implementation)
+      if (!productName) {
+        toastError(t('review_error') || 'Missing product/crop name');
+        return;
+      }
+
+      await addDoc(collection(db, 'reviews'), {
+        cropName: productName,
+        // Keep compatibility with submitReview() schema fields.
+        demandId: null,
+        farmerId: productId || null,
+        farmerName: '',
+
+        consumerId: user.uid,
+        consumerName: user.displayName || user.email || 'Consumer',
+        userName: user.displayName || user.email || 'Consumer',
+        verified: true,
+
+        rating: newReview.rating,
+        title: newReview.title || '',
+        comment: (newReview.comment || '').trim(),
+
+        quality: newReview.quality,
+        freshness: newReview.freshness,
+        packaging: newReview.packaging,
+        delivery: newReview.delivery,
+
+        createdAt: serverTimestamp(),
+      });
+
+      // Reset + refresh.
       setNewReview({
         rating: 5,
         title: '',
@@ -65,15 +118,16 @@ const ProductReviews = ({ productId, productName }) => {
         quality: 5,
         freshness: 5,
         packaging: 5,
-        delivery: 5
+        delivery: 5,
       });
       setShowReviewForm(false);
-      
-      // Refresh reviews
-      fetchReviews();
+      await fetchReviews();
       toastSuccess(t('review_submitted') || 'Review submitted successfully!');
     } catch (error) {
+      console.error('handleSubmitReview error:', error)
       toastError(t('review_error') || 'Error submitting review');
+    } finally {
+      setSubmitting(false);
     }
   };
 

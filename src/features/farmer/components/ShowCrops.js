@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../../context/ToastContext';
+import { auth } from '../../../firebase';
 import './ShowCrops.css';
 import { FaSearch, FaMapMarkerAlt, FaSort, FaLeaf, FaRupeeSign, FaCalendarAlt, FaEdit, FaTrash } from 'react-icons/fa';
 
@@ -13,6 +14,7 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
   const [loading, setLoading] = useState(true);
   const [editingCrop, setEditingCrop] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [uid, setUid] = useState(null);
 
   // Districts list (South Indian districts)
   const districts = [
@@ -70,6 +72,11 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
 
   useEffect(() => {
     fetchCrops();
+  }, []);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((user) => setUid(user?.uid || null));
+    return () => unsub();
   }, []);
 
   // Handle edit crop
@@ -332,8 +339,7 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
                   ) : (
                     <div>
                       {enableEdit && (() => {
-                        const currentUser = JSON.parse(localStorage.getItem('mockUserData') || '{}');
-                        return currentUser.uid && crop.farmerId === currentUser.uid;
+                        return uid && crop.farmerId === uid;
                       })() && (
                         <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
                           <button onClick={() => handleEditCrop(crop)} style={{ flex: 1, padding: '8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>

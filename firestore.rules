@@ -5,12 +5,10 @@ service cloud.firestore {
     // Helper Functions
     function isSignedIn() { return request.auth != null; }
     function isAdmin() {
-      // Strictly rely on roles_admin, with absolute master fallback
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        request.auth.token.email == 'eagletheegala@gmail.com' ||
-        request.auth.uid == '9D6tcHS3AYRyez91BjcQHu0Bw5h2'
-      );
+      // Admins are users whose uid has an entry in roles_admin/{uid}
+      // (No hardcoded bypasses).
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
 
@@ -83,21 +81,32 @@ service cloud.firestore {
       allow read: if isSignedIn();
       // Only consumers can create their own demand
       allow create: if isSignedIn() && request.resource.data.consumerId == request.auth.uid;
-      // Consumer can accept offer (update their own demand)
-      // Farmer can submit an offer (update status to quoted)
-      // Admin can do anything
+      // Consumer can update their own demand document.
+      // Farmer can only quote an open demand (open -> quoted) by setting
+      // committedFarmerId to themselves, OR update demands where they are
+      // already the committedFarmerId.
+      // Admin can do anything.
       allow update: if isAdmin()
-        || (isSignedIn()
-            && resource.data.consumerId == request.auth.uid
-            && request.resource.data.consumerId == resource.data.consumerId)
-        || (isSignedIn()
-            && resource.data.status == 'open'
-            && (
-              // Preferred path: consumerId remains unchanged
-              request.resource.data.consumerId == resource.data.consumerId
-              // Legacy path: some older demands may not have consumerId field
-              || !resource.data.keys().hasAll(['consumerId'])
-            ));
+        || (
+          isSignedIn()
+          && resource.data.consumerId == request.auth.uid
+          && request.resource.data.consumerId == resource.data.consumerId
+        )
+        || (
+          isSignedIn()
+          && (
+            // Farmer submits an offer: open -> quoted, consumerId unchanged,
+            // committedFarmerId becomes the current farmer.
+            (
+              resource.data.status == 'open'
+              && request.resource.data.status == 'quoted'
+              && request.resource.data.consumerId == resource.data.consumerId
+              && request.resource.data.committedFarmerId == request.auth.uid
+            )
+            // Farmer updates an existing quote/deal for the demand they committed.
+            || resource.data.committedFarmerId == request.auth.uid
+          )
+        );
       allow delete: if isAdmin() || (isSignedIn() && resource.data.consumerId == request.auth.uid);
     }
 
@@ -116,8 +125,8 @@ service cloud.firestore {
     match /reviews/{reviewId} {
       // Only the consumer who made the deal can submit a review
       allow create: if isSignedIn() && request.resource.data.consumerId == request.auth.uid;
-      // Any signed-in user can read reviews (visible on farmer profiles)
-      allow read: if isSignedIn();
+      // Public read so homepage can display original user reviews
+      allow read: if true;
       // Admin-only updates/deletes (moderation)
       allow update, delete: if isAdmin();
     }
