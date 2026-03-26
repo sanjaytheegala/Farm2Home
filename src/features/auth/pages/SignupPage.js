@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 import { auth, db } from '../../../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -15,6 +16,7 @@ const SignupPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleBackToHome = () => {
     navigate('/');
@@ -24,34 +26,39 @@ const SignupPage = () => {
     e.preventDefault();
     setError('');
 
+    if (!/^[^@\s]+@gmail\.com$/i.test(email.trim())) {
+      setError(t('gmail_only_signup'));
+      return;
+    }
+
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError(t('passwords_do_not_match'));
       return;
     }
 
     if (password.length < 6) {
-      setError("Password should be at least 6 characters.");
+      setError(t('password_min_length'));
       return;
     }
 
     const trimmedName = name.trim();
     const nameRegex = /^[a-zA-Z\s'\-]+$/;
     if (!trimmedName || trimmedName.length < 2) {
-      setError('Full name must be at least 2 characters.');
+      setError(t('full_name_min_length'));
       return;
     }
     if (trimmedName.length > 60) {
-      setError('Full name cannot exceed 60 characters.');
+      setError(t('full_name_max_length'));
       return;
     }
     if (!nameRegex.test(trimmedName)) {
-      setError('Name can only contain letters, spaces, hyphens and apostrophes.');
+      setError(t('name_characters_only'));
       return;
     }
 
     const cleanPhone = phone.replace(/\D/g, '');
     if (!cleanPhone || cleanPhone.length !== 10) {
-      setError('Please enter a valid 10-digit phone number.');
+      setError(t('valid_10_digit_phone'));
       return;
     }
 
@@ -81,13 +88,13 @@ const SignupPage = () => {
 
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('This email is already registered. Please login instead.');
+        setError(t('account_exists_login_instead'));
       } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address.');
+        setError(t('invalid_email'));
       } else if (err.code === 'auth/weak-password') {
-        setError('Password should be at least 6 characters.');
+        setError(t('password_min_length'));
       } else {
-        setError(err.message || 'Failed to create an account. Please try again.');
+        setError(err.message || t('create_account_failed'));
       }
     } finally {
       setLoading(false);
@@ -118,24 +125,24 @@ const SignupPage = () => {
           }}
           onMouseEnter={(e) => e.target.style.backgroundColor = '#333'}
           onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-          title="Back to Home"
+          title={t('back_to_home')}
         >
           <FaArrowLeft />
-          Home
+          {t('home')}
         </button>
         
-        <h2 style={{ textAlign: 'center', marginBottom: '20px', marginTop: '20px' }}>Create Account</h2>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px', marginTop: '20px' }}>{t('create_account')}</h2>
         
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <button onClick={() => setUserType('consumer')} style={{ padding: '10px 20px', background: userType === 'consumer' ? '#28a745' : 'grey', border: 'none', borderRadius: '5px 0 0 5px', cursor: 'pointer', color: 'white' }}>Consumer</button>
-          <button onClick={() => setUserType('farmer')} style={{ padding: '10px 20px', background: userType === 'farmer' ? '#28a745' : 'grey', border: 'none', borderRadius: '0 5px 5px 0', cursor: 'pointer', color: 'white' }}>Farmer</button>
+          <button onClick={() => setUserType('consumer')} style={{ padding: '10px 20px', background: userType === 'consumer' ? '#28a745' : 'grey', border: 'none', borderRadius: '5px 0 0 5px', cursor: 'pointer', color: 'white' }}>{t('consumer')}</button>
+          <button onClick={() => setUserType('farmer')} style={{ padding: '10px 20px', background: userType === 'farmer' ? '#28a745' : 'grey', border: 'none', borderRadius: '0 5px 5px 0', cursor: 'pointer', color: 'white' }}>{t('farmer')}</button>
         </div>
 
         <form onSubmit={handleSignup}>
           <div style={{ marginBottom: '15px' }}>
             <input
               type="text"
-              placeholder="Full Name"
+              placeholder={t('full_name')}
               value={name}
               onChange={e => setName(e.target.value)}
               required
@@ -145,7 +152,7 @@ const SignupPage = () => {
           <div style={{ marginBottom: '15px' }}>
             <input
               type="email"
-              placeholder="Email"
+              placeholder={t('email')}
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
@@ -155,7 +162,7 @@ const SignupPage = () => {
           <div style={{ marginBottom: '15px' }}>
             <input
               type="tel"
-              placeholder="Phone Number (10 digits)"
+              placeholder={t('phone_number_10_digits')}
               value={phone}
               onChange={e => setPhone(e.target.value)}
               required
@@ -166,7 +173,7 @@ const SignupPage = () => {
           <div style={{ marginBottom: '15px' }}>
             <input
               type="password"
-              placeholder="Password (min. 6 characters)"
+              placeholder={t('password_min_6')}
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
@@ -176,7 +183,7 @@ const SignupPage = () => {
           <div style={{ marginBottom: '20px' }}>
             <input
               type="password"
-              placeholder="Confirm Password"
+              placeholder={t('confirm_password_placeholder')}
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               required
@@ -200,12 +207,12 @@ const SignupPage = () => {
               fontSize: '16px' 
             }}
           >
-            {loading ? 'Creating Account...' : `Sign Up as a ${userType.charAt(0).toUpperCase() + userType.slice(1)}`}
+            {loading ? t('creating_account') : (userType === 'farmer' ? t('sign_up_as_farmer') : t('sign_up_as_consumer'))}
           </button>
         </form>
         
         <p style={{ textAlign: 'center', marginTop: '20px' }}>
-          Already have an account? <Link to="/" style={{ color: '#28a745', textDecoration: 'none' }}>Login</Link>
+          {t('already_have_account')} <Link to="/" style={{ color: '#28a745', textDecoration: 'none' }}>{t('login')}</Link>
         </p>
       </div>
     </div>

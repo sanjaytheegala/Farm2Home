@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { db, auth } from '../../../firebase'
 import {
   collection, addDoc, onSnapshot, query,
-  where, serverTimestamp, doc, updateDoc, deleteDoc, getDoc
+  where, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, writeBatch
 } from 'firebase/firestore'
 
 /**
@@ -144,6 +144,18 @@ export const useMarketDemands = () => {
     if (!user) return { success: false, error: 'Not logged in' }
     if (!pickupDate) return { success: false, error: 'Please select a pickup date' }
     try {
+      const demandRef = doc(db, 'market_demands', demandId)
+      const demandSnap = await getDoc(demandRef)
+
+      if (!demandSnap.exists()) {
+        return { success: false, error: 'Request not found' }
+      }
+
+      const demandData = demandSnap.data()
+      if (!demandData.committedFarmerId) {
+        return { success: false, error: 'No farmer has been assigned to this request yet.' }
+      }
+
       const profileSnap = await getDoc(doc(db, 'users', user.uid))
       const profileData = profileSnap.exists() ? profileSnap.data() : {}
       const consumerPhone = profileData.phone || profileData.phoneNumber || ''
@@ -152,12 +164,57 @@ export const useMarketDemands = () => {
         return { success: false, error: 'Please add your phone number in your profile before accepting offers.' }
       }
 
-      await updateDoc(doc(db, 'market_demands', demandId), {
+      if (demandData.orderId) {
+        await updateDoc(demandRef, {
+          status:       'deal_closed',
+          consumerPhone,
+          pickupDate,
+          dealClosedAt: serverTimestamp(),
+        })
+        return { success: true }
+      }
+
+      const quantity = parseFloat(demandData.quantityKg) || 0
+      const pricePerKg = parseFloat(demandData.farmerOfferPrice) || 0
+      const totalAmount = quantity * pricePerKg
+      const orderRef = doc(collection(db, 'orders'))
+      const shippingAddress = {
+        fullName: profileData.name || user.displayName || user.email || 'Consumer',
+        phone: consumerPhone,
+        area: profileData.address?.area || profileData.location?.area || profileData.district || '',
+        city: profileData.city || profileData.state || '',
+        pincode: profileData.pincode || '',
+      }
+
+      const batch = writeBatch(db)
+      batch.set(orderRef, {
+        customerId: user.uid,
+        customerEmail: user.email || '',
+        farmerId: demandData.committedFarmerId,
+        farmerName: demandData.committedFarmerName || '',
+        marketDemandId: demandId,
+        cropName: demandData.cropName || 'Product',
+        quantity: quantity,
+        unit: demandData.quantityUnit || 'kg',
+        pricePerKg,
+        totalPrice: totalAmount,
+        totalAmount,
+        shippingAddress,
+        paymentMethod: 'direct',
+        pickupDate,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      })
+
+      batch.update(demandRef, {
         status:        'deal_closed',
         consumerPhone,
         pickupDate,
         dealClosedAt:  serverTimestamp(),
+        orderId:       orderRef.id,
       })
+
+      await batch.commit()
       return { success: true }
     } catch (err) {
       return { success: false, error: err.message }

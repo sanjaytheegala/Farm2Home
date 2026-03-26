@@ -42,6 +42,10 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
         throw new Error('Please fill in all fields');
       }
 
+      if (!/^[^@\s]+@gmail\.com$/i.test(formData.email.trim())) {
+        throw new Error('Only Gmail addresses are allowed for registration.');
+      }
+
       if (formData.password.length < 6) {
         throw new Error('Password must be at least 6 characters');
       }

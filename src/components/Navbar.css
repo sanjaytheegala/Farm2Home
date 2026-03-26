@@ -62,9 +62,10 @@
 }
 
 .navbar-project-name {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  font-family: 'Segoe UI', 'Trebuchet MS', Arial, sans-serif;
+  font-size: 33px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
   color: #333333;
   text-shadow: none;
   transition: all 0.3s ease;
@@ -78,6 +79,34 @@
 
 .navbar-container.scrolled .navbar-project-name {
   text-shadow: none;
+}
+
+.navbar-brand-mark {
+  gap: 0 !important;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar-brand-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  line-height: 50px;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  transform: translateY(1px);
+}
+
+.navbar-brand-logo {
+  display: block;
+  height: 50px;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  transform: translateY(1px);
 }
 
 /* Center Navigation */

@@ -76,7 +76,7 @@ const Navbar = React.memo(({
               <FaChevronRight size={14} />
             </button>
           </div>
-          <span className="navbar-project-name">
+          <span className="navbar-project-name" data-no-auto-translate="true">
             FARM
             <img src={require('../logo/logo3.png')} alt="Farm 2 Home Logo" style={{ height: 52, verticalAlign: 'middle' }} />
             HOME

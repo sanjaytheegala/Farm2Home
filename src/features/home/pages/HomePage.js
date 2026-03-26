@@ -15,7 +15,7 @@ import FarmerSignupModal from '../../../components/FarmerSignupModal'
 import { auth, db, functions } from '../../../firebase'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
-import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, setDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const HomePage = () => {
   const { t } = useTranslation()
@@ -47,6 +47,12 @@ const HomePage = () => {
     products: 0,
     satisfaction: 0
   })
+  const [statsTargets, setStatsTargets] = useState({
+    farmers: 0,
+    consumers: 0,
+    products: 0,
+    satisfaction: 0
+  })
   
   // Testimonial carousel state
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0)
@@ -57,19 +63,19 @@ const HomePage = () => {
     setForgotMessage('')
     setForgotError('')
     if (!forgotEmail.trim()) {
-      setForgotError('Please enter your email address.')
+      setForgotError(t('enter_email_error'))
       return
     }
     setForgotLoading(true)
     try {
       await sendPasswordResetEmail(auth, forgotEmail.trim())
-      setForgotMessage('Reset link sent to your email! Check your inbox.')
+      setForgotMessage(t('reset_link_sent_success'))
       setForgotEmail('')
     } catch (err) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
-        setForgotError('No account found with this email address.')
+        setForgotError(t('no_account_found'))
       } else {
-        setForgotError('Failed to send reset email. Please try again.')
+        setForgotError(t('reset_email_failed'))
       }
     } finally {
       setForgotLoading(false)
@@ -84,7 +90,7 @@ const HomePage = () => {
     try {
       // Validate inputs
       if (!email || !password) {
-        throw new Error('Please enter email and password');
+        throw new Error(t('enter_email_password'));
       }
 
       let emailToUse = email.trim();
@@ -101,6 +107,10 @@ const HomePage = () => {
         emailToUse = result.data.email;
       }
 
+      if (!/^[^@\s]+@gmail\.com$/i.test(emailToUse)) {
+        throw new Error(t('gmail_only_login'));
+      }
+
       // Ensure session persists across page-reload and browser-restart
       await setPersistence(auth, browserLocalPersistence);
       // Sign in with Firebase Auth using email
@@ -109,7 +119,7 @@ const HomePage = () => {
         emailToUse, 
         password
       );
-      
+
       const user = userCredential.user;
 
       // Fetch user data from Firestore
@@ -121,12 +131,12 @@ const HomePage = () => {
       }
 
       const userData = userDoc.data();
-      
+
       // Add uid to userData if not present
       if (!userData.uid) {
         userData.uid = user.uid;
       }
-      
+
       // Check if user is active
       if (userData.status !== 'active') {
         throw new Error('Your account is inactive. Please contact support.');
@@ -142,16 +152,16 @@ const HomePage = () => {
       }, 500);
 
     } catch (err) {
-      let errorMessage = 'Failed to login. Please try again.';
+      let errorMessage = t('failed_to_login');
       
       if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email. Please sign up.';
+        errorMessage = t('no_account_found_signup');
       } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMessage = 'Incorrect email or password. Please try again.';
+        errorMessage = t('incorrect_email_password');
       } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address.';
+        errorMessage = t('invalid_email');
       } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later.';
+        errorMessage = t('too_many_requests');
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -168,19 +178,25 @@ const HomePage = () => {
     setLoading(true);
 
     if (!email || !password) {
-      setError('Please enter your email and password.');
+      setError(t('enter_email_password'));
+      setLoading(false);
+      return;
+    }
+
+    if (!/^[^@\s]+@gmail\.com$/i.test(email.trim())) {
+      setError(t('gmail_only_signup'));
       setLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('passwords_do_not_match'));
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('password_min_length'));
       setLoading(false);
       return;
     }
@@ -211,13 +227,13 @@ const HomePage = () => {
       }, 300);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists. Please log in instead.');
+        setError(t('account_exists_login_instead'));
       } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address.');
+        setError(t('invalid_email'));
       } else if (err.code === 'auth/weak-password') {
-        setError('Password is too weak. Use at least 6 characters.');
+        setError(t('password_too_weak'));
       } else {
-        setError(err.message || 'Failed to create account. Please try again.');
+        setError(err.message || t('create_account_failed'));
       }
     } finally {
       setLoading(false);
@@ -280,6 +296,62 @@ const HomePage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load homepage stats from public collections
+  useEffect(() => {
+    let cancelled = false
+
+    const loadStats = async () => {
+      try {
+        const [productsSnapshot, reviewsSnapshot] = await Promise.all([
+          getDocs(query(collection(db, 'crops'))),
+          getDocs(query(collection(db, 'reviews'))),
+        ])
+
+        const products = productsSnapshot.docs.map((productDoc) => productDoc.data() || {})
+        const reviews = reviewsSnapshot.docs.map((reviewDoc) => reviewDoc.data() || {})
+
+        const uniqueFarmers = new Set(
+          products
+            .map((product) => product.farmerId || product.farmerUid || product.uid || product.ownerId)
+            .filter(Boolean)
+        )
+
+        const uniqueConsumers = new Set(
+          reviews
+            .map((review) => review.consumerId || review.consumerUid || review.userId)
+            .filter(Boolean)
+        )
+
+        const ratings = reviews
+          .map((review) => Number(review.rating))
+          .filter((rating) => Number.isFinite(rating) && rating > 0)
+
+        const averageRating = ratings.length > 0
+          ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+          : 0
+
+        const nextTargets = {
+          farmers: uniqueFarmers.size || products.length,
+          consumers: uniqueConsumers.size || reviews.length,
+          products: products.length,
+          satisfaction: Number((averageRating * 20).toFixed(2)),
+        }
+
+        if (!cancelled) {
+          setStatsTargets(nextTargets)
+        }
+      } catch (error) {
+        logger.error('Failed to load homepage stats:', error)
+      }
+    }
+
+    loadStats()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // Real user reviews for testimonials
   useEffect(() => {
     const reviewsQuery = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(30))
@@ -327,7 +399,7 @@ const HomePage = () => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          animateStats()
+          animateStats(statsTargets)
         }
       })
     }, { threshold: 0.5 })
@@ -340,39 +412,18 @@ const HomePage = () => {
     return () => observer.disconnect()
   }, [])
 
-  const animateStats = () => {
-    const targets = { farmers: 0, consumers: 0, products: 0, satisfaction: 0 }
-    const duration = 2000
-    const steps = 60
-    const stepValue = {}
-    
-    Object.keys(targets).forEach(key => {
-      stepValue[key] = targets[key] / steps
+  const animateStats = (targets) => {
+    setAnimatedStats({
+      farmers: Math.round(targets.farmers || 0),
+      consumers: Math.round(targets.consumers || 0),
+      products: Math.round(targets.products || 0),
+      satisfaction: Number((targets.satisfaction || 0).toFixed(2)),
     })
-
-    let currentStep = 0
-    const interval = setInterval(() => {
-      currentStep++
-      setAnimatedStats(prev => {
-        const nextFarmers = Math.min(prev.farmers + stepValue.farmers, targets.farmers)
-        const nextConsumers = Math.min(prev.consumers + stepValue.consumers, targets.consumers)
-        const nextProducts = Math.min(prev.products + stepValue.products, targets.products)
-        const nextSatisfaction = Math.min(prev.satisfaction + stepValue.satisfaction, targets.satisfaction)
-
-        return {
-          farmers: Math.round(nextFarmers),
-          consumers: Math.round(nextConsumers),
-          products: Math.round(nextProducts),
-          // Keep satisfaction animated with two decimal precision
-          satisfaction: Number(nextSatisfaction.toFixed(2))
-        }
-      })
-
-      if (currentStep >= steps) {
-        clearInterval(interval)
-      }
-    }, duration / steps)
   }
+
+  useEffect(() => {
+    animateStats(statsTargets)
+  }, [statsTargets])
 
   return (
     <div style={container} className="responsive-homepage">
@@ -381,14 +432,6 @@ const HomePage = () => {
         <div style={heroBackground}></div>
         <div style={heroContent}>
           <div style={heroText}>
-            <h1 style={heroTitle} className="hero-title">
-              <>
-                <span style={heroTitleHighlight}>FARM</span>
-                <span style={heroTitleNumber}>2</span>
-                <span style={heroTitleHighlight}>HOME</span>
-              </>
-            </h1>
-            <p style={heroSubtitle} className="hero-subtitle">Connecting Farmers Directly to Consumers</p>
             <div style={ctaButtons} className="cta-buttons">
               <button 
                 onClick={() => {
@@ -401,11 +444,14 @@ const HomePage = () => {
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                title={currentUser ? 'Go to Dashboard' : 'Sign up as Farmer'}
+                title={currentUser ? t('go_to_dashboard') : t('join_as_farmer')}
               >
                 <FaLeaf style={{ marginRight: '8px' }} />
-                {currentUser ? 'Go to Dashboard' : (t('join_as_farmer') || 'Join as Farmer')}
+                {currentUser ? t('go_to_dashboard') : t('join_as_farmer')}
               </button>
+              <div style={ctaBrandText} className="cta-brand-text" data-no-auto-translate="true">
+                Farm<span style={ctaBrandDigit}>2</span>Home
+              </div>
               <button 
                 onClick={() => {
                   if (currentUser) {
@@ -414,13 +460,13 @@ const HomePage = () => {
                     openLoginCard('consumer');
                   }
                 }}
-                style={secondaryBtn}
+                style={shopFreshBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                 onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                title={currentUser ? 'Go to Dashboard' : 'Shop Fresh Products'}
+                title={currentUser ? t('go_to_dashboard') : t('shop_fresh_products')}
               >
                 <FaShoppingCart style={{ marginRight: '8px' }} />
-                {currentUser ? 'Go to Dashboard' : (t('shop_fresh_products') || 'Shop Fresh Products')}
+                {currentUser ? t('go_to_dashboard') : t('shop_fresh_products')}
               </button>
             </div>
           </div>
@@ -442,12 +488,12 @@ const HomePage = () => {
             
             <h2 style={loginCardTitle}>
               {showForgotPassword
-                ? 'Reset Password'
+                ? t('reset_password')
                 : selectedRole === 'farmer' ? t('join_as_farmer') : t('shop_fresh_products')}
             </h2>
             <p style={loginCardSubtitle}>
               {showForgotPassword
-                ? 'Enter your email and we\'ll send you a reset link.'
+                ? t('reset_link_prompt')
                 : selectedRole === 'farmer'
                   ? t('farmer_join_subtitle')
                   : t('consumer_join_subtitle')}
@@ -496,7 +542,7 @@ const HomePage = () => {
                       }}
                       style={submitButton}
                     >
-                      ← Back to Login
+                      {t('back_to_login')}
                     </button>
                   </>
                 ) : (
@@ -514,7 +560,7 @@ const HomePage = () => {
                       <div style={inputGroup}>
                         <input
                           type="email"
-                          placeholder="Enter your email address"
+                          placeholder={t('enter_email_address')}
                           value={forgotEmail}
                           onChange={(e) => setForgotEmail(e.target.value)}
                           style={inputField}
@@ -526,7 +572,7 @@ const HomePage = () => {
                         disabled={forgotLoading}
                         style={{...submitButton, opacity: forgotLoading ? 0.7 : 1}}
                       >
-                        {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                        {forgotLoading ? t('sending_status') : t('send_reset_link_btn')}
                       </button>
                     </form>
                     <button
@@ -543,7 +589,7 @@ const HomePage = () => {
                         display: 'block', width: '100%', textAlign: 'center'
                       }}
                     >
-                      ← Back to Login
+                      {t('back_to_login')}
                     </button>
                   </>
                 )}
@@ -558,7 +604,7 @@ const HomePage = () => {
                       <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
                       <input
                         type="email"
-                        placeholder="Email Address"
+                        placeholder={t('email_address_placeholder')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         style={{...inputField, paddingLeft: 32}}
@@ -606,7 +652,7 @@ const HomePage = () => {
                       display: 'block', width: '100%', textAlign: 'right'
                     }}
                   >
-                    Forgot Password?
+                    {t('forgot_password_btn')}
                   </button>
               </div>
             ) : !showForgotPassword ? (
@@ -751,7 +797,7 @@ const HomePage = () => {
           {testimonials.length === 0 ? (
             <div style={{ ...testimonialCard, position: 'relative', width: '100%', left: 'auto', height: 'auto' }}>
               <p style={{ ...testimonialText, marginBottom: 0, textAlign: 'center' }}>
-                No user reviews yet.
+                {t('no_reviews_yet')}
               </p>
             </div>
           ) : (
@@ -810,34 +856,34 @@ const HomePage = () => {
 
             {/* Menu Column */}
             <div className="footer-col">
-              <h3 className="footer-col-header">MENU</h3>
+              <h3 className="footer-col-header">{t('footer_menu')}</h3>
               <ul className="footer-links">
                 <li className="footer-link-item" onClick={() => navigate('/')}>
-                  <span className="footer-link">Home</span>
+                  <span className="footer-link">{t('footer_home')}</span>
                 </li>
                 <li className="footer-link-item" onClick={() => navigate('/about')}>
-                  <span className="footer-link">About Us</span>
+                  <span className="footer-link">{t('footer_about_us')}</span>
                 </li>
                 <li className="footer-link-item">
-                  <span className="footer-link">Contact Us</span>
+                  <span className="footer-link">{t('footer_contact_us')}</span>
                 </li>
                 <li className="footer-link-item">
-                  <span className="footer-link">FAQs</span>
+                  <span className="footer-link">{t('footer_faqs')}</span>
                 </li>
                 <li className="footer-link-item">
-                  <span className="footer-link">Why Farm2Home?</span>
+                  <span className="footer-link">{t('footer_why_farm2home')}</span>
                 </li>
               </ul>
             </div>
 
             {/* Contacts Column */}
             <div className="footer-col">
-              <h3 className="footer-col-header">CONTACTS</h3>
-              <p className="contact-paragraph"><strong>Farm2Home Corporate Office</strong></p>
+              <h3 className="footer-col-header">{t('footer_contacts')}</h3>
+              <p className="contact-paragraph"><strong>{t('footer_corporate_office')}</strong></p>
               <p className="contact-paragraph">
-                Agricultural Innovation Center,<br/>
-                HITEC City, Hyderabad,<br/>
-                Telangana - 500081
+                {t('footer_address_line1')}<br/>
+                {t('footer_address_line2')}<br/>
+                {t('footer_address_line3')}
               </p>
               <p className="contact-paragraph">
                 <a href="tel:+919876543210" className="highlight-phone">+91 9876543210</a>
@@ -849,9 +895,9 @@ const HomePage = () => {
 
             {/* Download App Column */}
             <div className="footer-col">
-              <h3 className="footer-col-header">MOBILE APP</h3>
+              <h3 className="footer-col-header">{t('footer_mobile_app')}</h3>
               <p style={{fontSize: '13px', color: 'rgba(255,255,255,0.75)', lineHeight: '1.6', marginBottom: '14px'}}>
-                Our mobile app is coming soon! Get ready to manage your farm, browse fresh crops, and share resources — on the go.
+                {t('footer_app_coming_soon')}
               </p>
               <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
                 <button className="app-btn" disabled style={{opacity: 0.6, cursor: 'not-allowed'}}>
@@ -881,7 +927,7 @@ const HomePage = () => {
               <a href="https://twitter.com" target="_blank" rel="noreferrer" className="social-icon"><FaTwitter /></a>
             </div>
             <div className="copyright-text">
-              &copy; 2026, Farm2Home | Privacy Policy | Sitemap | Terms & Conditions
+              {t('footer_copyright')}
             </div>
           </div>
         </div>
@@ -996,33 +1042,133 @@ const heroSubtitle = {
 
 const ctaButtons = {
   display: 'flex',
-  gap: '20px',
+  gap: '16px',
   justifyContent: 'flex-start',
+  alignItems: 'center',
   flexWrap: 'wrap',
-  marginTop: '40px', // Fixed margin to prevent any adjustment
-  position: 'relative', // Ensure positioning context
+  marginTop: '40px',
+  position: 'relative',
+};
+
+const ctaBrandText = {
+  fontSize: '2.8rem',
+  fontWeight: '900',
+  letterSpacing: '0.03em',
+  color: '#ffffff',
+  textShadow: '0 3px 12px rgba(0,0,0,0.32)',
+  margin: '0 6px',
+  lineHeight: 1,
+  fontFamily: 'inherit',
+  whiteSpace: 'nowrap',
+};
+
+const ctaBrandDigit = {
+  color: '#0b3d91',
+  textShadow: '0 0 10px rgba(11, 61, 145, 0.45)',
+};
+
+const ctaHub = {
+  display: 'grid',
+  gridTemplateColumns: '1fr auto 1fr',
+  alignItems: 'center',
+  gap: '24px',
+  marginTop: '40px',
+  padding: '18px 22px',
+  borderRadius: '28px',
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.12))',
+  backdropFilter: 'blur(14px)',
+  border: '1px solid rgba(255,255,255,0.28)',
+  boxShadow: '0 18px 40px rgba(61, 24, 117, 0.14)',
+  position: 'relative',
+};
+
+const ctaColumnLeft = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-end',
+  gap: '12px',
+  minHeight: '180px',
+  paddingTop: '28px',
+};
+
+const ctaColumnRight = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'center',
+  gap: '12px',
+  minHeight: '180px',
+};
+
+const ctaLabel = {
+  fontSize: '0.88rem',
+  fontWeight: '800',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  color: '#ffffff',
+  opacity: 0.92,
+};
+
+const ctaInstruction = {
+  margin: 0,
+  maxWidth: '360px',
+  color: 'rgba(255,255,255,0.92)',
+  fontSize: '0.95rem',
+  lineHeight: 1.6,
+  textShadow: '0 1px 2px rgba(0,0,0,0.18)',
+};
+
+const ctaDivider = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '100%',
+  minHeight: '180px',
+};
+
+const ctaDividerLine = {
+  width: '2px',
+  height: '150px',
+  borderRadius: '999px',
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.95), rgba(255,255,255,0.1))',
+  boxShadow: '0 0 18px rgba(255,255,255,0.45)',
 };
 
 // Removed unused primaryBtn style object
 
 const secondaryBtn = {
   backgroundColor: 'transparent',
-  backgroundImage: 'linear-gradient(135deg, #5b21b6, #7c3aed, #6d28d9), linear-gradient(120deg, #f59e0b, #fde68a, #fbbf24, #fef3c7)',
+  backgroundImage: 'linear-gradient(135deg, #b91c1c, #ef4444, #f97316), linear-gradient(120deg, #fecaca, #fca5a5, #fb7185, #fff1f2)',
   backgroundOrigin: 'border-box',
   backgroundClip: 'padding-box, border-box',
   backgroundSize: '100% 100%, 250% 250%',
   animation: 'goldBorderFlow 3.2s linear infinite, purplePulse 2.4s ease-in-out infinite',
   color: '#ffffff',
   border: '2px solid transparent',
-  padding: '12px 26px',
-  borderRadius: '22px',
-  fontSize: '1.05rem',
+  padding: '16px 30px',
+  borderRadius: '0 26px 0 26px',
+  fontSize: '1.04rem',
   fontWeight: '700',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
-  boxShadow: '0 6px 16px rgba(91, 33, 182, 0.35)',
-  transition: 'all 0.2s ease',
+  gap: '12px',
+  minWidth: '300px',
+  minHeight: '64px',
+  letterSpacing: '0.2px',
+  boxShadow: '0 10px 22px rgba(185, 28, 28, 0.34), 0 0 0 1px rgba(254, 202, 202, 0.42) inset',
+  transition: 'transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease',
+  position: 'relative',
+  overflow: 'hidden',
+  textShadow: '0 1px 2px rgba(0,0,0,0.18)',
+};
+
+const shopFreshBtn = {
+  ...secondaryBtn,
+  backgroundColor: 'transparent',
+  backgroundImage: 'linear-gradient(135deg, #166534, #22c55e, #86efac), linear-gradient(120deg, #dcfce7, #bbf7d0, #86efac, #f0fdf4)',
+  boxShadow: '0 10px 22px rgba(22, 101, 52, 0.34), 0 0 0 1px rgba(187, 247, 208, 0.42) inset',
 };
 
 // Statistics Section
@@ -1646,6 +1792,21 @@ style.textContent = `
     .hero-subtitle {
       font-size: 1.1rem !important;
     }
+
+    .cta-hub {
+      gap: 18px !important;
+      padding: 16px 18px !important;
+    }
+
+    .cta-column--farmer,
+    .cta-column--consumer {
+      min-height: 160px !important;
+    }
+
+    .cta-column--farmer button,
+    .cta-column--consumer button {
+      min-width: 280px !important;
+    }
     
     .cta-buttons {
       flex-direction: row !important;
@@ -1668,6 +1829,30 @@ style.textContent = `
     .hero-subtitle {
       font-size: 1rem !important;
       margin-bottom: 20px !important;
+    }
+
+    .cta-hub {
+      grid-template-columns: 1fr !important;
+      gap: 14px !important;
+      text-align: center !important;
+    }
+
+    .cta-divider {
+      display: none !important;
+    }
+
+    .cta-column--farmer,
+    .cta-column--consumer {
+      min-height: auto !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding-top: 0 !important;
+    }
+
+    .cta-column--farmer button,
+    .cta-column--consumer button {
+      min-width: min(100%, 320px) !important;
+      width: 100% !important;
     }
     
     .hero-description {
@@ -1716,6 +1901,25 @@ style.textContent = `
     .hero-subtitle {
       font-size: 0.9rem !important;
       margin-bottom: 15px !important;
+    }
+
+    .cta-hub {
+      padding: 14px 14px !important;
+    }
+
+    .cta-label {
+      font-size: 0.78rem !important;
+    }
+
+    .cta-instruction {
+      font-size: 0.86rem !important;
+    }
+
+    .cta-column--farmer button,
+    .cta-column--consumer button {
+      min-height: 64px !important;
+      padding: 12px 18px !important;
+      font-size: 0.95rem !important;
     }
     
     .hero-description {

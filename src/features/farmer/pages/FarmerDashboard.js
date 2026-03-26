@@ -19,6 +19,7 @@ import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave,
 import { findCropByKeyword, CROP_DICTIONARY } from '../../../data/cropData'
 import ComplaintModal from '../../../shared/components/ComplaintModal/ComplaintModal'
 import ChatModal from '../../../shared/components/ChatModal/ChatModal'
+import { resolveCanonicalCropName } from '../../../utils/cropValidation'
 
 // Avatar palette — deterministic color per farmer name first letter
 const AVATAR_PALETTE = ['#FFBF00','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#BE6DB7','#F7A738','#2ECC71']
@@ -501,11 +502,12 @@ const FarmerDashboard = () => {
     const row = rows[index]
     if (!selectedDistrict) { toastError('Please select a district before saving.'); return }
     if (!row.crop || !row.crop.trim()) { toastError('Please select a crop name.'); return }
-    const matchedCrop = findCropByKeyword(row.crop.trim())
-    if (!matchedCrop) {
-      toastError(`"${row.crop}" is not a recognized crop. Try: Rice, Wheat, Tomato, Onion, Potato…`)
+    const canonicalCropName = resolveCanonicalCropName(row.crop.trim())
+    if (!canonicalCropName) {
+      toastError('Not a valid crop name. Please enter the correct crop name.')
       return
     }
+    const matchedCrop = findCropByKeyword(canonicalCropName)
     if (!row.quantity || isNaN(row.quantity) || parseFloat(row.quantity) <= 0) {
       toastError('Quantity must be a valid number greater than 0.'); return
     }

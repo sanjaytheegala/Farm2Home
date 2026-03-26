@@ -86,7 +86,7 @@ const CartPage = () => {
     try {
       const user = auth.currentUser
       if (!user) {
-        toastWarning('Please sign in to place an order.')
+        toastWarning(t('please_sign_in_to_place_order'))
         setLoading(false)
         return
       }

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { FaTimes, FaLeaf, FaRulerCombined, FaMapMarkerAlt, FaPaperPlane, FaStickyNote, FaSearch, FaChevronDown, FaCheckCircle } from 'react-icons/fa'
 import { geoData } from '../../../../locale/geoData'
+import { resolveCanonicalCropName } from '../../../../utils/cropValidation'
 import './RequestCropModal.css'
 
 const STATES    = geoData.en.states
@@ -189,11 +190,16 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
 
   const submit = async (e) => {
     e.preventDefault()
+    let submissionForm = form
     
     // If it's a product request (Request Now), crop name is pre-filled
     // If it's a new request, validate crop name
-    if (!isRequestNowMode && !form.cropName.trim()) {
-      return setError('Please enter a crop name.')
+    if (!isRequestNowMode) {
+      const canonicalCropName = resolveCanonicalCropName(form.cropName)
+      if (!canonicalCropName) {
+        return setError('Not a valid crop name. Please enter the correct crop name.')
+      }
+      submissionForm = { ...form, cropName: canonicalCropName }
     }
     
     if (!form.quantityKg || isNaN(form.quantityKg) || +form.quantityKg <= 0)
@@ -204,7 +210,7 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
       return setError('Please select your state and district.')
 
     setSub(true)
-    const result = await onSubmit(form)
+    const result = await onSubmit(submissionForm)
     setSub(false)
     if (result.success) {
       setSuccess(true)

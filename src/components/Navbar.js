@@ -115,10 +115,10 @@ const Navbar = React.memo(({
               <FaChevronRight size={14} />
             </button>
           </div>
-          <span className="navbar-project-name">
-            FARM
-            <img src={require('../logo/logo3.png')} alt="Farm 2 Home Logo" style={{ height: 52, verticalAlign: 'middle' }} />
-            HOME
+          <span className="navbar-project-name navbar-brand-mark" data-no-auto-translate="true" style={{ display: 'flex', alignItems: 'center', gap: 0, whiteSpace: 'nowrap' }}>
+            <span className="navbar-brand-text">FARM</span>
+            <img src={require('../logo/logo3.png')} alt="Farm 2 Home Logo" className="navbar-brand-logo" />
+            <span className="navbar-brand-text">HOME</span>
           </span>
         </div>
 

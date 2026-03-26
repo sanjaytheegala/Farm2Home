@@ -4,7 +4,7 @@ import { auth, db } from '../../../firebase';
 import { findCropByKeyword } from '../../../data/cropData';
 import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import {
-  FaShoppingCart, FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
+  FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
   FaShieldAlt, FaHeart, FaBox,
   FaUsers, FaCheckCircle, FaSearch, FaThLarge,
   FaSlidersH, FaPlusCircle, FaMapMarkerAlt, FaCoins,
@@ -56,7 +56,6 @@ const ConsumerDashboard = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedProductForRequest, setSelectedProductForRequest] = useState(null);
   const [editingDemand, setEditingDemand] = useState(null);
-  const [navScrolled, setNavScrolled] = useState(false);
   const { myDemands, submitDemand, rejectOffer, acceptOffer, preponePickupDate, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal } = useMarketDemands();
   const { success: toastSuccess, error: toastError } = useToast();
   const [complaintTarget, setComplaintTarget] = useState(null);
@@ -118,7 +117,6 @@ const ConsumerDashboard = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setNavScrolled(window.scrollY > 20);
       if (!categorySectionRef.current) return;
       const catBottom = categorySectionRef.current.getBoundingClientRect().bottom;
       const footer = document.querySelector('.cd-footer');
@@ -256,34 +254,6 @@ const ConsumerDashboard = () => {
       )}
 
       {/* STICKY NAVBAR */}
-      <nav className={`cd-navbar ${navScrolled ? 'cd-navbar--scrolled' : ''}`}>
-        <div className="cd-navbar-inner">
-          <div className="cd-navbar-brand" onClick={() => window.scrollTo({top:0,behavior:'smooth'})}>
-            <div className="cd-navbar-logo"><FaLeaf /></div>
-            <span className="cd-navbar-brand-name">Farm2Home</span>
-          </div>
-
-          <div className="cd-navbar-actions">
-            <button className="cd-na-avatar" onClick={handleOpenEditProfile} title="Edit Profile">
-              {userProfile.photoURL
-                ? <img src={userProfile.photoURL} alt="avatar" className="cd-na-avatar-img" />
-                : <div className="cd-na-avatar-letter" style={{background: getAvatarColor(userProfile.name)}}>{(userProfile.name||'U')[0].toUpperCase()}</div>
-              }
-            </button>
-            <button className="cd-na-btn" onClick={() => navigate('/cart')}>
-              <FaShoppingCart />
-              {cartCount > 0 && <span className="cd-na-badge">{cartCount}</span>}
-              <span>Cart</span>
-            </button>
-            <button className="cd-na-btn cd-na-request" onClick={() => setShowRequestModal(true)}>
-              <FaPlusCircle />
-              {activeDemandsCount > 0 && <span className="cd-na-badge cd-na-badge--amber">{activeDemandsCount}</span>}
-              <span>Request</span>
-            </button>
-          </div>
-        </div>
-      </nav>
-
       {/* HERO */}
       <section className="cd-hero">
         <div className="cd-hero-bg"></div>

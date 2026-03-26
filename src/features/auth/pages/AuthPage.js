@@ -58,6 +58,10 @@ const AuthPage = () => {
         throw new Error('Please fill in all fields');
       }
 
+      if (!/^[^@\s]+@gmail\.com$/i.test(formData.email.trim())) {
+        throw new Error('Only Gmail addresses are allowed for registration.');
+      }
+
       const nameRegex = /^[a-zA-Z\s'\-]+$/;
       const trimmedFirst = formData.firstName.trim();
       const trimmedLast  = formData.lastName.trim();
@@ -159,6 +163,10 @@ const AuthPage = () => {
       }
 
       let emailToUse = formData.email.trim();
+
+      if (!/^[^@\s]+@gmail\.com$/i.test(emailToUse)) {
+        throw new Error('Only Gmail addresses are allowed for login.');
+      }
 
       // Check if input is a phone number (contains only digits and possibly +, -, spaces)
       const phonePattern = /^[\d\s\-+()]+$/;

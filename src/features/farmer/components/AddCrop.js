@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import { CROP_DICTIONARY } from '../../../data/cropData';
+import { resolveCanonicalCropName } from '../../../utils/cropValidation';
 
 const AddCrop = () => {
   const navigate = useNavigate();
@@ -109,6 +110,13 @@ const AddCrop = () => {
     setLoading(true);
 
     try {
+      const canonicalCropName = resolveCanonicalCropName(cropName);
+      if (!canonicalCropName) {
+        toastError('Not a valid crop name. Please enter the correct crop name.');
+        setLoading(false);
+        return;
+      }
+
       // Get current user from localStorage
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
       const farmerId = currentUser.uid || 'farmer_guest';
@@ -119,12 +127,12 @@ const AddCrop = () => {
       // Create new crop object
       const newCrop = {
         id: 'crop_' + Date.now(),
-        cropName,
+        cropName: canonicalCropName,
         price: Number(price),
         quantity,
         state,
         district,
-        imageURL: getCropImage(cropName),
+        imageURL: getCropImage(canonicalCropName),
         farmerId: farmerId,
         farmerEmail: farmerEmail,
         status: 'available',

@@ -4,6 +4,7 @@ import { db, auth } from '../../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { FaSeedling, FaRupeeSign, FaWeight, FaMapMarkerAlt, FaImage, FaCheckCircle } from 'react-icons/fa';
+import { resolveCanonicalCropName } from '../../../utils/cropValidation';
 
 const AddCropForm = () => {
   const navigate = useNavigate();
@@ -57,6 +58,10 @@ const AddCropForm = () => {
       setError('Please enter crop name');
       return false;
     }
+    if (!resolveCanonicalCropName(formData.cropName)) {
+      setError('Not a valid crop name. Please enter the correct crop name.');
+      return false;
+    }
     if (!formData.price || parseFloat(formData.price) <= 0) {
       setError('Please enter a valid price');
       return false;
@@ -108,8 +113,9 @@ const AddCropForm = () => {
 
     try {
       // Prepare crop data with exact schema: farmerId (uid), status: 'pending'
+      const canonicalCropName = resolveCanonicalCropName(formData.cropName)
       const cropData = {
-        cropName: formData.cropName.trim(),
+        cropName: canonicalCropName,
         price: parseFloat(formData.price),
         unit: formData.unit,
         quantity: formData.quantity.trim(),
@@ -209,7 +215,7 @@ const AddCropForm = () => {
                   value={formData.cropName}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                  placeholder="e.g., Tomatoes, Rice, Wheat"
+                    placeholder="e.g., Tomato, Rice, Wheat"
                 />
               </div>
             </div>

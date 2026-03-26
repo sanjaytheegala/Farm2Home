@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 import { auth, db, functions } from '../../../firebase';
 import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
@@ -15,6 +16,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleBackToHome = () => {
     navigate('/');
@@ -25,7 +27,7 @@ const LoginPage = () => {
     setLoading(true);
 
     if (!emailInput || !passwordInput) {
-      setError('Please enter your email (or phone number) and password.');
+      setError(t('enter_email_phone_password'));
       setLoading(false);
       return;
     }
@@ -55,35 +57,35 @@ const LoginPage = () => {
       const userDocSnap = await getDoc(userDocRef);
 
       if (!userDocSnap.exists()) {
-        throw new Error('User profile not found. Please contact support.');
+        throw new Error(t('user_profile_not_found'));
       }
 
       const userData = { uid: user.uid, ...userDocSnap.data() };
 
       if (userData.status && userData.status !== 'active') {
-        throw new Error('Your account is inactive. Please contact support.');
+        throw new Error(t('account_inactive'));
       }
 
       // Role validation — make sure they're logging in through the correct portal
       const selectedRole = isFarmer ? 'farmer' : 'consumer';
       if (userData.role && userData.role !== selectedRole) {
         throw new Error(
-          `This account is registered as a ${userData.role}. Please select the correct login type.`
+          t('account_registered_as_role', { role: userData.role })
         );
       }
 
       localStorage.setItem('currentUser', JSON.stringify(userData));
       navigate(userData.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
     } catch (err) {
-      let errorMessage = 'Failed to login. Please try again.';
+      let errorMessage = t('failed_to_login');
       if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email.';
+        errorMessage = t('no_account_found_email');
       } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMessage = 'Incorrect password. Please try again.';
+        errorMessage = t('incorrect_password');
       } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address.';
+        errorMessage = t('invalid_email');
       } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later.';
+        errorMessage = t('too_many_requests');
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -126,17 +128,17 @@ const LoginPage = () => {
           title="Back to Home"
         >
           <FaArrowLeft />
-          Home
+          {t('home')}
         </button>
         
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', marginTop: '20px' }}>
-          <button onClick={() => setIsFarmer(true)} style={{ padding: '10px 20px', background: isFarmer ? '#28a745' : 'grey', border: 'none', borderRadius: '5px 0 0 5px', cursor: 'pointer', color: 'white' }}>Farmer</button>
-          <button onClick={() => setIsFarmer(false)} style={{ padding: '10px 20px', background: !isFarmer ? '#28a745' : 'grey', border: 'none', borderRadius: '0 5px 5px 0', cursor: 'pointer', color: 'white' }}>Consumer</button>
+          <button onClick={() => setIsFarmer(true)} style={{ padding: '10px 20px', background: isFarmer ? '#28a745' : 'grey', border: 'none', borderRadius: '5px 0 0 5px', cursor: 'pointer', color: 'white' }}>{t('farmer')}</button>
+          <button onClick={() => setIsFarmer(false)} style={{ padding: '10px 20px', background: !isFarmer ? '#28a745' : 'grey', border: 'none', borderRadius: '0 5px 5px 0', cursor: 'pointer', color: 'white' }}>{t('consumer')}</button>
         </div>
-        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>{isFarmer ? 'Farmer' : 'Consumer'} Login</h2>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>{isFarmer ? t('farmer_login') : t('consumer_login')}</h2>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <button onClick={() => setLoginMethod('phone')} style={{ padding: '8px 15px', background: loginMethod === 'phone' ? '#444' : '#2a2a2a', border: '1px solid #555', cursor: 'pointer', color: 'white' }}>Phone</button>
-          <button onClick={() => setLoginMethod('email')} style={{ padding: '8px 15px', background: loginMethod === 'email' ? '#444' : '#2a2a2a', border: '1px solid #555', cursor: 'pointer', color: 'white' }}>Email</button>
+          <button onClick={() => setLoginMethod('phone')} style={{ padding: '8px 15px', background: loginMethod === 'phone' ? '#444' : '#2a2a2a', border: '1px solid #555', cursor: 'pointer', color: 'white' }}>{t('phone_login')}</button>
+          <button onClick={() => setLoginMethod('email')} style={{ padding: '8px 15px', background: loginMethod === 'email' ? '#444' : '#2a2a2a', border: '1px solid #555', cursor: 'pointer', color: 'white' }}>{t('email_login')}</button>
         </div>
         <form onSubmit={handleSubmit}>
           {loginMethod === 'phone' ? (
@@ -144,7 +146,7 @@ const LoginPage = () => {
               <div style={{ marginBottom: '15px' }}>
                 <input
                   type="text"
-                  placeholder="Enter Phone Number with country code"
+                  placeholder={t('enter_phone_country_code')}
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
@@ -153,7 +155,7 @@ const LoginPage = () => {
               <div style={{ marginBottom: '15px' }}>
                 <input
                   type="password"
-                  placeholder="Password"
+                  placeholder={t('password_placeholder')}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
@@ -165,7 +167,7 @@ const LoginPage = () => {
               <div style={{ marginBottom: '15px' }}>
                 <input
                   type="text"
-                  placeholder="Email"
+                  placeholder={t('email')}
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
@@ -174,7 +176,7 @@ const LoginPage = () => {
               <div style={{ marginBottom: '15px' }}>
                 <input
                   type="password"
-                  placeholder="Password"
+                  placeholder={t('password_placeholder')}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
@@ -197,7 +199,7 @@ const LoginPage = () => {
               fontSize: '16px' 
             }}
           >
-            {loading ? 'Loading...' : 'Login'}
+            {loading ? t('loading') : t('login')}
           </button>
         </form>
       </div>
