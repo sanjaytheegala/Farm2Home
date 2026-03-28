@@ -62,9 +62,9 @@ const toCropKey = (name) => {
   return slug ? `crop_${slug}` : ''
 }
 
-const teluguOnlyLabel = (label, lng) => {
+const localOnlyLabel = (label, lng) => {
   if (!label) return label
-  if (!String(lng || '').toLowerCase().startsWith('te')) return label
+  if (String(lng || '').toLowerCase().startsWith('en')) return label
   const m = String(label).match(/\(([^)]+)\)\s*$/)
   return (m && m[1]) ? m[1].trim() : label
 }
@@ -73,8 +73,8 @@ const getCropLabel = (rawName, t, i18n) => {
   if (!rawName) return '—'
   const canonical = resolveCanonicalCropName(rawName) || rawName
   const key = toCropKey(canonical)
-  if (key && i18n?.exists?.(key)) return teluguOnlyLabel(t(key), i18n?.language)
-  return teluguOnlyLabel(canonical, i18n?.language)
+  if (key && i18n?.exists?.(key)) return localOnlyLabel(t(key), i18n?.language)
+  return localOnlyLabel(canonical, i18n?.language)
 }
 
 const fmt = (key, t, i18n) => {
@@ -431,6 +431,13 @@ const FarmerDashboard = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { t, i18n } = useTranslation()
+  const safeT = useCallback((key, fallback) => {
+    try {
+      return i18n?.exists?.(key) ? t(key) : fallback
+    } catch {
+      return fallback
+    }
+  }, [i18n, t])
   const { currentUser, userData } = useAuth()
   const VALID_TABS = ['crops', 'analytics', 'market']
   const tabFromUrl = searchParams.get('tab')
@@ -886,11 +893,11 @@ const FarmerDashboard = () => {
       <div className="fd-tabbar-wrap">
         <div className="fd-tabbar">
           {[
-            { key: 'crops',         icon: <FaLeaf />,        label: 'Manage Crops' },
-            { key: 'market',        icon: <FaBullseye />,    label: 'Crop Requests', badge: openDemands.length },
-            { key: 'analytics',     icon: <FaChartLine />,   label: 'Analytics' },
-            { key: 'orders',        icon: <FaShoppingBag />, label: 'Orders' },
-            { key: 'notifications', icon: <FaBell />,        label: 'Notifications' },
+            { key: 'crops',         icon: <FaLeaf />,        label: safeT('fd_tab_manage_crops', 'Manage Crops') },
+            { key: 'market',        icon: <FaBullseye />,    label: safeT('fd_tab_crop_requests', 'Crop Requests'), badge: openDemands.length },
+            { key: 'analytics',     icon: <FaChartLine />,   label: safeT('fd_tab_analytics', 'Analytics') },
+            { key: 'orders',        icon: <FaShoppingBag />, label: safeT('fd_tab_orders', 'Orders') },
+            { key: 'notifications', icon: <FaBell />,        label: safeT('fd_tab_notifications', 'Notifications') },
           ].map(tab => (
             <button
               key={tab.key}
@@ -930,7 +937,7 @@ const FarmerDashboard = () => {
           <div className="fd-content-header">
             <h2 className="fd-content-title">
               <FaLeaf style={{ color: '#2e7d32', marginRight: 8 }} />
-              Your Crops
+              {safeT('fd_your_crops', 'Your Crops')}
               {savedCrops.length > 0 && <span className="fd-count-badge">{savedCrops.length}</span>}
             </h2>
             <button className="fd-add-btn" onClick={() => {
@@ -938,8 +945,8 @@ const FarmerDashboard = () => {
               setShowAddForm(!showAddForm)
             }}>
               {showAddForm
-                ? <><FaTimes style={{ marginRight: 6 }} />Cancel</>
-                : <><FaPlus style={{ marginRight: 6 }} />Add New Crop</>}
+                ? <><FaTimes style={{ marginRight: 6 }} />{safeT('fd_cancel', 'Cancel')}</>
+                : <><FaPlus style={{ marginRight: 6 }} />{safeT('fd_add_new_crop', 'Add New Crop')}</>}
             </button>
           </div>
 

@@ -96,6 +96,9 @@ const Navbar = React.memo(({
 
   const changeLanguage = useCallback((lng) => {
     i18n.changeLanguage(lng);
+    try {
+      localStorage.setItem('selectedLanguage', lng);
+    } catch {}
   }, [i18n]);
 
   // Close notification dropdown on outside click

@@ -17,11 +17,19 @@ const resources = {
   kn: knTranslations,
 };
 
+const getInitialLanguage = () => {
+  try {
+    return localStorage.getItem('selectedLanguage') || 'en';
+  } catch {
+    return 'en';
+  }
+};
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: localStorage.getItem('selectedLanguage') || 'en',
+    lng: getInitialLanguage(),
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false,
@@ -35,5 +43,18 @@ i18n
       useSuspense: false,
     },
   });
+
+// Persist language choice across refreshes (covers all UI entry points)
+i18n.on('languageChanged', (lng) => {
+  try {
+    localStorage.setItem('selectedLanguage', lng);
+  } catch {}
+
+  try {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = (lng || 'en').split('-')[0];
+    }
+  } catch {}
+});
 
 export default i18n;

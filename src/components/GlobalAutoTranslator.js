@@ -22,6 +22,9 @@ const tokenize = (value) =>
 const originalTextByNode = new WeakMap();
 const originalAttrsByElement = new WeakMap();
 
+const INDIC_SCRIPT_REGEX = /[\u0900-\u097F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F]/;
+const hasIndicScript = (value) => INDIC_SCRIPT_REGEX.test(String(value || ''));
+
 const toMaps = (langCode) => {
   const en = enTranslations?.translation || {};
   const targetResource = {
@@ -101,7 +104,7 @@ const translateString = (value, dictionary) => {
   return output;
 };
 
-const translateAttributes = (root, dictionary) => {
+const translateAttributes = (root, dictionary, lang = 'en') => {
   const attrs = ['placeholder', 'title', 'aria-label'];
   const elements = root.querySelectorAll('*');
 
@@ -119,6 +122,10 @@ const translateAttributes = (root, dictionary) => {
 
       if (!attrStore.has(attr)) {
         attrStore.set(attr, current);
+      } else if (lang !== 'en' && hasIndicScript(current)) {
+        // If React/i18n already rendered localized text, treat it as the new source
+        // so we don't keep translating stale English originals.
+        attrStore.set(attr, current);
       }
 
       const source = attrStore.get(attr);
@@ -132,7 +139,7 @@ const translateAttributes = (root, dictionary) => {
   });
 };
 
-const translateTextNodes = (root, dictionary) => {
+const translateTextNodes = (root, dictionary, lang = 'en') => {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes = [];
 
@@ -145,6 +152,9 @@ const translateTextNodes = (root, dictionary) => {
     if (shouldSkipElement(parent)) return;
 
     if (!originalTextByNode.has(textNode)) {
+      originalTextByNode.set(textNode, value);
+    } else if (lang !== 'en' && hasIndicScript(value)) {
+      // React/i18n has updated the node to localized script; stop using stale English source
       originalTextByNode.set(textNode, value);
     }
 
@@ -170,8 +180,8 @@ const GlobalAutoTranslator = () => {
   useEffect(() => {
     const lang = (i18n.language || 'en').split('-')[0];
     const run = () => {
-      translateAttributes(document.body, dictionary);
-      translateTextNodes(document.body, dictionary);
+      translateAttributes(document.body, dictionary, lang);
+      translateTextNodes(document.body, dictionary, lang);
     };
 
     run();
