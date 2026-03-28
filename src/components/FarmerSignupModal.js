@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase';
+import { auth, db, functions } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { FaTimes, FaEnvelope, FaLock, FaUser, FaPhone } from 'react-icons/fa';
 
 const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const navigate = useNavigate();
   const [formType, setFormType] = useState('login'); // 'login' or 'register'
+  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'phone' for login
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -130,11 +132,30 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     setSuccess('');
 
     try {
-      const emailToUse = formData.email.trim();
+      let emailToUse = formData.email.trim();
 
       // Validate inputs
       if (!emailToUse || !formData.password) {
-        throw new Error('Please enter your email and password');
+        throw new Error(`Please enter your ${loginMethod === 'email' ? 'email' : 'phone number'} and password`);
+      }
+
+      // Handle phone number login
+      if (loginMethod === 'phone') {
+        // Check if input is a phone number
+        const phonePattern = /^[\d\s\-+()]+$/;
+        if (!phonePattern.test(emailToUse)) {
+          throw new Error('Please enter a valid phone number');
+        }
+        
+        try {
+          // Call cloud function to get email from phone
+          const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
+          const cleanPhone = emailToUse.replace(/\D/g, '');
+          const result = await getEmailByPhone({ phoneNumber: cleanPhone });
+          emailToUse = result.data.email;
+        } catch (fnErr) {
+          throw new Error(fnErr.message || 'Phone number not found. Please check and try again.');
+        }
       }
 
       // Ensure session persists across page-reload and browser-restart
@@ -401,6 +422,25 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     gap: '6px'
   });
 
+  const loginMethodContainerStyle = {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '16px'
+  };
+
+  const loginMethodButtonStyle = (isActive) => ({
+    flex: 1,
+    padding: '8px',
+    fontSize: '13px',
+    fontWeight: '600',
+    border: `1.5px solid ${isActive ? '#16a34a' : '#d1d5db'}`,
+    borderRadius: '6px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    backgroundColor: isActive ? '#dcfce7' : '#f9fafb',
+    color: isActive ? '#15803d' : '#6b7280'
+  });
+
   return (
     <div style={overlayStyle} onClick={handleOverlayClick}>
       <div style={modalStyle}>
@@ -517,18 +557,48 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
             </>
           )}
 
-          {/* Login Fields - Email only */}
+          {/* Login Fields */}
           {formType === 'login' && (
             <>
+              {/* Email/Phone Toggle */}
+              <div style={loginMethodContainerStyle}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginMethod('email');
+                    setFormData({ ...formData, email: '' });
+                    setError('');
+                  }}
+                  style={loginMethodButtonStyle(loginMethod === 'email')}
+                >
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginMethod('phone');
+                    setFormData({ ...formData, email: '' });
+                    setError('');
+                  }}
+                  style={loginMethodButtonStyle(loginMethod === 'phone')}
+                >
+                  Phone
+                </button>
+              </div>
+
               <div style={fieldStyle}>
                 <div style={{ position: 'relative' }}>
-                  <FaEnvelope style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
+                  {loginMethod === 'email' ? (
+                    <FaEnvelope style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
+                  ) : (
+                    <FaPhone style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none' }} />
+                  )}
                   <input
-                    type="email"
+                    type={loginMethod === 'email' ? 'email' : 'tel'}
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Email Address"
+                    placeholder={loginMethod === 'email' ? 'Email Address' : 'Phone Number (with country code)'}
                     style={{ ...inputStyle, paddingLeft: 38 }}
                     disabled={loading}
                     onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}

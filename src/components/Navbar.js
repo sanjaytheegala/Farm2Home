@@ -132,14 +132,14 @@ const Navbar = React.memo(({
                 onClick={() => onTabChange('profile')}
               >
                 <FaUserCircle className="nav-icon" />
-                <span className="nav-text">Profile</span>
+                <span className="nav-text">{t('profile')}</span>
               </button>
               <button 
                 className={`nav-item ${activeTab === 'cart' ? 'active' : ''}`}
                 onClick={() => onTabChange('cart')}
               >
                 <FaShoppingCart className="nav-icon" />
-                <span className="nav-text">Cart</span>
+                <span className="nav-text">{t('cart')}</span>
                 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
               </button>
               <button 
@@ -147,7 +147,7 @@ const Navbar = React.memo(({
                 onClick={() => onTabChange('orders')}
               >
                 <FaHistory className="nav-icon" />
-                <span className="nav-text">Orders</span>
+                <span className="nav-text">{t('orders')}</span>
               </button>
             </>
           )}
@@ -157,15 +157,15 @@ const Navbar = React.memo(({
             <>
               <button className="nav-item" onClick={onFarmerProfileClick}>
                 <FaUserCircle className="nav-icon" />
-                <span className="nav-text">Profile</span>
+                <span className="nav-text">{t('profile')}</span>
               </button>
               <button className="nav-item" onClick={handleCropRecommendations}>
                 <FaLeaf className="nav-icon" />
-                <span className="nav-text">Crop Recommendations</span>
+                <span className="nav-text">{t('nav_crop_recommendations')}</span>
               </button>
               <button className="nav-item" onClick={handleResourceShareNewTab}>
                 <FaTools className="nav-icon" />
-                <span className="nav-text">Resource Sharing</span>
+                <span className="nav-text">{t('nav_resource_sharing')}</span>
               </button>
             </>
           )}
@@ -181,7 +181,7 @@ const Navbar = React.memo(({
             <div className="farmer-notif-wrap" ref={notifRef}>
               <button
                 className="farmer-notif-btn"
-                title="Notifications"
+                title={t('fd_notifications')}
                 onClick={() => {
                   const opening = !showNotifDropdown
                   setShowNotifDropdown(opening)
@@ -198,13 +198,13 @@ const Navbar = React.memo(({
               {showNotifDropdown && (
                 <div className="farmer-notif-dropdown">
                   <div className="farmer-notif-header">
-                    <span>Notifications</span>
+                    <span>{t('fd_notifications')}</span>
                     {farmerNotifications.length > 0 && (
                       <span className="farmer-notif-header-count">{farmerNotifications.length}</span>
                     )}
                   </div>
                   {farmerNotifications.length === 0 ? (
-                    <div className="farmer-notif-empty">🔔 All caught up! No pending requests.</div>
+                    <div className="farmer-notif-empty">🔔 {t('nav_all_caught_up')}</div>
                   ) : (
                     <div className="farmer-notif-list">
                       {farmerNotifications.map(n => (
@@ -289,20 +289,20 @@ const Navbar = React.memo(({
             <>
               <button className="mobile-menu-item" onClick={() => { onTabChange('profile'); setShowMobileMenu(false); }}>
                 <FaUserCircle className="nav-icon" />
-                <span>Profile</span>
+                <span>{t('profile')}</span>
               </button>
               <button className="mobile-menu-item" onClick={() => { onTabChange('cart'); setShowMobileMenu(false); }}>
                 <FaShoppingCart className="nav-icon" />
-                <span>Cart</span>
+                <span>{t('cart')}</span>
                 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
               </button>
               <button className="mobile-menu-item" onClick={() => { onTabChange('orders'); setShowMobileMenu(false); }}>
                 <FaHistory className="nav-icon" />
-                <span>Orders</span>
+                <span>{t('orders')}</span>
               </button>
               <button className="mobile-menu-item mobile-menu-item--logout" onClick={() => { handleLogout(); setShowMobileMenu(false); }}>
                 <FaSignOutAlt className="nav-icon" />
-                <span>Logout</span>
+                <span>{t('logout')}</span>
               </button>
             </>
           )}
@@ -310,19 +310,19 @@ const Navbar = React.memo(({
             <>
               <button className="mobile-menu-item" onClick={() => { onFarmerProfileClick(); setShowMobileMenu(false); }}>
                 <FaUserCircle className="nav-icon" />
-                <span>Profile</span>
+                <span>{t('profile')}</span>
               </button>
               <button className="mobile-menu-item" onClick={() => { handleCropRecommendations(); setShowMobileMenu(false); }}>
                 <FaLeaf className="nav-icon" />
-                <span>Crop Recommendations</span>
+                <span>{t('nav_crop_recommendations')}</span>
               </button>
               <button className="mobile-menu-item" onClick={() => { handleResourceShareNewTab(); setShowMobileMenu(false); }}>
                 <FaTools className="nav-icon" />
-                <span>Resource Share</span>
+                <span>{t('nav_resource_sharing')}</span>
               </button>
               <button className="mobile-menu-item mobile-menu-item--logout" onClick={() => { handleLogout(); setShowMobileMenu(false); }}>
                 <FaSignOutAlt className="nav-icon" />
-                <span>Logout</span>
+                <span>{t('logout')}</span>
               </button>
             </>
           )}
