@@ -52,13 +52,44 @@ const districtLabelOverrides = {
   vijayanagara: 'Vijayanagara (Hospet)'
 }
 
+const toCropKey = (name) => {
+  if (!name) return ''
+  const slug = String(name)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  return slug ? `crop_${slug}` : ''
+}
+
+const teluguOnlyLabel = (label, lng) => {
+  if (!label) return label
+  if (!String(lng || '').toLowerCase().startsWith('te')) return label
+  const m = String(label).match(/\(([^)]+)\)\s*$/)
+  return (m && m[1]) ? m[1].trim() : label
+}
+
+const getCropLabel = (rawName, t, i18n) => {
+  if (!rawName) return '—'
+  const canonical = resolveCanonicalCropName(rawName) || rawName
+  const key = toCropKey(canonical)
+  if (key && i18n?.exists?.(key)) return teluguOnlyLabel(t(key), i18n?.language)
+  return teluguOnlyLabel(canonical, i18n?.language)
+}
+
 const fmt = (key, t, i18n) => {
   if (!key) return '—'
 
+  const norm = String(key)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+
   // Prefer localized translations when available
   if (typeof t === 'function') {
-    const stateKey = `state_${key}`
-    const distKey = `dist_${key}`
+    const stateKey = `state_${norm}`
+    const distKey = `dist_${norm}`
     // IMPORTANT: only call t() when the key exists.
     // Otherwise i18n's parseMissingKeyHandler can produce strings like
     // "State Telangana" / "Dist Adilabad", which then get partially auto-translated.
@@ -67,9 +98,16 @@ const fmt = (key, t, i18n) => {
   }
 
   // Keep existing manual overrides and fallback title-casing
-  return districtLabelOverrides[key] ||
-    key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  return districtLabelOverrides[norm] ||
+    norm.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
+
+const normalizeLocKey = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
 
 // Get crop image from dictionary with fallback
 const getCropImage = (cropName) => {
@@ -607,8 +645,8 @@ const FarmerDashboard = () => {
     setEditProfileData({
       name: farmerName,
       phone: farmerPhone,
-      state: userLocation.state || '',
-      district: userLocation.district || '',
+      state: normalizeLocKey(userLocation.state) || '',
+      district: normalizeLocKey(userLocation.district) || '',
     })
     setShowEditProfile(true)
   }
@@ -623,8 +661,8 @@ const FarmerDashboard = () => {
         name: editProfileData.name.trim(),
         phoneNumber: cleanPhone,
         phone: cleanPhone,
-        state: editProfileData.state,
-        district: editProfileData.district,
+        state: normalizeLocKey(editProfileData.state),
+        district: normalizeLocKey(editProfileData.district),
         updatedAt: new Date().toISOString(),
       })
       toastSuccess('Profile updated successfully!')
@@ -944,7 +982,7 @@ const FarmerDashboard = () => {
                         onClick={() => { updateField(0, 'crop', c.name); setCropPickerStep('details') }}
                       >
                         <img src={c.image} alt={c.name} className="fd-picker-img" />
-                        <span className="fd-picker-name">{c.name}</span>
+                        <span className="fd-picker-name">{getCropLabel(c.name, t, i18n)}</span>
                       </button>
                     ))
                   }
@@ -981,7 +1019,7 @@ const FarmerDashboard = () => {
                                 onClick={() => { updateField(0, 'crop', c.name); setCropPickerStep('details') }}
                               >
                                 <img src={c.image} alt={c.name} className="fd-picker-img" onError={e => { e.target.style.display='none' }} />
-                                <span className="fd-picker-name">{c.name}</span>
+                                <span className="fd-picker-name">{getCropLabel(c.name, t, i18n)}</span>
                               </button>
                             ))}
                           </div>
@@ -1013,7 +1051,7 @@ const FarmerDashboard = () => {
                     ? <img src={pickedImg} alt={row.crop} className="fd-selected-crop-img" />
                     : <FaLeaf style={{ fontSize: 32, color: '#2e7d32' }} />
                   }
-                  <span className="fd-selected-crop-name">{row.crop}</span>
+                  <span className="fd-selected-crop-name">{getCropLabel(row.crop, t, i18n)}</span>
                   <button
                     className="fd-change-crop-btn"
                     onClick={() => { updateField(index, 'crop', ''); setCropPickerStep('pick'); setCropSearch('') }}
@@ -1139,7 +1177,7 @@ const FarmerDashboard = () => {
 
                     {/* Content */}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: 13, color: '#1a2e1a', marginBottom: 3 }}>{crop.crop || crop.cropName}</div>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: '#1a2e1a', marginBottom: 3 }}>{getCropLabel(crop.crop || crop.cropName, t, i18n)}</div>
                       <div style={{ fontSize: 11, color: '#5b7d5b', fontWeight: 600, marginBottom: 3 }}>💰 ₹{crop.price}/{i18n.exists('fd_kg') ? t('fd_kg') : 'kg'}</div>
                       <div style={{ fontSize: 11, color: '#6b7d6b', marginBottom: 5 }}>📦 {crop.quantity} {i18n.exists('fd_kg') ? t('fd_kg') : 'kg'}</div>
                       
@@ -1228,7 +1266,7 @@ const FarmerDashboard = () => {
                           : <FaLeaf style={{ color: '#2e7d32', fontSize: 20 }} />
                         }
                         <div>
-                          <p className="fd-breakdown-name">{crop.crop || crop.cropName}</p>
+                          <p className="fd-breakdown-name">{getCropLabel(crop.crop || crop.cropName, t, i18n)}</p>
                           <p className="fd-breakdown-loc">{fmt(crop.district, t, i18n)}, {fmt(crop.state, t, i18n)}</p>
                         </div>
                       </div>

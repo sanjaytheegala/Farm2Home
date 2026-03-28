@@ -11,6 +11,13 @@ const getDefault10Days = () => {
   return d.toISOString().split('T')[0];
 };
 
+const normalizeLocKey = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
 export const useCropForm = (userLocation = {}) => {
   const [rows, setRows] = useState([{
     crop: '',
@@ -22,16 +29,16 @@ export const useCropForm = (userLocation = {}) => {
     availableUntil: getDefault10Days()
   }]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedState, setSelectedState] = useState(userLocation.state || 'telangana');
-  const [selectedDistrict, setSelectedDistrict] = useState(userLocation.district || '');
+  const [selectedState, setSelectedState] = useState(normalizeLocKey(userLocation.state) || 'telangana');
+  const [selectedDistrict, setSelectedDistrict] = useState(normalizeLocKey(userLocation.district) || '');
 
   // Update location when userLocation changes
   useEffect(() => {
     if (userLocation.state) {
-      setSelectedState(userLocation.state);
+      setSelectedState(normalizeLocKey(userLocation.state));
     }
     if (userLocation.district) {
-      setSelectedDistrict(userLocation.district);
+      setSelectedDistrict(normalizeLocKey(userLocation.district));
     }
   }, [userLocation]);
 
