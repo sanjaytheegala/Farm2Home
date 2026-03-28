@@ -155,10 +155,10 @@ const getCropImage = (cropName) => {
 
 // Status display config
 const statusMeta = {
-  available: { label: 'Available', bg: '#e8f5e9', color: '#2e7d32', icon: <FaCheckCircle /> },
-  sold:      { label: 'Sold',      bg: '#ffebee', color: '#c62828', icon: <FaTimes /> },
-  reserved:  { label: 'Reserved',  bg: '#fff8e1', color: '#f57f17', icon: <FaClock /> },
-  pending:   { label: 'Pending',   bg: '#e3f2fd', color: '#1565c0', icon: <FaClock /> }
+  available: { labelKey: 'fd_available', labelFallback: 'Available', bg: '#e8f5e9', color: '#2e7d32', icon: <FaCheckCircle /> },
+  sold:      { labelKey: 'fd_sold',      labelFallback: 'Sold',      bg: '#ffebee', color: '#c62828', icon: <FaTimes /> },
+  reserved:  { labelKey: 'fd_reserved',  labelFallback: 'Reserved',  bg: '#fff8e1', color: '#f57f17', icon: <FaClock /> },
+  pending:   { labelKey: 'fd_pending',   labelFallback: 'Pending',   bg: '#e3f2fd', color: '#1565c0', icon: <FaClock /> }
 }
 
 // State/districts for dropdowns
@@ -172,26 +172,33 @@ const stateDistricts = {
 }
 
 /* ── Relative time helper ── */
-const formatRelTime = (ts, lng = 'en') => {
+const formatRelTime = (ts, t, i18n) => {
   if (!ts) return null
   const date = ts?.toDate ? ts.toDate() : ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts)
   const diff = Math.floor((Date.now() - date.getTime()) / 1000)
 
-  const isTe = String(lng || '').toLowerCase().startsWith('te')
-  if (diff < 60) return isTe ? 'ఇప్పుడే' : 'just now'
+  const safeTWith = (key, options, fallback) => {
+    try {
+      return i18n?.exists?.(key) ? t(key, options) : fallback
+    } catch {
+      return fallback
+    }
+  }
+
+  if (diff < 60) return safeTWith('fd_time_just_now', {}, 'just now')
   if (diff < 3600) {
     const m = Math.floor(diff / 60)
-    return isTe ? `${m} నిమిషాల క్రితం` : `${m}m ago`
+    return safeTWith('fd_time_minutes_ago', { count: m }, `${m} minutes ago`)
   }
   if (diff < 86400) {
     const h = Math.floor(diff / 3600)
-    return isTe ? `${h} గంటల క్రితం` : `${h}h ago`
+    return safeTWith('fd_time_hours_ago', { count: h }, `${h} hours ago`)
   }
   if (diff < 604800) {
     const d = Math.floor(diff / 86400)
-    return isTe ? `${d} రోజుల క్రితం` : `${d}d ago`
+    return safeTWith('fd_time_days_ago', { count: d }, `${d} days ago`)
   }
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+  return date.toLocaleDateString(i18n?.language || 'en-IN', { day: 'numeric', month: 'short' })
 }
 
 const getTimestampMs = (ts) => {
@@ -222,15 +229,74 @@ const SkeletonCard = () => (
    DemandCard — one consumer request card in the market tab
 ───────────────────────────────────────────────────────────── */
 const WEIGHT_UNIT_OPTIONS = [
-  { value: 'kg',      label: 'per kg' },
-  { value: 'quintal', label: 'per Quintal (100 kg)' },
-  { value: 'ton',     label: 'per Ton (1000 kg)' },
+  { value: 'kg',      labelKey: 'fd_per_kg', labelFallback: 'per kg' },
+  { value: 'quintal', labelKey: 'fd_per_quintal_100kg', labelFallback: 'per Quintal (100 kg)' },
+  { value: 'ton',     labelKey: 'fd_per_ton_1000kg', labelFallback: 'per Ton (1000 kg)' },
 ]
 
 const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastError, onToastSuccess, isBlinking = false }) => {
+  const { t, i18n } = useTranslation()
+  const safeT = useCallback((key, fallback) => {
+    try {
+      return i18n?.exists?.(key) ? t(key) : fallback
+    } catch {
+      return fallback
+    }
+  }, [i18n, t])
+
+  const safeTWith = useCallback((key, options, fallback) => {
+    try {
+      return i18n?.exists?.(key) ? t(key, options) : fallback
+    } catch {
+      return fallback
+    }
+  }, [i18n, t])
+
+  const slugifyLoc = useCallback((value) => {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+  }, [])
+
+  const translateLocPart = useCallback((part) => {
+    const raw = String(part || '').trim()
+    if (!raw) return ''
+    const slug = slugifyLoc(raw)
+    const distKey = `dist_${slug}`
+    if (i18n?.exists?.(distKey)) return t(distKey)
+    const stateKey = `state_${slug}`
+    if (i18n?.exists?.(stateKey)) return t(stateKey)
+    return raw
+  }, [i18n, t, slugifyLoc])
+
+  const formatLocationLabel = useCallback((location) => {
+    const raw = String(location || '').trim()
+    if (!raw) return ''
+    const parts = raw.split(',').map(p => p.trim()).filter(Boolean)
+    if (!parts.length) return raw
+    return parts.map(translateLocPart).filter(Boolean).join(', ')
+  }, [translateLocPart])
+
+  const unitLabel = useCallback((unit) => {
+    const u = String(unit || '').toLowerCase().trim()
+    if (!u || u === 'kg' || u === 'kgs') return safeT('fd_kg', 'kg')
+    if (u === 'quintal' || u === 'qtl' || u === 'qt') return safeT('fd_quintal', 'quintal')
+    if (u === 'ton' || u === 'tonne' || u === 't') return safeT('fd_ton', 'ton')
+    return unit
+  }, [safeT])
+
   const demandUnit = demand.quantityUnit || 'kg'
   const isWeightDemand = demandUnit === 'kg'
-  const offerUnitOptions = isWeightDemand ? WEIGHT_UNIT_OPTIONS : [{ value: demandUnit, label: `per ${demandUnit}` }]
+  const offerUnitOptions = isWeightDemand
+    ? WEIGHT_UNIT_OPTIONS
+    : [{
+      value: demandUnit,
+      labelKey: 'fd_per_unit',
+      labelOptions: { unit: unitLabel(demandUnit) },
+      labelFallback: `per ${demandUnit}`
+    }]
   const demandQty = parseFloat(demand.quantityKg || 0) || 0
   const [showComplaint, setShowComplaint] = useState(false)
   const [showOfferForm, setShowOfferForm] = useState(false)
@@ -241,19 +307,21 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
   const [submitting, setSubmitting]       = useState(false)
   const hasPhone = demand.consumerPhone && demand.consumerPhone !== 'Not provided'
   const cropImg  = getCropImage(demand.cropName)
+  const cropLabel = getCropLabel(demand.cropName, t, i18n)
+  const locLabel = formatLocationLabel(demand.location)
 
   const handleSubmitOffer = async () => {
-    if (!offerPrice || parseFloat(offerPrice) <= 0) { onToastError('Enter a valid price'); return }
-    if (!offerAvailDate) { onToastError('Please set your crop availability date'); return }
+    if (!offerPrice || parseFloat(offerPrice) <= 0) { onToastError(safeT('fd_enter_valid_price', 'Enter a valid price')); return }
+    if (!offerAvailDate) { onToastError(safeT('fd_set_availability_date', 'Please set your crop availability date')); return }
     setSubmitting(true)
     const res = await onSubmitOffer(demand.id, offerPrice, offerUnit, offerAvailDate, offerOrganic === 'organic')
     setSubmitting(false)
     if (res.success) {
-      onToastSuccess('Offer submitted! Consumer will be notified.')
+      onToastSuccess(safeT('fd_offer_submitted_success', 'Offer submitted! Consumer will be notified.'))
       const def = new Date(); def.setDate(def.getDate() + 10);
       setShowOfferForm(false); setOfferPrice(''); setOfferUnit(demandUnit); setOfferOrganic('non-organic'); setOfferAvailDate(def.toISOString().split('T')[0])
     } else {
-      onToastError(res.error || 'Could not submit offer')
+      onToastError(res.error || safeT('fd_offer_submit_failed', 'Could not submit offer'))
     }
   }
 
@@ -268,31 +336,37 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
       className={`fd-demand-card${isPriority ? ' fd-demand-card--priority' : ''}${isBlinking ? ' fd-card-blink' : ''}`}
     >
 
-      {/* ── Top row: crop image (left) | Near You + Chat (right) ── */}
+      {/* ── Top row: crop image (left) | Near You + Phone (right) ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', background: '#f0fdf4', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {cropImg
-            ? <img src={cropImg} alt={demand.cropName} style={{ width: 48, height: 48, objectFit: 'cover', display: 'block' }} />
+            ? <img src={cropImg} alt={cropLabel} style={{ width: 48, height: 48, objectFit: 'cover', display: 'block' }} />
             : <FaLeaf style={{ fontSize: 22, color: '#16a34a' }} />}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          {isPriority && <div className="fd-priority-badge" style={{ margin: 0 }}>📍 Near You</div>}
+          {isPriority && <div className="fd-priority-badge" style={{ margin: 0 }}>📍 {safeT('fd_near_you', 'Near You')}</div>}
           {(demand.consumerTotalDeals || 0) >= 5 && (
-            <span className="fd-verified-badge">✓ Verified</span>
+            <span className="fd-verified-badge">{safeT('fd_verified', '✓ Verified')}</span>
           )}
-          <button
-            className="chat-trigger-btn"
-            onClick={() => onOpenChat(demand)}
-            style={{ padding: '4px 10px', fontSize: 12 }}
-          >
-            <FaComments style={{ marginRight: 4 }} /> Chat
-          </button>
+          {hasPhone ? (
+            <span
+              className="chat-trigger-btn"
+              style={{ padding: '4px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'default' }}
+              aria-disabled="true"
+            >
+              <FaPhone style={{ fontSize: 12 }} /> {demand.consumerPhone}
+            </span>
+          ) : (
+            <span style={{ padding: '4px 10px', background: '#f3f4f6', borderRadius: 999, fontSize: 12, color: '#9ca3af', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <FaPhone style={{ fontSize: 12 }} /> {safeT('fd_no_phone', 'No phone')}
+            </span>
+          )}
         </div>
       </div>
 
       {/* ── Crop name (left) | Consumer name (right) ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span className="fd-demand-cropname">{demand.cropName}</span>
+        <span className="fd-demand-cropname">{cropLabel}</span>
         <span style={{ fontSize: 12, color: '#2563eb', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
           <FaUsers style={{ fontSize: 10 }} />{demand.consumerName}
         </span>
@@ -304,7 +378,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
       {showOfferForm && (
         <div style={{ marginTop: 12, background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 12, padding: '14px 14px 12px' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d', marginBottom: 10 }}>
-            💰 Your Price Offer
+            {safeT('fd_your_price_offer', '💰 Your Price Offer')}
           </div>
           {/* Unit selector as pill tabs */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
@@ -318,7 +392,7 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
                   background: offerUnit === u.value ? '#dcfce7' : '#fff',
                   color: offerUnit === u.value ? '#15803d' : '#6b7280',
                 }}
-              >{u.label}</button>
+              >{safeTWith(u.labelKey, u.labelOptions || {}, u.labelFallback)}</button>
             ))}
           </div>
           {/* Price input with ₹ prefix */}
@@ -326,7 +400,13 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
             <span style={{ padding: '0 10px', fontSize: 16, fontWeight: 700, color: '#15803d', borderRight: '1px solid #86efac', height: '100%', display: 'flex', alignItems: 'center' }}>₹</span>
             <input
               type="number" min="1" step="0.01"
-              placeholder={isWeightDemand ? `Amount ${offerUnit === 'kg' ? 'per kg' : offerUnit === 'quintal' ? 'per quintal' : 'per ton'}` : `Amount per ${offerUnit}`}
+              placeholder={safeTWith(
+                'fd_amount_per_unit',
+                { unit: unitLabel(offerUnit) },
+                isWeightDemand
+                  ? `Amount ${offerUnit === 'kg' ? 'per kg' : offerUnit === 'quintal' ? 'per quintal' : 'per ton'}`
+                  : `Amount per ${offerUnit}`
+              )}
               value={offerPrice}
               onChange={e => setOfferPrice(e.target.value)}
               style={{ flex: 1, padding: '9px 10px', border: 'none', fontSize: 15, outline: 'none', background: 'transparent' }}
@@ -334,23 +414,28 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
           </div>
           {totalEst && (
             <div style={{ fontSize: 12, color: '#15803d', fontWeight: 600, marginBottom: 10, background: '#dcfce7', borderRadius: 6, padding: '5px 8px' }}>
-              Total for {demandQty} {demandUnit} → ₹{parseInt(totalEst).toLocaleString()}
+              {safeTWith(
+                'fd_total_for',
+                { qty: demandQty, unit: unitLabel(demandUnit) },
+                `Total for ${demandQty} ${unitLabel(demandUnit)}`
+              )}
+              {' '}→ ₹{parseInt(totalEst).toLocaleString()}
             </div>
           )}
           <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Crop Type</label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>{safeT('fd_crop_type', 'Crop Type')}</label>
             <select
               value={offerOrganic}
               onChange={e => setOfferOrganic(e.target.value)}
               style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #86efac', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', outline: 'none', background: '#fff' }}
             >
-              <option value="non-organic">Non-Organic</option>
-              <option value="organic">Organic</option>
+              <option value="non-organic">{safeT('fd_non_organic', 'Non-Organic')}</option>
+              <option value="organic">{safeT('fd_organic', 'Organic')}</option>
             </select>
           </div>
           {/* Availability date */}
           <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Crop Available Until *</label>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>{safeT('fd_crop_avail_until', 'Crop Available Until *')}</label>
             <input
               type="date"
               value={offerAvailDate}
@@ -358,20 +443,20 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
               onChange={e => setOfferAvailDate(e.target.value)}
               style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #86efac', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
             />
-            <span style={{ fontSize: 10, color: '#6b7280', marginTop: 2, display: 'block' }}>Consumer will know till when you have this crop</span>
+            <span style={{ fontSize: 10, color: '#6b7280', marginTop: 2, display: 'block' }}>{safeT('fd_consumer_see', 'Consumer will know till when you have this crop')}</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={handleSubmitOffer} disabled={submitting}
               style={{ flex: 1, padding: '9px', background: submitting ? '#9ca3af' : 'linear-gradient(135deg,#16a34a,#15803d)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', fontSize: 13 }}
             >
-              {submitting ? 'Submitting…' : <><FaCheckCircle style={{ marginRight: 6 }} />Send Offer</>}
+              {submitting ? safeT('fd_submitting', 'Submitting…') : <><FaCheckCircle style={{ marginRight: 6 }} />{safeT('fd_send_offer', 'Send Offer')}</>}
             </button>
             <button
               onClick={() => { const def = new Date(); def.setDate(def.getDate()+10); setShowOfferForm(false); setOfferPrice(''); setOfferUnit(demandUnit); setOfferOrganic('non-organic'); setOfferAvailDate(def.toISOString().split('T')[0]) }}
               style={{ padding: '9px 14px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
             >
-              Cancel
+              {safeT('fd_cancel', 'Cancel')}
             </button>
           </div>
         </div>
@@ -380,38 +465,29 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
       {/* ── Bottom: qty left, location right ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, padding: '8px 10px', background: '#f9fafb', borderRadius: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <FaWeightHanging style={{ color: '#6b7280', fontSize: 11 }} /> {demandQty} {demandUnit}
+          <FaWeightHanging style={{ color: '#6b7280', fontSize: 11 }} /> {demandQty} {unitLabel(demandUnit)}
         </span>
         <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <FaMapMarkerAlt style={{ color: '#ef4444', fontSize: 11 }} /> {demand.location}
+          <FaMapMarkerAlt style={{ color: '#ef4444', fontSize: 11 }} /> {locLabel || demand.location}
         </span>
       </div>
 
-      {/* ── Action row: phone number + Send Price side by side ── */}
+      {/* ── Action row: Chat + Send Price side by side ── */}
       {!showOfferForm && (
         <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'stretch' }}>
-          {hasPhone ? (
-            <a
-              href={`tel:${demand.consumerPhone}`}
-              style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '9px 10px', background: '#f0fdf4', border: '1.5px solid #86efac',
-                borderRadius: 8, color: '#15803d', fontWeight: 700, fontSize: 13, textDecoration: 'none'
-              }}
-            >
-              <FaPhone style={{ fontSize: 12 }} /> {demand.consumerPhone}
-            </a>
-          ) : (
-            <span style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '9px 10px', background: '#f3f4f6', borderRadius: 8, fontSize: 12, color: '#9ca3af' }}>
-              No phone
-            </span>
-          )}
+          <button
+            className="chat-trigger-btn"
+            onClick={() => onOpenChat(demand)}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 10px', fontSize: 13, fontWeight: 700 }}
+          >
+            <FaComments style={{ fontSize: 12 }} /> {safeT('fd_chat', 'Chat')}
+          </button>
           <button
             className="fd-fulfilling-btn"
             style={{ flex: 1, background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', border: 'none', marginTop: 0 }}
             onClick={() => setShowOfferForm(true)}
           >
-            <FaCoins style={{ marginRight: 6 }} /> Send Price
+            <FaCoins style={{ marginRight: 6 }} /> {safeT('fd_send_price', 'Send Price')}
           </button>
         </div>
       )}
@@ -438,6 +514,47 @@ const FarmerDashboard = () => {
       return fallback
     }
   }, [i18n, t])
+
+  const safeTWith = useCallback((key, options, fallback) => {
+    try {
+      return i18n?.exists?.(key) ? t(key, options) : fallback
+    } catch {
+      return fallback
+    }
+  }, [i18n, t])
+
+  const slugifyLoc = useCallback((value) => {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+  }, [])
+
+  const translateLocPart = useCallback((part) => {
+    const raw = String(part || '').trim()
+    if (!raw) return ''
+    const slug = slugifyLoc(raw)
+    const distKey = `dist_${slug}`
+    if (i18n?.exists?.(distKey)) return t(distKey)
+    const stateKey = `state_${slug}`
+    if (i18n?.exists?.(stateKey)) return t(stateKey)
+    return raw
+  }, [i18n, t, slugifyLoc])
+
+  const formatLocationLabel = useCallback((location) => {
+    const raw = String(location || '').trim()
+    if (!raw) return ''
+    const parts = raw.split(',').map(p => p.trim()).filter(Boolean)
+    if (!parts.length) return raw
+    return parts.map(translateLocPart).filter(Boolean).join(', ')
+  }, [translateLocPart])
+
+  const unitLabel = useCallback((unit) => {
+    const u = String(unit || '').toLowerCase().trim()
+    if (!u || u === 'kg' || u === 'kgs') return safeT('fd_kg', 'kg')
+    return unit
+  }, [safeT])
   const { currentUser, userData } = useAuth()
   const VALID_TABS = ['crops', 'analytics', 'market']
   const tabFromUrl = searchParams.get('tab')
@@ -722,9 +839,21 @@ const FarmerDashboard = () => {
         id: d.id,
         type: 'demand',
         icon: '🌾',
-        title: `Crop Request: ${d.cropName}`,
-        subtitle: `${d.quantityKg} ${d.quantityUnit || 'kg'} needed · ${d.location}`,
-        timeLabel: formatRelTime(d.createdAt),
+        title: safeTWith(
+          'fd_crop_request_notif',
+          { crop: getCropLabel(d.cropName, t, i18n) },
+          `Crop Request: ${d.cropName}`
+        ),
+        subtitle: safeTWith(
+          'fd_notif_needed_line',
+          {
+            qty: d.quantityKg,
+            unit: unitLabel(d.quantityUnit || 'kg'),
+            location: formatLocationLabel(d.location),
+          },
+          `${d.quantityKg} ${unitLabel(d.quantityUnit || 'kg')} needed · ${formatLocationLabel(d.location) || d.location}`
+        ),
+        timeLabel: formatRelTime(d.createdAt, t, i18n),
         createdAtMs: getTimestampMs(d.createdAt),
         tabTarget: 'market',
       })),
@@ -734,9 +863,13 @@ const FarmerDashboard = () => {
         id: o.id,
         type: 'order',
         icon: '📦',
-        title: `New Order: ${o.cropName || 'Crop'}`,
-        subtitle: `${o.quantity} ${o.unit || 'kg'} · ₹${parseFloat(o.totalPrice || 0).toFixed(0)}`,
-        timeLabel: formatRelTime(o.createdAt),
+        title: safeTWith(
+          'fd_new_order_notif',
+          { crop: getCropLabel(o.cropName || 'Crop', t, i18n) },
+          `New Order: ${o.cropName || 'Crop'}`
+        ),
+        subtitle: `${o.quantity} ${unitLabel(o.unit || 'kg')} · ₹${parseFloat(o.totalPrice || 0).toFixed(0)}`,
+        timeLabel: formatRelTime(o.createdAt, t, i18n),
         createdAtMs: getTimestampMs(o.createdAt),
         tabTarget: 'market',
       })),
@@ -744,9 +877,13 @@ const FarmerDashboard = () => {
       id: r.id,
       type: 'resource',
       icon: '🚜',
-      title: `Tool Request: ${r.toolName}`,
-      subtitle: `${r.requesterName} · ${r.ownerDistrict || ''}`,
-      timeLabel: formatRelTime(r.createdAt),
+      title: safeTWith(
+        'fd_tool_request_notif',
+        { tool: r.toolName },
+        `Tool Request: ${r.toolName}`
+      ),
+      subtitle: `${r.requesterName}${r.ownerDistrict ? ` · ${translateLocPart(r.ownerDistrict)}` : ''}`,
+      timeLabel: formatRelTime(r.createdAt, t, i18n),
       createdAtMs: getTimestampMs(r.createdAt),
       tabTarget: null,
     })),
@@ -824,7 +961,7 @@ const FarmerDashboard = () => {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#374151' }}>State</label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#374151' }}>{safeT('fd_state', 'State')}</label>
                   <select
                     value={editProfileData.state}
                     onChange={e => setEditProfileData(p => ({ ...p, state: e.target.value, district: '' }))}
@@ -835,7 +972,7 @@ const FarmerDashboard = () => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#374151' }}>District</label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#374151' }}>{safeT('fd_district', 'District')}</label>
                   <select
                     value={editProfileData.district}
                     onChange={e => setEditProfileData(p => ({ ...p, district: e.target.value }))}
@@ -870,7 +1007,7 @@ const FarmerDashboard = () => {
             </p>
             <div className="fd-bulk-modal-actions">
               <button className="fd-bulk-ok-btn" onClick={() => { setBulkAlert(null); setActiveTab('market') }}>
-                <FaBullseye style={{ marginRight: 8 }} /> View Market Requests
+                <FaBullseye style={{ marginRight: 8 }} /> {safeT('fd_view_market', 'View Market Requests')}
               </button>
               <button className="fd-bulk-close-btn" onClick={() => setBulkAlert(null)}>Got it</button>
             </div>
@@ -952,18 +1089,18 @@ const FarmerDashboard = () => {
 
           {/* ── STEP 1: Crop Picker ── */}
           {showAddForm && cropPickerStep === 'pick' && (
-            <div className="fd-form-card">
+            <div className="fd-form-card" data-no-auto-translate="true">
               <h3 className="fd-form-title">
                 <FaSeedling style={{ marginRight: 8, color: '#2e7d32' }} />
-                Choose a Crop
+                {safeT('fd_choose_a_crop', 'Choose a Crop')}
               </h3>
-              <p className="fd-picker-hint">Tap any crop below, or type to search by name or local name</p>
+              <p className="fd-picker-hint">{safeT('fd_tap_crop_hint', 'Tap any crop below, or type to search by name or local name')}</p>
               <div className="fd-picker-search-wrap">
                 <FaSearch className="fd-picker-search-icon" />
                 <input
                   type="text"
                   className="fd-picker-search"
-                  placeholder="Search: Rice, Tamatar, Biyyam, Tomato…"
+                  placeholder={safeT('fd_search_hint', 'Search: Rice, Tamatar, Biyyam, Tomato…')}
                   value={cropSearch}
                   onChange={e => setCropSearch(e.target.value)}
                   autoFocus
@@ -998,12 +1135,12 @@ const FarmerDashboard = () => {
                 /* ── Category sections with marquee ── */
                 <div className="fd-category-sections">
                   {[
-                    { key: 'fruits',        label: 'Fruits' },
-                    { key: 'vegetables',    label: 'Vegetables' },
-                    { key: 'grains-pulses', label: 'Grains & Pulses' },
-                    { key: 'spices',        label: 'Spices' },
-                    { key: 'leafy-greens',  label: 'Leafy Greens' },
-                    { key: 'dry-fruits',    label: 'Dry Fruits' },
+                    { key: 'fruits',        label: safeT('fd_fruits', 'Fruits') },
+                    { key: 'vegetables',    label: safeT('fd_vegetables', 'Vegetables') },
+                    { key: 'grains-pulses', label: safeT('fd_grains_pulses', 'Grains & Pulses') },
+                    { key: 'spices',        label: safeT('fd_spices', 'Spices') },
+                    { key: 'leafy-greens',  label: safeT('fd_leafy_greens', 'Leafy Greens') },
+                    { key: 'dry-fruits',    label: safeT('fd_dry_fruits', 'Dry Fruits') },
                   ].map(({ key, label }) => {
                     const categoryCrops = CROP_DICTIONARY.filter(c => c.category === key).sort((a, b) => a.name.localeCompare(b.name));
                     if (!categoryCrops.length) return null;
@@ -1038,7 +1175,7 @@ const FarmerDashboard = () => {
               )}
               <div style={{ marginTop: 18, textAlign: 'center' }}>
                 <button onClick={() => { resetForm(); setCropPickerStep('pick'); setCropSearch('') }} className="fd-cancel-btn">
-                  <FaTimes style={{ marginRight: 4 }} />Cancel
+                  <FaTimes style={{ marginRight: 4 }} />{safeT('fd_cancel', 'Cancel')}
                 </button>
               </div>
             </div>
@@ -1195,25 +1332,25 @@ const FarmerDashboard = () => {
                         </div>
                       )}
 
-                      {formatRelTime(crop.updatedAt || crop.createdAt, i18n.language) && (
+                      {formatRelTime(crop.updatedAt || crop.createdAt, t, i18n) && (
                         <div className="fd-last-updated" style={{ fontSize: 9, color: '#94a3b8', marginBottom: 5 }}>
-                          🕐 {formatRelTime(crop.updatedAt || crop.createdAt, i18n.language)}
+                          🕐 {formatRelTime(crop.updatedAt || crop.createdAt, t, i18n)}
                         </div>
                       )}
 
                       {crop.organic && (
                         <div style={{ fontSize: 9, fontWeight: 800, color: '#166534', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 12, padding: '2px 7px', display: 'inline-block', marginBottom: 5 }}>
-                          Organic
+                          {safeT('fd_organic', 'Organic')}
                         </div>
                       )}
 
-                      <div style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 14, background: sm.bg, color: sm.color, border: `1.5px solid ${sm.color}`, display: 'inline-block', marginBottom: 6 }}>{sm.label}</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 14, background: sm.bg, color: sm.color, border: `1.5px solid ${sm.color}`, display: 'inline-block', marginBottom: 6 }}>{safeT(sm.labelKey, sm.labelFallback)}</div>
                     </div>
 
                     {/* Action Buttons */}
                     <div style={{ display: 'flex', gap: 5, width: '100%' }}>
-                      <button onClick={() => handleEdit(crop)} style={{ flex: 1, padding: '6px 8px', borderRadius: 6, border: '1.5px solid #3b82f6', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', color: '#1d4ed8', fontWeight: 700, fontSize: 10, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }} onMouseEnter={(e)=>e.target.style.boxShadow='0 2px 6px rgba(29,78,216,0.3)'} onMouseLeave={(e)=>e.target.style.boxShadow='none'} title="Edit this crop">✎ Edit</button>
-                      <button onClick={() => handleDelete(crop.id)} style={{ flex: 1, padding: '6px 8px', borderRadius: 6, border: '1.5px solid #fca5a5', background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', color: '#dc2626', fontWeight: 700, fontSize: 10, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }} onMouseEnter={(e)=>e.target.style.boxShadow='0 2px 6px rgba(220,38,38,0.3)'} onMouseLeave={(e)=>e.target.style.boxShadow='none'} title="Delete this crop">🗑 Delete</button>
+                      <button onClick={() => handleEdit(crop)} style={{ flex: 1, padding: '6px 8px', borderRadius: 6, border: '1.5px solid #3b82f6', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', color: '#1d4ed8', fontWeight: 700, fontSize: 10, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }} onMouseEnter={(e)=>e.target.style.boxShadow='0 2px 6px rgba(29,78,216,0.3)'} onMouseLeave={(e)=>e.target.style.boxShadow='none'} title={safeT('fd_edit', 'Edit')}>✎ {safeT('fd_edit', 'Edit')}</button>
+                      <button onClick={() => handleDelete(crop.id)} style={{ flex: 1, padding: '6px 8px', borderRadius: 6, border: '1.5px solid #fca5a5', background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', color: '#dc2626', fontWeight: 700, fontSize: 10, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }} onMouseEnter={(e)=>e.target.style.boxShadow='0 2px 6px rgba(220,38,38,0.3)'} onMouseLeave={(e)=>e.target.style.boxShadow='none'} title={safeT('fd_delete', 'Delete')}>🗑 {safeT('fd_delete', 'Delete')}</button>
                     </div>
                   </div>
                 )
@@ -1280,7 +1417,7 @@ const FarmerDashboard = () => {
                       <div className="fd-breakdown-right">
                         <span className="fd-breakdown-qty">{crop.quantity} {i18n.exists('fd_kg') ? t('fd_kg') : 'kg'}</span>
                         <span className="fd-breakdown-price">₹{crop.price}/{i18n.exists('fd_kg') ? t('fd_kg') : 'kg'}</span>
-                        <span className="fd-breakdown-status" style={{ background: sm.bg, color: sm.color }}>{sm.label}</span>
+                        <span className="fd-breakdown-status" style={{ background: sm.bg, color: sm.color }}>{safeT(sm.labelKey, sm.labelFallback)}</span>
                       </div>
                     </div>
                   )
@@ -1508,9 +1645,9 @@ const FarmerDashboard = () => {
                         <div className="fd-contact-reveal" style={{ marginBottom:10 }}>
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                             <span style={{ fontSize:13, fontWeight:700, color:'#0ea5e9' }}>{deal.consumerName}</span>
-                            <a href={`tel:${deal.consumerPhone}`} style={{ fontSize:12, fontWeight:600, color:'#b45309', display:'flex', alignItems:'center', gap:5, textDecoration:'none' }}>
-                              <FaPhone style={{ fontSize:11 }} />{deal.consumerPhone || 'Not provided'}
-                            </a>
+                            <span style={{ fontSize:12, fontWeight:600, color:'#b45309', display:'flex', alignItems:'center', gap:5, cursor: 'default' }} aria-disabled="true">
+                              <FaPhone style={{ fontSize:11 }} />{deal.consumerPhone || safeT('fd_not_provided', 'Not provided')}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -1672,7 +1809,7 @@ const FarmerDashboard = () => {
                           style={{ flex:1 }}
                           onClick={() => setActiveChatDemand(deal)}
                         >
-                          <FaComments style={{ marginRight: 6 }} /> Chat
+                          <FaComments style={{ marginRight: 6 }} /> {safeT('fd_chat', 'Chat')}
                         </button>
                       </div>
                     </div>
@@ -1689,21 +1826,21 @@ const FarmerDashboard = () => {
         <div className="fd-content">
           <h2 className="fd-content-title">
             <FaBullseye style={{ color: '#7c3aed', marginRight: 8 }} />
-            Crop Requests
+            {safeT('fd_tab_crop_requests', 'Crop Requests')}
             {openDemands.length > 0 && (
               <span className="fd-notif-count" style={{ background: '#7c3aed' }}>{openDemands.length}</span>
             )}
           </h2>
           <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
-            Consumers are requesting these crops -- submit your best price offer and win the deal!
+            {safeT('fd_market_subtitle', 'Consumers are requesting these crops — submit your best price offer and win the deal!')}
           </p>
 
           {/* Open Demands — sorted by location match */}
           {openDemands.length === 0 ? (
             <div className="fd-empty">
               <div className="fd-empty-icon">🎯</div>
-              <h3 className="fd-empty-title">No open requests yet</h3>
-              <p className="fd-empty-sub">When consumers request crops, they'll appear here.</p>
+              <h3 className="fd-empty-title">{safeT('fd_no_open_requests_title', 'No open requests yet')}</h3>
+              <p className="fd-empty-sub">{safeT('fd_no_open_requests_sub', "When consumers request crops, they'll appear here.")}</p>
             </div>
           ) : (
             <>
@@ -1711,7 +1848,7 @@ const FarmerDashboard = () => {
               {priorityDemands.length > 0 && (
                 <>
                   <div className="fd-market-section-label fd-market-section-label--priority">
-                    Near You ({priorityDemands.length})
+                    {safeT('fd_near_you', 'Near You')} ({priorityDemands.length})
                   </div>
                   <div className="fd-market-grid">
                     {priorityDemands.map(demand => (
@@ -1735,7 +1872,7 @@ const FarmerDashboard = () => {
                 <>
                   {priorityDemands.length > 0 && (
                     <div className="fd-market-section-label" style={{ marginTop: 24 }}>
-                      📦 Other Requests ({otherDemands.length})
+                        📦 {safeT('fd_other_requests', 'Other Requests')} ({otherDemands.length})
                     </div>
                   )}
                   <div className="fd-market-grid">
@@ -1765,7 +1902,7 @@ const FarmerDashboard = () => {
         <div className="fd-content">
           <h2 className="fd-content-title">
             <FaBell style={{ color: '#e65100', marginRight: 8 }} />
-            Notifications
+            {safeT('fd_notifications', 'Notifications')}
             {farmerNotifications.length > 0 && (
               <span className="fd-notif-count">{farmerNotifications.length}</span>
             )}
@@ -1773,8 +1910,8 @@ const FarmerDashboard = () => {
           {farmerNotifications.length === 0 ? (
             <div className="fd-empty">
               <div className="fd-empty-icon">🔔</div>
-              <h3 className="fd-empty-title">All caught up!</h3>
-              <p className="fd-empty-sub">You have no new notifications. We'll alert you when customers are interested in your crops.</p>
+              <h3 className="fd-empty-title">{safeT('nav_all_caught_up', 'All caught up!')}</h3>
+              <p className="fd-empty-sub">{safeT('fd_no_new_notifications_sub', "You have no new notifications. We'll alert you when customers are interested in your crops.")}</p>
             </div>
           ) : (
             <div className="fd-notif-list">
@@ -1793,7 +1930,7 @@ const FarmerDashboard = () => {
                       <p className="fd-notif-title">{notif.title}</p>
                       <p className="fd-notif-meta">{notif.subtitle}</p>
                     </div>
-                    <span className="fd-notif-time">{notif.timeLabel || 'recently'}</span>
+                    <span className="fd-notif-time">{notif.timeLabel || safeT('fd_recently', 'recently')}</span>
                   </button>
                 )
               })}

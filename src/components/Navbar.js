@@ -192,7 +192,7 @@ const Navbar = React.memo(({
             <div className="farmer-notif-wrap" ref={notifRef}>
               <button
                 className="farmer-notif-btn"
-                title="Notifications"
+                title={t('notifications', { defaultValue: 'Notifications' })}
                 onClick={() => {
                   const opening = !showNotifDropdown
                   setShowNotifDropdown(opening)
