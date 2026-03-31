@@ -584,31 +584,42 @@ const FarmerDashboard = () => {
     try { return new Set(JSON.parse(localStorage.getItem(`farmerNotifSeen_init`) || '[]')) } catch { return new Set() }
   })
 
-  // Real-time Firestore listener for farmer profile
+  // Redirect + seed profile quickly from context/localStorage (no Firestore subscription here)
   useEffect(() => {
-    if (!currentUser && !userData) { navigate('/'); return }
-    // Seed name quickly from context / localStorage while Firestore loads
-    const seed = userData || (() => { try { return JSON.parse(localStorage.getItem('currentUser') || '{}') } catch { return {} } })()
+    if (!currentUser && !userData) {
+      navigate('/');
+      return;
+    }
+
+    const seed = userData || (() => {
+      try { return JSON.parse(localStorage.getItem('currentUser') || '{}') } catch { return {} }
+    })()
+
     if (seed?.name || seed?.displayName) {
       setFarmerName(seed.name || seed.displayName || seed.email || 'Farmer')
       if (seed.state && seed.district) setUserLocation({ state: seed.state, district: seed.district })
     }
+  }, [currentUser, userData, navigate])
+
+  // Real-time Firestore listener for farmer profile (subscribe only when uid changes)
+  useEffect(() => {
     if (!currentUser?.uid) return
+
     const unsub = onSnapshot(
       doc(db, 'users', currentUser.uid),
       (snap) => {
-        if (snap.exists()) {
-          const d = snap.data()
-          setFarmerName(d.name || d.displayName || d.email || currentUser.email || 'Farmer')
-          setFarmerPhoto(d.photoURL || currentUser.photoURL || null)
-          setFarmerPhone(d.phoneNumber || d.phone || '')
-          if (d.state && d.district) setUserLocation({ state: d.state, district: d.district })
-        }
+        if (!snap.exists()) return
+        const d = snap.data()
+        setFarmerName(d.name || d.displayName || d.email || currentUser.email || 'Farmer')
+        setFarmerPhoto(d.photoURL || currentUser.photoURL || null)
+        setFarmerPhone(d.phoneNumber || d.phone || '')
+        if (d.state && d.district) setUserLocation({ state: d.state, district: d.district })
       },
       (err) => console.warn('FarmerDashboard profile snapshot error:', err.message)
     )
+
     return () => { try { unsub() } catch (_) {} }
-  }, [currentUser, userData, navigate])
+  }, [currentUser?.uid])
 
   // Real-time listener for rental requests (resource tool requests incoming to this farmer)
   useEffect(() => {
@@ -640,6 +651,45 @@ const FarmerDashboard = () => {
   const [offerPrices, setOfferPrices] = useState({})      // { [demandId]: string }
   const [submittingOfferId, setSubmittingOfferId] = useState(null)
   const [bulkAlert, setBulkAlert] = useState(null) // { cropName, quantity, location }
+
+  const [isQtyBucketsOpen, setIsQtyBucketsOpen] = useState(false)
+  const [isPriceBucketsOpen, setIsPriceBucketsOpen] = useState(false)
+
+  // Market (Crop Requests) filters
+  const [marketFilters, setMarketFilters] = useState({
+    showNear: true,
+    showOther: true,
+    verifiedOnly: false,
+    hasPhoneOnly: false,
+    cropQuery: '',
+    qtyBuckets: [],
+    priceBuckets: [],
+    sortBy: 'newest',
+  })
+
+  const QTY_BUCKETS = [
+    { id: '50_100', label: '50 - 100', min: 50, max: 100 },
+    { id: '100_200', label: '100 - 200', min: 100, max: 200 },
+    { id: '200_500', label: '200 - 500', min: 200, max: 500 },
+    { id: '500_1000', label: '500 - 1000', min: 500, max: 1000 },
+    { id: '1000_plus', label: '1000+', min: 1000, max: null },
+  ]
+
+  const PRICE_BUCKETS = [
+    { id: '0_50', label: '₹0 - ₹50', min: 0, max: 50 },
+    { id: '50_100', label: '₹50 - ₹100', min: 50, max: 100 },
+    { id: '100_200', label: '₹100 - ₹200', min: 100, max: 200 },
+    { id: '200_500', label: '₹200 - ₹500', min: 200, max: 500 },
+    { id: '500_plus', label: '₹500+', min: 500, max: null },
+  ]
+
+  const toggleBucket = (key, id) => {
+    setMarketFilters((prev) => {
+      const arr = Array.isArray(prev[key]) ? prev[key] : []
+      const next = arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]
+      return { ...prev, [key]: next }
+    })
+  }
   // edit state
   const [editingCropId, setEditingCropId] = useState(null)
   const {
@@ -658,18 +708,121 @@ const FarmerDashboard = () => {
   const isStateMatch    = (loc = '') => filterStateDisplay    && loc.toLowerCase().includes(filterStateDisplay.toLowerCase())
   const isLocationMatch = (loc = '') => isDistrictMatch(loc) || isStateMatch(loc)
 
-  const priorityDemands = openDemands
+  const filteredOpenDemands = openDemands.filter((d) => {
+    const loc = d.location || ''
+    const match = isLocationMatch(loc)
+    if (match && !marketFilters.showNear) return false
+    if (!match && !marketFilters.showOther) return false
+    if (marketFilters.verifiedOnly && (d.consumerTotalDeals || 0) < 5) return false
+
+    const phone = String(d.consumerPhone || '').trim()
+    const hasPhone = !!phone && phone.toLowerCase() !== 'not provided'
+    if (marketFilters.hasPhoneOnly && !hasPhone) return false
+
+    const q = String(marketFilters.cropQuery || '').trim().toLowerCase()
+    if (q) {
+      const raw = String(d.cropName || '')
+      const label = getCropLabel(d.cropName, t, i18n)
+      const hay = `${raw} ${label}`.toLowerCase()
+      if (!hay.includes(q)) return false
+    }
+
+    const qtyBuckets = Array.isArray(marketFilters.qtyBuckets) ? marketFilters.qtyBuckets : []
+    if (qtyBuckets.length > 0) {
+      const qty = parseFloat(d.quantityKg || 0) || 0
+      const matchesQty = qtyBuckets.some((bucketId) => {
+        const b = QTY_BUCKETS.find((x) => x.id === bucketId)
+        if (!b) return false
+        if (qty < b.min) return false
+        if (b.max != null && qty > b.max) return false
+        return true
+      })
+      if (!matchesQty) return false
+    }
+
+    const priceBuckets = Array.isArray(marketFilters.priceBuckets) ? marketFilters.priceBuckets : []
+    if (priceBuckets.length > 0) {
+      const dMinRaw = d.suggestedPriceMin
+      const dMaxRaw = d.suggestedPriceMax
+      const dMin = dMinRaw != null ? parseFloat(dMinRaw) : null
+      const dMax = dMaxRaw != null ? parseFloat(dMaxRaw) : null
+
+      // If user is filtering by price but demand has no price hint, hide it.
+      if ((dMin == null || Number.isNaN(dMin)) && (dMax == null || Number.isNaN(dMax))) return false
+
+      const demandLoRaw = (dMin != null && !Number.isNaN(dMin)) ? dMin : dMax
+      const demandHiRaw = (dMax != null && !Number.isNaN(dMax)) ? dMax : dMin
+      const demandLo = Math.min(demandLoRaw ?? 0, demandHiRaw ?? 0)
+      const demandHi = Math.max(demandLoRaw ?? 0, demandHiRaw ?? 0)
+
+      const matchesPrice = priceBuckets.some((bucketId) => {
+        const b = PRICE_BUCKETS.find((x) => x.id === bucketId)
+        if (!b) return false
+        if (demandHi < b.min) return false
+        if (b.max != null && demandLo > b.max) return false
+        return true
+      })
+      if (!matchesPrice) return false
+    }
+
+    return true
+  })
+
+  const getDemandCreatedAtMs = (d) => {
+    const ts = d?.createdAt
+    if (!ts) return 0
+    if (typeof ts.toMillis === 'function') return ts.toMillis()
+    if (typeof ts.seconds === 'number') return ts.seconds * 1000
+    return 0
+  }
+
+  const getDemandSuggestedPriceHi = (d) => {
+    const a = d?.suggestedPriceMax
+    const b = d?.suggestedPriceMin
+    const hi = a != null ? parseFloat(a) : (b != null ? parseFloat(b) : 0)
+    return Number.isFinite(hi) ? hi : 0
+  }
+
+  const getDemandQty = (d) => {
+    const q = parseFloat(d?.quantityKg)
+    return Number.isFinite(q) ? q : 0
+  }
+
+  const sortDemandsBy = (list) => {
+    const sortBy = marketFilters.sortBy || 'newest'
+    const arr = (list || []).slice()
+    arr.sort((a, b) => {
+      if (sortBy === 'qty_desc') {
+        const diff = getDemandQty(b) - getDemandQty(a)
+        if (diff !== 0) return diff
+        return getDemandCreatedAtMs(b) - getDemandCreatedAtMs(a)
+      }
+      if (sortBy === 'price_desc') {
+        const diff = getDemandSuggestedPriceHi(b) - getDemandSuggestedPriceHi(a)
+        if (diff !== 0) return diff
+        return getDemandCreatedAtMs(b) - getDemandCreatedAtMs(a)
+      }
+      // newest (default)
+      return getDemandCreatedAtMs(b) - getDemandCreatedAtMs(a)
+    })
+    return arr
+  }
+
+  const priorityDemandsBase = filteredOpenDemands
     .filter(d => isLocationMatch(d.location))
+    .slice()
     .sort((a, b) => {
+      // Always keep nearer district/state ahead inside the "Near You" group
       const aScore = isDistrictMatch(a.location) ? 2 : isStateMatch(a.location) ? 1 : 0
       const bScore = isDistrictMatch(b.location) ? 2 : isStateMatch(b.location) ? 1 : 0
       if (bScore !== aScore) return bScore - aScore
-      // Same location tier → sort by quantity ascending (smallest first)
-      return (parseFloat(a.quantityKg) || 0) - (parseFloat(b.quantityKg) || 0)
+      return 0
     })
-  const otherDemands = openDemands
+  const otherDemandsBase = filteredOpenDemands
     .filter(d => !isLocationMatch(d.location))
-    .sort((a, b) => (a.location || '').localeCompare(b.location || ''))
+
+  const priorityDemands = sortDemandsBy(priorityDemandsBase)
+  const otherDemands = sortDemandsBy(otherDemandsBase)
 
   // Pre-fill form with an existing crop for editing
   const handleEdit = (crop) => {
@@ -1823,20 +1976,158 @@ const FarmerDashboard = () => {
 
       {/* ─── MARKET OPPORTUNITIES TAB ─── */}
       {activeTab === 'market' && (
-        <div className="fd-content">
-          <h2 className="fd-content-title">
-            <FaBullseye style={{ color: '#7c3aed', marginRight: 8 }} />
-            {safeT('fd_tab_crop_requests', 'Crop Requests')}
-            {openDemands.length > 0 && (
-              <span className="fd-notif-count" style={{ background: '#7c3aed' }}>{openDemands.length}</span>
-            )}
-          </h2>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
-            {safeT('fd_market_subtitle', 'Consumers are requesting these crops — submit your best price offer and win the deal!')}
-          </p>
+        <div className="fd-content" style={{ paddingLeft: 300 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 className="fd-content-title">
+                <FaBullseye style={{ color: '#7c3aed', marginRight: 8 }} />
+                {safeT('fd_tab_crop_requests', 'Crop Requests')}
+                {filteredOpenDemands.length > 0 && (
+                  <span className="fd-notif-count" style={{ background: '#7c3aed' }}>{filteredOpenDemands.length}</span>
+                )}
+              </h2>
+              <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
+                {safeT('fd_market_subtitle', 'Consumers are requesting these crops — submit your best price offer and win the deal!')}
+              </p>
+            </div>
+          </div>
+
+          {/* Fixed Filters Sidebar */}
+          <div className="fd-market-filters" data-no-auto-translate="true">
+            <div className="fd-market-filters-header">
+              <div className="fd-market-filters-title">{safeT('fd_filters', 'Filters')}</div>
+              <button
+                className="fd-market-filters-clear"
+                onClick={() => setMarketFilters({
+                  showNear: true,
+                  showOther: true,
+                  verifiedOnly: false,
+                  hasPhoneOnly: false,
+                  cropQuery: '',
+                  qtyBuckets: [],
+                  priceBuckets: [],
+                  sortBy: 'newest',
+                })}
+                type="button"
+              >
+                {safeT('fd_clear_all', 'Clear')}
+              </button>
+            </div>
+
+            <div className="fd-market-filters-grid">
+              <div className="fd-market-filters-field">
+                <div className="fd-market-filters-label">{safeT('fd_filter_crop', 'Crop')}</div>
+                <input
+                  className="fd-market-filters-input"
+                  value={marketFilters.cropQuery}
+                  onChange={(e) => setMarketFilters((prev) => ({ ...prev, cropQuery: e.target.value }))}
+                  placeholder={safeT('fd_filter_crop_placeholder', 'Search crop…')}
+                />
+              </div>
+
+              <label className="fd-market-filters-check">
+                <input
+                  className="fd-market-filters-check-input"
+                  type="checkbox"
+                  checked={!marketFilters.showOther}
+                  onChange={(e) => {
+                    const nearOnly = e.target.checked
+                    setMarketFilters((prev) => ({
+                      ...prev,
+                      showNear: true,
+                      showOther: !nearOnly,
+                    }))
+                  }}
+                />
+                {safeT('fd_near_you', 'Near You')}
+              </label>
+
+              <div className="fd-market-filters-field">
+                <div className="fd-market-filters-label">{safeT('fd_sort_by', 'Sort by')}</div>
+                <div className="fd-market-filters-selectwrap">
+                  <select
+                    className="fd-market-filters-input fd-market-filters-select"
+                    value={marketFilters.sortBy || 'newest'}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (v === 'near_first') {
+                        setMarketFilters((prev) => ({ ...prev, sortBy: v, showNear: true, showOther: true }))
+                        return
+                      }
+                      setMarketFilters((prev) => ({ ...prev, sortBy: v }))
+                    }}
+                  >
+                    <option value="newest">{safeT('fd_sort_newest', 'Newest')}</option>
+                    <option value="qty_desc">{safeT('fd_sort_qty_desc', 'Quantity high→low')}</option>
+                    <option value="price_desc">{safeT('fd_sort_price_desc', 'Suggested price high→low')}</option>
+                    <option value="near_first">{safeT('fd_sort_near_first', 'Near first')}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="fd-market-filters-field">
+                <button
+                  type="button"
+                  className="fd-market-filters-accordion"
+                  onClick={() => setIsPriceBucketsOpen((v) => !v)}
+                  aria-expanded={isPriceBucketsOpen}
+                >
+                  <span className="fd-market-filters-accordion-text">{safeT('fd_filter_price', 'Price (₹/kg)')}</span>
+                  <span className={isPriceBucketsOpen ? 'fd-market-filters-caret fd-market-filters-caret--open' : 'fd-market-filters-caret'}>▾</span>
+                </button>
+                {isPriceBucketsOpen && (
+                  <>
+                    <div className="fd-market-filters-buckets">
+                      {PRICE_BUCKETS.map((b) => (
+                        <label key={b.id} className="fd-market-filters-bucket">
+                          <input
+                            className="fd-market-filters-check-input"
+                            type="checkbox"
+                            checked={(marketFilters.priceBuckets || []).includes(b.id)}
+                            onChange={() => toggleBucket('priceBuckets', b.id)}
+                          />
+                          <span className="fd-market-filters-bucket-text">{b.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="fd-market-filters-note">
+                      {safeT('fd_filter_price_note', 'Uses consumer suggested price (if available)')}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="fd-market-filters-field">
+                <button
+                  type="button"
+                  className="fd-market-filters-accordion"
+                  onClick={() => setIsQtyBucketsOpen((v) => !v)}
+                  aria-expanded={isQtyBucketsOpen}
+                >
+                  <span className="fd-market-filters-accordion-text">{safeT('fd_filter_quantity', 'Quantity (kg)')}</span>
+                  <span className={isQtyBucketsOpen ? 'fd-market-filters-caret fd-market-filters-caret--open' : 'fd-market-filters-caret'}>▾</span>
+                </button>
+                {isQtyBucketsOpen && (
+                  <div className="fd-market-filters-buckets">
+                    {QTY_BUCKETS.map((b) => (
+                      <label key={b.id} className="fd-market-filters-bucket">
+                        <input
+                          className="fd-market-filters-check-input"
+                          type="checkbox"
+                          checked={(marketFilters.qtyBuckets || []).includes(b.id)}
+                          onChange={() => toggleBucket('qtyBuckets', b.id)}
+                        />
+                        <span className="fd-market-filters-bucket-text">{b.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Open Demands — sorted by location match */}
-          {openDemands.length === 0 ? (
+          {filteredOpenDemands.length === 0 ? (
             <div className="fd-empty">
               <div className="fd-empty-icon">🎯</div>
               <h3 className="fd-empty-title">{safeT('fd_no_open_requests_title', 'No open requests yet')}</h3>

@@ -49,6 +49,14 @@ export const useMarketDemands = () => {
     const user = auth.currentUser
     if (!user) return { success: false, error: 'Not logged in' }
     try {
+      const qty = parseFloat(formData.quantityKg)
+      if (!Number.isFinite(qty) || qty <= 0) {
+        return { success: false, error: 'Enter a valid quantity.' }
+      }
+      if (qty > 50) {
+        return { success: false, error: 'Quantity must be 50 kg or less.' }
+      }
+
       const profileSnap = await getDoc(doc(db, 'users', user.uid))
       const profileData = profileSnap.exists() ? profileSnap.data() : {}
       const localUser = (() => {
@@ -95,7 +103,7 @@ export const useMarketDemands = () => {
 
       await addDoc(collection(db, 'market_demands'), {
         cropName:      formData.cropName.trim(),
-        quantityKg:    parseFloat(formData.quantityKg),
+        quantityKg:    qty,
         quantityUnit:  formData.quantityUnit || 'kg',
         location:      formData.location.trim(),
         notes:         (formData.notes || '').trim(),

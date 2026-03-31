@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
@@ -6,17 +6,20 @@ import { auth, db, functions } from '../../../firebase';
 import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { doc, getDoc } from 'firebase/firestore';
+import { GMAIL_SUFFIX, isGmailComplete, isPhoneLike, keepCaretInLocalPart, moveCaretToLocalEnd, normalizeGmailInput } from '../../../utils/gmailInput';
+import { COUNTRY_CODE_PREFIX, normalizePhoneForLookup } from '../../../utils/phoneInput';
 
 const LoginPage = () => {
   const [isFarmer, setIsFarmer] = useState(true);
   const [loginMethod, setLoginMethod] = useState('email'); // 'phone' or 'email'
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState(COUNTRY_CODE_PREFIX);
+  const [email, setEmail] = useState(GMAIL_SUFFIX);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const emailInputRef = useRef(null);
 
   const handleBackToHome = () => {
     navigate('/');
@@ -26,24 +29,43 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
 
-    if (!emailInput || !passwordInput) {
+    const raw = String(emailInput || '').trim();
+    if (!passwordInput || !raw || raw.toLowerCase() === GMAIL_SUFFIX) {
       setError(t('enter_email_phone_password'));
       setLoading(false);
       return;
     }
 
     try {
-      let emailToUse = emailInput.trim();
+      let emailToUse = raw;
 
-      // Detect phone number: only digits (with optional +, spaces, dashes)
-      const isPhoneNumber = /^[\d\s\-+()]+$/.test(emailToUse);
+      const isPhoneNumber = isPhoneLike(emailToUse);
+
+      if (!isPhoneNumber && !isGmailComplete(emailToUse)) {
+        setError(t('enter_email_phone_password'));
+        setLoading(false);
+        return;
+      }
+
+      if (isPhoneNumber) {
+        const cleanPhone = normalizePhoneForLookup(emailToUse);
+        if (!cleanPhone || cleanPhone.length !== 10) {
+          setError(t('enter_email_phone_password'));
+          setLoading(false);
+          return;
+        }
+      }
 
       if (isPhoneNumber) {
         // Call the Cloud Function (runs with Admin SDK — bypasses all Firestore rules)
         const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
-        const cleanPhone = emailToUse.replace(/\D/g, '');
+        const cleanPhone = normalizePhoneForLookup(emailToUse);
         const result = await getEmailByPhone({ phoneNumber: cleanPhone });
         emailToUse = result.data.email;
+      }
+
+      if (!isPhoneNumber && !/^[^@\s]+@gmail\.com$/i.test(emailToUse)) {
+        throw new Error(t('gmail_only_login'));
       }
 
       // Ensure session persists across page-reload and browser-restart
@@ -169,7 +191,16 @@ const LoginPage = () => {
                   type="text"
                   placeholder={t('email')}
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    const next = normalizeGmailInput(e.target.value);
+                    setEmail(next);
+                    requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current));
+                  }}
+                  onFocus={() => requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current))}
+                  onClick={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                  onKeyUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                  onMouseUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                  ref={emailInputRef}
                   style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
                 />
               </div>

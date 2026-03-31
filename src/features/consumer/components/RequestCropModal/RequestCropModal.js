@@ -163,7 +163,8 @@ function LocationPicker({ onChange }) {
 const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduct = null, editMode = false }) => {
   const isRequestNowMode = !!initialProduct
   const cropName = initialProduct?.name || initialProduct?.cropName || initialData?.cropName || ''
-  const prefilledQuantity = initialProduct?.quantity || initialProduct?.availableQuantity || initialProduct?.quantityKg || '1'
+  const prefilledQuantityRaw = initialProduct?.quantity || initialProduct?.availableQuantity || initialProduct?.quantityKg || '1'
+  const prefilledQuantity = String(Math.min(Math.max(parseFloat(prefilledQuantityRaw) || 1, 1), 50))
   const prefilledUnit = initialProduct?.unit || initialProduct?.quantityUnit || 'kg'
   
   const [form, setForm]       = useState(initialData ? {
@@ -184,7 +185,23 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
   const [success, setSuccess] = useState(false)
 
   const handle = (e) => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
+    const { name, value } = e.target
+
+    if (name === 'quantityKg') {
+      if (value === '') {
+        setForm(f => ({ ...f, quantityKg: '' }))
+        setError('')
+        return
+      }
+
+      const parsed = parseFloat(value)
+      const clamped = Math.min(Math.max(Number.isFinite(parsed) ? parsed : 0, 1), 50)
+      setForm(f => ({ ...f, quantityKg: String(clamped) }))
+      setError('')
+      return
+    }
+
+    setForm(f => ({ ...f, [name]: value }))
     setError('')
   }
 
@@ -204,6 +221,8 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
     
     if (!form.quantityKg || isNaN(form.quantityKg) || +form.quantityKg <= 0)
       return setError('Enter a valid quantity.')
+    if (+form.quantityKg > 50)
+      return setError('Quantity must be 50 kg or less.')
     if (!form.quantityUnit)
       return setError('Please select a unit.')
     if (!form.location.trim())
@@ -277,7 +296,7 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   name="quantityKg" value={form.quantityKg} onChange={handle}
-                  className="rcm-input" type="number" min="1" placeholder="e.g. 50" required
+                  className="rcm-input" type="number" min="1" max="50" placeholder="e.g. 50" required
                   style={{ flex: 1 }}
                   readOnly={isRequestNowMode}
                 />

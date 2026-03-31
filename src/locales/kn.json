@@ -268,6 +268,18 @@
     "fd_recently": "ಇತ್ತೀಚೆಗೆ",
 
     "fd_market_subtitle": "ಗ್ರಾಹಕರು ಈ ಬೆಳೆಗಳನ್ನು ಕೇಳುತ್ತಿದ್ದಾರೆ — ನಿಮ್ಮ ಉತ್ತಮ ಬೆಲೆ ಆಫರ್ ಸಲ್ಲಿಸಿ ಮತ್ತು ಡೀಲ್ ಗೆಲ್ಲಿರಿ!",
+    "fd_filters": "ಫಿಲ್ಟರ್‌ಗಳು",
+    "fd_clear_all": "ಕ್ಲಿಯರ್",
+    "fd_my_location_only": "ನನ್ನ ರಾಜ್ಯ/ಜಿಲ್ಲೆ ಮಾತ್ರ",
+    "fd_verified_only": "ಪರಿಶೀಲಿಸಿದವು ಮಾತ್ರ",
+    "fd_has_phone_only": "ಫೋನ್ ಇರುವವು ಮಾತ್ರ",
+    "fd_filter_crop": "ಬೆಳೆ",
+    "fd_filter_crop_placeholder": "ಬೆಳೆ ಹುಡುಕಿ…",
+    "fd_filter_quantity": "ಪ್ರಮಾಣ (kg)",
+    "fd_filter_price": "ಬೆಲೆ (₹/kg)",
+    "fd_filter_price_note": "ಗ್ರಾಹಕರ ಸೂಚಿಸಿದ ಬೆಲೆ (ಇದ್ದರೆ) ಬಳಸುತ್ತದೆ",
+    "fd_min": "ಕನಿಷ್ಠ",
+    "fd_max": "ಗರಿಷ್ಠ",
     "fd_no_open_requests_title": "ಈಗ ತೆರೆದ ವಿನಂತಿಗಳು ಇಲ್ಲ",
     "fd_no_open_requests_sub": "ಗ್ರಾಹಕರು ಬೆಳೆಗಳನ್ನು ವಿನಂತಿಸಿದಾಗ, ಅವು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
 

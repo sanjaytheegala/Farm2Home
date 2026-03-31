@@ -80,7 +80,11 @@ service cloud.firestore {
       // Any signed-in user can read (farmers browse open demands, consumers see their own)
       allow read: if isSignedIn();
       // Only consumers can create their own demand
-      allow create: if isSignedIn() && request.resource.data.consumerId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.consumerId == request.auth.uid
+        && request.resource.data.quantityKg is number
+        && request.resource.data.quantityKg > 0
+        && request.resource.data.quantityKg <= 50;
       // Consumer can update their own demand document.
       // Farmer can only quote an open demand (open -> quoted) by setting
       // committedFarmerId to themselves, OR update demands where they are

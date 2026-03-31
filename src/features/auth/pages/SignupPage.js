@@ -1,22 +1,25 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { auth, db } from '../../../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { GMAIL_SUFFIX, isGmailComplete, keepCaretInLocalPart, moveCaretToLocalEnd, normalizeGmailInput } from '../../../utils/gmailInput';
+import { COUNTRY_CODE_PREFIX, normalizePhoneForLookup, isPhoneComplete } from '../../../utils/phoneInput';
 
 const SignupPage = () => {
   const [userType, setUserType] = useState('consumer'); // 'consumer' or 'farmer'
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(GMAIL_SUFFIX);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(COUNTRY_CODE_PREFIX);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const emailInputRef = useRef(null);
 
   const handleBackToHome = () => {
     navigate('/');
@@ -25,6 +28,11 @@ const SignupPage = () => {
   const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!isGmailComplete(email)) {
+      setError(t('enter_email_error'));
+      return;
+    }
 
     if (!/^[^@\s]+@gmail\.com$/i.test(email.trim())) {
       setError(t('gmail_only_signup'));
@@ -56,8 +64,8 @@ const SignupPage = () => {
       return;
     }
 
-    const cleanPhone = phone.replace(/\D/g, '');
-    if (!cleanPhone || cleanPhone.length !== 10) {
+    const cleanPhone = normalizePhoneForLookup(phone);
+    if (!isPhoneComplete(phone)) {
       setError(t('valid_10_digit_phone'));
       return;
     }
@@ -66,16 +74,16 @@ const SignupPage = () => {
 
     try {
       // Create Firebase Auth account
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
 
       // Save user profile to Firestore
       const userData = {
         uid: user.uid,
-        email: email,
+        email: email.trim(),
         name: name || 'User',
-        phoneNumber: phone.replace(/\D/g, ''),
-        phone: phone.replace(/\D/g, ''),
+        phoneNumber: cleanPhone,
+        phone: cleanPhone,
         role: userType,
         status: 'active',
         createdAt: serverTimestamp(),
@@ -154,7 +162,16 @@ const SignupPage = () => {
               type="email"
               placeholder={t('email')}
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => {
+                const next = normalizeGmailInput(e.target.value);
+                setEmail(next);
+                requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current));
+              }}
+              onFocus={() => requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current))}
+              onClick={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+              onKeyUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+              onMouseUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+              ref={emailInputRef}
               required
               style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
             />

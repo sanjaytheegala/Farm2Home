@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../../context/AuthContext'
@@ -16,6 +16,8 @@ import { auth, db, functions } from '../../../firebase'
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, setDoc, serverTimestamp } from 'firebase/firestore'
+import { GMAIL_SUFFIX, coerceEmailOrPhone, isGmailComplete, isPhoneLike, keepCaretInLocalPart, moveCaretToLocalEnd } from '../../../utils/gmailInput'
+import { normalizePhoneForLookup } from '../../../utils/phoneInput'
 
 const HomePage = () => {
   const { t } = useTranslation()
@@ -29,12 +31,13 @@ const HomePage = () => {
   
   // Auth form states
   const [formType, setFormType] = useState('login') // 'login' or 'signup'
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(GMAIL_SUFFIX)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const emailInputRef = useRef(null)
   // Forgot password states
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
@@ -89,22 +92,26 @@ const HomePage = () => {
 
     try {
       // Validate inputs
-      if (!email || !password) {
+      const emailRaw = String(email || '').trim();
+      if (!password || !emailRaw || emailRaw.toLowerCase() === GMAIL_SUFFIX) {
         throw new Error(t('enter_email_password'));
       }
 
-      let emailToUse = email.trim();
+      let emailToUse = emailRaw;
 
-      // Check if input is a phone number (contains only digits and possibly +, -, spaces)
-      const phonePattern = /^[\d\s\-+()]+$/;
-      const isPhoneNumber = phonePattern.test(emailToUse);
+      const isPhoneNumber = isPhoneLike(emailToUse);
 
       if (isPhoneNumber) {
         // Call the Cloud Function (runs with Admin SDK — bypasses all Firestore rules)
         const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
-        const cleanPhone = emailToUse.replace(/\D/g, '');
+        const cleanPhone = normalizePhoneForLookup(emailToUse);
         const result = await getEmailByPhone({ phoneNumber: cleanPhone });
         emailToUse = result.data.email;
+      }
+
+      // If user is typing with the fixed suffix, ensure local-part exists
+      if (!isPhoneNumber && !isGmailComplete(emailToUse)) {
+        throw new Error(t('enter_email_error'));
       }
 
       if (!/^[^@\s]+@gmail\.com$/i.test(emailToUse)) {
@@ -177,7 +184,7 @@ const HomePage = () => {
     setError('');
     setLoading(true);
 
-    if (!email || !password) {
+    if (!password || !isGmailComplete(email)) {
       setError(t('enter_email_password'));
       setLoading(false);
       return;
@@ -241,7 +248,7 @@ const HomePage = () => {
   };
 
   const resetForm = () => {
-    setEmail('');
+    setEmail(GMAIL_SUFFIX);
     setPassword('');
     setConfirmPassword('');
     setError('');
@@ -275,6 +282,7 @@ const HomePage = () => {
       navigate(userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
       return;
     }
+    resetForm();
     setSelectedRole(role)
     setShowLoginCard(true)
     setFormType('login');
@@ -606,7 +614,16 @@ const HomePage = () => {
                         type="email"
                         placeholder={t('email_address_placeholder')}
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          const next = coerceEmailOrPhone(e.target.value);
+                          setEmail(next);
+                          requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current));
+                        }}
+                        onFocus={() => requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current))}
+                        onClick={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                        onKeyUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                        onMouseUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                        ref={emailInputRef}
                         style={{...inputField, paddingLeft: 32}}
                         required
                       />
@@ -665,7 +682,16 @@ const HomePage = () => {
                         type="email"
                         placeholder={t('email_placeholder')}
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          const next = coerceEmailOrPhone(e.target.value);
+                          setEmail(next);
+                          requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current));
+                        }}
+                        onFocus={() => requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current))}
+                        onClick={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                        onKeyUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                        onMouseUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                        ref={emailInputRef}
                         style={{...inputField, paddingLeft: 32}}
                         required
                       />
@@ -1153,8 +1179,10 @@ const secondaryBtn = {
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
   gap: '12px',
-  minWidth: '300px',
+  width: '320px',
+  maxWidth: '100%',
   minHeight: '64px',
   letterSpacing: '0.2px',
   boxShadow: '0 10px 22px rgba(185, 28, 28, 0.34), 0 0 0 1px rgba(254, 202, 202, 0.42) inset',
@@ -1162,6 +1190,8 @@ const secondaryBtn = {
   position: 'relative',
   overflow: 'hidden',
   textShadow: '0 1px 2px rgba(0,0,0,0.18)',
+  textAlign: 'center',
+  boxSizing: 'border-box',
 };
 
 const shopFreshBtn = {
@@ -1229,6 +1259,10 @@ const sectionTitle = {
   marginBottom: '50px',
   color: '#333',
   fontWeight: 'bold',
+  lineHeight: 1.25,
+  letterSpacing: 'normal',
+  textShadow: 'none',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Nirmala UI", "Noto Sans Malayalam", "Noto Sans Kannada", "Noto Sans", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif',
 };
 
 const featuresGrid = {

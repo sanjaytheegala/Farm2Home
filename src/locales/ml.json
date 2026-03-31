@@ -268,6 +268,18 @@
     "fd_recently": "സമീപകാലത്ത്",
 
     "fd_market_subtitle": "ഉപഭോക്താക്കൾ ഈ വിളകൾ അഭ്യർത്ഥിക്കുന്നു — നിങ്ങളുടെ മികച്ച വില ഓഫർ സമർപ്പിച്ച് ഡീൽ നേടൂ!",
+    "fd_filters": "ഫിൽട്ടറുകൾ",
+    "fd_clear_all": "ക്ലിയർ",
+    "fd_my_location_only": "എൻ സംസ്ഥാനo/ജില്ല മാത്രം",
+    "fd_verified_only": "പരിശോധിച്ചത് മാത്രം",
+    "fd_has_phone_only": "ഫോൺ ഉള്ളത് മാത്രം",
+    "fd_filter_crop": "വിള",
+    "fd_filter_crop_placeholder": "വിള തിരയുക…",
+    "fd_filter_quantity": "അളവ് (kg)",
+    "fd_filter_price": "വില (₹/kg)",
+    "fd_filter_price_note": "ഉപഭോക്താവിന്റെ നിർദ്ദേശിച്ച വില (ഉണ്ടെങ്കിൽ) ഉപയോഗിക്കുന്നു",
+    "fd_min": "കുറഞ്ഞത്",
+    "fd_max": "കൂടിയത്",
     "fd_no_open_requests_title": "ഇപ്പോൾ തുറന്ന അഭ്യർത്ഥനകൾ ഇല്ല",
     "fd_no_open_requests_sub": "ഉപഭോക്താക്കൾ വിളകൾ അഭ്യർത്ഥിക്കുമ്പോൾ അവ ഇവിടെ കാണിക്കും.",
 

@@ -27,50 +27,50 @@ const CropRecommendation = () => {
 
   // Enhanced soil types with more details
   const soilTypes = [
-    { value: 'clay', label: t('soil_clay') || 'Clay Soil', description: t('soil_clay_desc') || 'Heavy, retains water well, good for rice and wheat', characteristics: ['High water retention', 'Rich in minerals', 'Good for paddy crops'] },
-    { value: 'sandy', label: t('soil_sandy') || 'Sandy Soil', description: t('soil_sandy_desc') || 'Light, well-draining, good for root vegetables', characteristics: ['Fast drainage', 'Warms quickly', 'Good for root crops'] },
-    { value: 'loamy', label: t('soil_loamy') || 'Loamy Soil', description: t('soil_loamy_desc') || 'Balanced, ideal for most crops', characteristics: ['Perfect balance', 'High fertility', 'Best for most crops'] },
-    { value: 'silt', label: t('soil_silt') || 'Silt Soil', description: t('soil_silt_desc') || 'Fine particles, good for vegetables and fruits', characteristics: ['Smooth texture', 'Good moisture retention', 'Ideal for vegetables'] },
-    { value: 'red', label: t('soil_red') || 'Red Soil', description: t('soil_red_desc') || 'Rich in iron, good for pulses and oilseeds', characteristics: ['Iron rich', 'Slightly acidic', 'Good for pulses'] },
-    { value: 'black', label: t('soil_black') || 'Black Soil', description: t('soil_black_desc') || 'High fertility, excellent for cotton and sugarcane', characteristics: ['High fertility', 'Rich in minerals', 'Excellent for cash crops'] }
+    { value: 'clay', label: t('soil_clay') || 'Clay Soil', description: t('soil_clay_desc') || 'Heavy, retains water well, good for rice and wheat', characteristics: [t('soil_clay_char1') || 'High water retention', t('soil_clay_char2') || 'Rich in minerals', t('soil_clay_char3') || 'Good for paddy crops'] },
+    { value: 'sandy', label: t('soil_sandy') || 'Sandy Soil', description: t('soil_sandy_desc') || 'Light, well-draining, good for root vegetables', characteristics: [t('soil_sandy_char1') || 'Fast drainage', t('soil_sandy_char2') || 'Warms quickly', t('soil_sandy_char3') || 'Good for root crops'] },
+    { value: 'loamy', label: t('soil_loamy') || 'Loamy Soil', description: t('soil_loamy_desc') || 'Balanced, ideal for most crops', characteristics: [t('soil_loamy_char1') || 'Perfect balance', t('soil_loamy_char2') || 'High fertility', t('soil_loamy_char3') || 'Best for most crops'] },
+    { value: 'silt', label: t('soil_silt') || 'Silt Soil', description: t('soil_silt_desc') || 'Fine particles, good for vegetables and fruits', characteristics: [t('soil_silt_char1') || 'Smooth texture', t('soil_silt_char2') || 'Good moisture retention', t('soil_silt_char3') || 'Ideal for vegetables'] },
+    { value: 'red', label: t('soil_red') || 'Red Soil', description: t('soil_red_desc') || 'Rich in iron, good for pulses and oilseeds', characteristics: [t('soil_red_char1') || 'Iron rich', t('soil_red_char2') || 'Slightly acidic', t('soil_red_char3') || 'Good for pulses'] },
+    { value: 'black', label: t('soil_black') || 'Black Soil', description: t('soil_black_desc') || 'High fertility, excellent for cotton and sugarcane', characteristics: [t('soil_black_char1') || 'High fertility', t('soil_black_char2') || 'Rich in minerals', t('soil_black_char3') || 'Excellent for cash crops'] }
   ];
 
   // Enhanced climate zones
   const climates = [
-    { value: 'tropical', label: t('climate_tropical') || 'Tropical', description: t('climate_tropical_desc') || 'Hot and humid, year-round growing', characteristics: ['High temperature', 'High humidity', 'Year-round growing'] },
-    { value: 'subtropical', label: t('climate_subtropical') || 'Subtropical', description: t('climate_subtropical_desc') || 'Warm with distinct seasons', characteristics: ['Moderate temperature', 'Distinct seasons', 'Good for diverse crops'] },
-    { value: 'temperate', label: t('climate_temperate') || 'Temperate', description: t('climate_temperate_desc') || 'Moderate temperatures, seasonal changes', characteristics: ['Moderate climate', 'Seasonal changes', 'Good for grains'] },
-    { value: 'arid', label: t('climate_arid') || 'Arid', description: t('climate_arid_desc') || 'Hot and dry, limited rainfall', characteristics: ['Low rainfall', 'High temperature', 'Drought-resistant crops'] },
-    { value: 'semi_arid', label: t('climate_semi_arid') || 'Semi-Arid', description: t('climate_semi_arid_desc') || 'Moderate rainfall, drought-resistant crops', characteristics: ['Moderate rainfall', 'Drought-resistant', 'Mixed farming'] }
+    { value: 'tropical', label: t('climate_tropical') || 'Tropical', description: t('climate_tropical_desc') || 'Hot and humid, year-round growing', characteristics: [t('climate_tropical_char1') || 'High temperature', t('climate_tropical_char2') || 'High humidity', t('climate_tropical_char3') || 'Year-round growing'] },
+    { value: 'subtropical', label: t('climate_subtropical') || 'Subtropical', description: t('climate_subtropical_desc') || 'Warm with distinct seasons', characteristics: [t('climate_subtropical_char1') || 'Moderate temperature', t('climate_subtropical_char2') || 'Distinct seasons', t('climate_subtropical_char3') || 'Good for diverse crops'] },
+    { value: 'temperate', label: t('climate_temperate') || 'Temperate', description: t('climate_temperate_desc') || 'Moderate temperatures, seasonal changes', characteristics: [t('climate_temperate_char1') || 'Moderate climate', t('climate_temperate_char2') || 'Seasonal changes', t('climate_temperate_char3') || 'Good for grains'] },
+    { value: 'arid', label: t('climate_arid') || 'Arid', description: t('climate_arid_desc') || 'Hot and dry, limited rainfall', characteristics: [t('climate_arid_char1') || 'Low rainfall', t('climate_arid_char2') || 'High temperature', t('climate_arid_char3') || 'Drought-resistant crops'] },
+    { value: 'semi_arid', label: t('climate_semi_arid') || 'Semi-Arid', description: t('climate_semi_arid_desc') || 'Moderate rainfall, drought-resistant crops', characteristics: [t('climate_semi_arid_char1') || 'Moderate rainfall', t('climate_semi_arid_char2') || 'Drought-resistant', t('climate_semi_arid_char3') || 'Mixed farming'] }
   ];
 
   // Enhanced seasons
   const seasons = [
-    { value: 'kharif', label: t('season_kharif') || 'Kharif (Monsoon)', description: t('season_kharif_desc') || 'June-October, rice, maize, cotton', characteristics: ['Monsoon season', 'High rainfall', 'Rice, maize, cotton'] },
-    { value: 'rabi', label: t('season_rabi') || 'Rabi (Winter)', description: t('season_rabi_desc') || 'October-March, wheat, barley, mustard', characteristics: ['Winter season', 'Moderate rainfall', 'Wheat, barley, mustard'] },
-    { value: 'zaid', label: t('season_zaid') || 'Zaid (Summer)', description: t('season_zaid_desc') || 'March-June, vegetables, fruits', characteristics: ['Summer season', 'Irrigation needed', 'Vegetables, fruits'] }
+    { value: 'kharif', label: t('season_kharif') || 'Kharif (Monsoon)', description: t('season_kharif_desc') || 'June-October, rice, maize, cotton', characteristics: [t('season_kharif_char1') || 'Monsoon season', t('season_kharif_char2') || 'High rainfall', t('season_kharif_char3') || 'Rice, maize, cotton'] },
+    { value: 'rabi', label: t('season_rabi') || 'Rabi (Winter)', description: t('season_rabi_desc') || 'October-March, wheat, barley, mustard', characteristics: [t('season_rabi_char1') || 'Winter season', t('season_rabi_char2') || 'Moderate rainfall', t('season_rabi_char3') || 'Wheat, barley, mustard'] },
+    { value: 'zaid', label: t('season_zaid') || 'Zaid (Summer)', description: t('season_zaid_desc') || 'March-June, vegetables, fruits', characteristics: [t('season_zaid_char1') || 'Summer season', t('season_zaid_char2') || 'Irrigation needed', t('season_zaid_char3') || 'Vegetables, fruits'] }
   ];
 
   // Enhanced water availability
   const waterOptions = [
-    { value: 'high', label: t('water_high') || 'High (Irrigation available)', description: t('water_high_desc') || 'Can grow water-intensive crops', characteristics: ['Full irrigation', 'Water-intensive crops', 'High yield potential'] },
-    { value: 'moderate', label: t('water_moderate') || 'Moderate', description: t('water_moderate_desc') || 'Balanced water usage crops', characteristics: ['Partial irrigation', 'Balanced crops', 'Moderate yield'] },
-    { value: 'low', label: t('water_low') || 'Low (Rainfed)', description: t('water_low_desc') || 'Drought-resistant crops recommended', characteristics: ['Rainfed farming', 'Drought-resistant', 'Low water usage'] }
+    { value: 'high', label: t('water_high') || 'High (Irrigation available)', description: t('water_high_desc') || 'Can grow water-intensive crops', characteristics: [t('water_high_char1') || 'Full irrigation', t('water_high_char2') || 'Water-intensive crops', t('water_high_char3') || 'High yield potential'] },
+    { value: 'moderate', label: t('water_moderate') || 'Moderate', description: t('water_moderate_desc') || 'Balanced water usage crops', characteristics: [t('water_moderate_char1') || 'Partial irrigation', t('water_moderate_char2') || 'Balanced crops', t('water_moderate_char3') || 'Moderate yield'] },
+    { value: 'low', label: t('water_low') || 'Low (Rainfed)', description: t('water_low_desc') || 'Drought-resistant crops recommended', characteristics: [t('water_low_char1') || 'Rainfed farming', t('water_low_char2') || 'Drought-resistant', t('water_low_char3') || 'Low water usage'] }
   ];
 
   // Enhanced experience levels
   const experienceLevels = [
-    { value: 'beginner', label: t('exp_beginner') || 'Beginner (0-2 years)', description: t('exp_beginner_desc') || 'Easy to grow crops', characteristics: ['Simple techniques', 'Low risk', 'Easy maintenance'] },
-    { value: 'intermediate', label: t('exp_intermediate') || 'Intermediate (3-5 years)', description: t('exp_intermediate_desc') || 'Moderate complexity crops', characteristics: ['Moderate techniques', 'Medium risk', 'Some expertise needed'] },
-    { value: 'expert', label: t('exp_expert') || 'Expert (5+ years)', description: t('exp_expert_desc') || 'Advanced farming techniques', characteristics: ['Advanced techniques', 'High risk', 'Expert knowledge'] }
+    { value: 'beginner', label: t('exp_beginner') || 'Beginner (0-2 years)', description: t('exp_beginner_desc') || 'Easy to grow crops', characteristics: [t('exp_beginner_char1') || 'Simple techniques', t('exp_beginner_char2') || 'Low risk', t('exp_beginner_char3') || 'Easy maintenance'] },
+    { value: 'intermediate', label: t('exp_intermediate') || 'Intermediate (3-5 years)', description: t('exp_intermediate_desc') || 'Moderate complexity crops', characteristics: [t('exp_intermediate_char1') || 'Moderate techniques', t('exp_intermediate_char2') || 'Medium risk', t('exp_intermediate_char3') || 'Some expertise needed'] },
+    { value: 'expert', label: t('exp_expert') || 'Expert (5+ years)', description: t('exp_expert_desc') || 'Advanced farming techniques', characteristics: [t('exp_expert_char1') || 'Advanced techniques', t('exp_expert_char2') || 'High risk', t('exp_expert_char3') || 'Expert knowledge'] }
   ];
 
   // Enhanced market preferences
   const marketPreferences = [
-    { value: 'local', label: t('market_local') || 'Local Market', description: t('market_local_desc') || 'Fresh produce for nearby markets', characteristics: ['Nearby markets', 'Fresh produce', 'Quick sales'] },
-    { value: 'export', label: t('market_export') || 'Export Market', description: t('market_export_desc') || 'High-value crops for international markets', characteristics: ['International markets', 'High value', 'Quality standards'] },
-    { value: 'processing', label: t('market_processing') || 'Processing Industry', description: t('market_processing_desc') || 'Crops for food processing', characteristics: ['Bulk supply', 'Processing units', 'Contract farming'] },
-    { value: 'organic', label: t('market_organic') || 'Organic Market', description: t('market_organic_desc') || 'Certified organic produce', characteristics: ['Certified organic', 'Premium pricing', 'Natural methods'] }
+    { value: 'local', label: t('market_local') || 'Local Market', description: t('market_local_desc') || 'Fresh produce for nearby markets', characteristics: [t('market_local_char1') || 'Nearby markets', t('market_local_char2') || 'Fresh produce', t('market_local_char3') || 'Quick sales'] },
+    { value: 'export', label: t('market_export') || 'Export Market', description: t('market_export_desc') || 'High-value crops for international markets', characteristics: [t('market_export_char1') || 'International markets', t('market_export_char2') || 'High value', t('market_export_char3') || 'Quality standards'] },
+    { value: 'processing', label: t('market_processing') || 'Processing Industry', description: t('market_processing_desc') || 'Crops for food processing', characteristics: [t('market_processing_char1') || 'Bulk supply', t('market_processing_char2') || 'Processing units', t('market_processing_char3') || 'Contract farming'] },
+    { value: 'organic', label: t('market_organic') || 'Organic Market', description: t('market_organic_desc') || 'Certified organic produce', characteristics: [t('market_organic_char1') || 'Certified organic', t('market_organic_char2') || 'Premium pricing', t('market_organic_char3') || 'Natural methods'] }
   ];
 
 
@@ -86,7 +86,7 @@ const CropRecommendation = () => {
       const cropDatabase = {
         // Cereals
         rice: {
-          name: 'Rice',
+          nameKey: 'crop_rice',
           scientificName: 'Oryza sativa',
           soil: ['clay', 'loamy'],
           climate: ['tropical', 'subtropical'],
@@ -94,18 +94,19 @@ const CropRecommendation = () => {
           water: ['high'],
           experience: ['beginner', 'intermediate'],
           market: ['local', 'export'],
-          profit: 'High',
-          risk: 'Low',
-          duration: '120-150 days',
-          investment: '₹15,000-25,000 per acre',
-          yield: '2-3 tons per acre',
-          bestPractices: ['Proper water management', 'Timely transplantation', 'Balanced fertilization'],
-          challenges: ['Water requirement', 'Pest management', 'Labor intensive'],
-          marketTrends: 'Stable demand, good export potential',
-          sustainability: 'High - supports food security'
+          profitLevel: 'high',
+          riskLevel: 'low',
+          durationKey: 'crop_duration_rice',
+          investmentKey: 'crop_investment_rice',
+          investmentMax: 25000,
+          yieldKey: 'crop_yield_rice',
+          bestPractices: ['bp_proper_water_management', 'bp_timely_transplantation', 'bp_balanced_fertilization'],
+          challenges: ['ch_water_requirement', 'ch_pest_management', 'ch_labor_intensive'],
+          marketTrendsKey: 'crop_market_trends_rice',
+          sustainabilityKey: 'crop_sustainability_rice'
         },
         wheat: {
-          name: 'Wheat',
+          nameKey: 'crop_wheat',
           scientificName: 'Triticum aestivum',
           soil: ['loamy', 'clay'],
           climate: ['temperate', 'subtropical'],
@@ -113,18 +114,19 @@ const CropRecommendation = () => {
           water: ['moderate'],
           experience: ['beginner', 'intermediate'],
           market: ['local', 'processing'],
-          profit: 'Medium',
-          risk: 'Low',
-          duration: '110-130 days',
-          investment: '₹12,000-20,000 per acre',
-          yield: '2-2.5 tons per acre',
-          bestPractices: ['Timely sowing', 'Proper irrigation', 'Disease management'],
-          challenges: ['Market price fluctuations', 'Disease control', 'Storage issues'],
-          marketTrends: 'Stable domestic demand',
-          sustainability: 'High - staple food crop'
+          profitLevel: 'medium',
+          riskLevel: 'low',
+          durationKey: 'crop_duration_wheat',
+          investmentKey: 'crop_investment_wheat',
+          investmentMax: 20000,
+          yieldKey: 'crop_yield_wheat',
+          bestPractices: ['bp_timely_sowing', 'bp_proper_irrigation', 'bp_disease_management'],
+          challenges: ['ch_market_price_fluctuations', 'ch_disease_control', 'ch_storage_issues'],
+          marketTrendsKey: 'crop_market_trends_wheat',
+          sustainabilityKey: 'crop_sustainability_wheat'
         },
         maize: {
-          name: 'Maize',
+          nameKey: 'crop_maize',
           scientificName: 'Zea mays',
           soil: ['loamy', 'sandy'],
           climate: ['tropical', 'subtropical'],
@@ -132,20 +134,21 @@ const CropRecommendation = () => {
           water: ['moderate'],
           experience: ['beginner', 'intermediate'],
           market: ['processing', 'local'],
-          profit: 'Medium',
-          risk: 'Medium',
-          duration: '90-110 days',
-          investment: '₹10,000-18,000 per acre',
-          yield: '2.5-3.5 tons per acre',
-          bestPractices: ['Hybrid seeds', 'Proper spacing', 'Timely harvesting'],
-          challenges: ['Pest management', 'Market price fluctuations', 'Storage'],
-          marketTrends: 'Growing demand for processed products',
-          sustainability: 'Medium - versatile crop'
+          profitLevel: 'medium',
+          riskLevel: 'medium',
+          durationKey: 'crop_duration_maize',
+          investmentKey: 'crop_investment_maize',
+          investmentMax: 18000,
+          yieldKey: 'crop_yield_maize',
+          bestPractices: ['bp_hybrid_seeds', 'bp_proper_spacing', 'bp_timely_harvesting'],
+          challenges: ['ch_pest_management', 'ch_market_price_fluctuations', 'ch_storage'],
+          marketTrendsKey: 'crop_market_trends_maize',
+          sustainabilityKey: 'crop_sustainability_maize'
         },
         
         // Pulses
         chickpea: {
-          name: 'Chickpea',
+          nameKey: 'crop_chickpea',
           scientificName: 'Cicer arietinum',
           soil: ['loamy', 'sandy'],
           climate: ['temperate', 'subtropical'],
@@ -153,20 +156,21 @@ const CropRecommendation = () => {
           water: ['low', 'moderate'],
           experience: ['beginner'],
           market: ['local', 'export'],
-          profit: 'High',
-          risk: 'Low',
-          duration: '120-140 days',
-          investment: '₹8,000-15,000 per acre',
-          yield: '1-1.5 tons per acre',
-          bestPractices: ['Proper seed treatment', 'Disease management', 'Timely harvesting'],
-          challenges: ['Disease susceptibility', 'Market price fluctuations', 'Market access'],
-          marketTrends: 'High demand for protein-rich food',
-          sustainability: 'High - nitrogen fixing crop'
+          profitLevel: 'high',
+          riskLevel: 'low',
+          durationKey: 'crop_duration_chickpea',
+          investmentKey: 'crop_investment_chickpea',
+          investmentMax: 15000,
+          yieldKey: 'crop_yield_chickpea',
+          bestPractices: ['bp_proper_seed_treatment', 'bp_disease_management', 'bp_timely_harvesting'],
+          challenges: ['ch_disease_susceptibility', 'ch_market_price_fluctuations', 'ch_market_access'],
+          marketTrendsKey: 'crop_market_trends_chickpea',
+          sustainabilityKey: 'crop_sustainability_chickpea'
         },
         
         // Oilseeds
         groundnut: {
-          name: 'Groundnut',
+          nameKey: 'crop_groundnut',
           scientificName: 'Arachis hypogaea',
           soil: ['sandy', 'loamy'],
           climate: ['tropical', 'subtropical'],
@@ -174,20 +178,21 @@ const CropRecommendation = () => {
           water: ['moderate'],
           experience: ['intermediate'],
           market: ['processing', 'export'],
-          profit: 'High',
-          risk: 'Medium',
-          duration: '120-140 days',
-          investment: '₹12,000-20,000 per acre',
-          yield: '1.5-2 tons per acre',
-          bestPractices: ['Proper spacing', 'Disease control', 'Timely harvesting'],
-          challenges: ['Aflatoxin management', 'Market price fluctuations', 'Storage issues'],
-          marketTrends: 'Growing demand for oil and protein',
-          sustainability: 'Medium - oil crop'
+          profitLevel: 'high',
+          riskLevel: 'medium',
+          durationKey: 'crop_duration_groundnut',
+          investmentKey: 'crop_investment_groundnut',
+          investmentMax: 20000,
+          yieldKey: 'crop_yield_groundnut',
+          bestPractices: ['bp_proper_spacing', 'bp_disease_control', 'bp_timely_harvesting'],
+          challenges: ['ch_aflatoxin_management', 'ch_market_price_fluctuations', 'ch_storage_issues'],
+          marketTrendsKey: 'crop_market_trends_groundnut',
+          sustainabilityKey: 'crop_sustainability_groundnut'
         },
         
         // Vegetables
         tomato: {
-          name: 'Tomato',
+          nameKey: 'crop_tomato',
           scientificName: 'Solanum lycopersicum',
           soil: ['loamy', 'sandy'],
           climate: ['tropical', 'subtropical'],
@@ -195,20 +200,21 @@ const CropRecommendation = () => {
           water: ['high'],
           experience: ['intermediate'],
           market: ['local', 'processing'],
-          profit: 'Very High',
-          risk: 'High',
-          duration: '90-120 days',
-          investment: '₹25,000-40,000 per acre',
-          yield: '15-25 tons per acre',
-          bestPractices: ['Staking', 'Disease management', 'Regular harvesting'],
-          challenges: ['Price fluctuations', 'Disease management', 'Labor intensive'],
-          marketTrends: 'Year-round demand',
-          sustainability: 'Medium - high input crop'
+          profitLevel: 'very_high',
+          riskLevel: 'high',
+          durationKey: 'crop_duration_tomato',
+          investmentKey: 'crop_investment_tomato',
+          investmentMax: 40000,
+          yieldKey: 'crop_yield_tomato',
+          bestPractices: ['bp_staking', 'bp_disease_management', 'bp_regular_harvesting'],
+          challenges: ['ch_price_fluctuations', 'ch_disease_management', 'ch_labor_intensive'],
+          marketTrendsKey: 'crop_market_trends_tomato',
+          sustainabilityKey: 'crop_sustainability_tomato'
         },
         
         // Fruits
         mango: {
-          name: 'Mango',
+          nameKey: 'crop_mango',
           scientificName: 'Mangifera indica',
           soil: ['loamy', 'sandy'],
           climate: ['tropical', 'subtropical'],
@@ -216,20 +222,21 @@ const CropRecommendation = () => {
           water: ['moderate'],
           experience: ['expert'],
           market: ['local', 'export'],
-          profit: 'Very High',
-          risk: 'Medium',
-          duration: '3-5 years (first harvest)',
-          investment: '₹50,000-80,000 per acre',
-          yield: '8-12 tons per acre (mature trees)',
-          bestPractices: ['Proper pruning', 'Disease management', 'Quality maintenance'],
-          challenges: ['Long gestation period', 'Disease management', 'Market competition'],
-          marketTrends: 'High export potential',
-          sustainability: 'High - perennial crop'
+          profitLevel: 'very_high',
+          riskLevel: 'medium',
+          durationKey: 'crop_duration_mango',
+          investmentKey: 'crop_investment_mango',
+          investmentMax: 80000,
+          yieldKey: 'crop_yield_mango',
+          bestPractices: ['bp_proper_pruning', 'bp_disease_management', 'bp_quality_maintenance'],
+          challenges: ['ch_long_gestation_period', 'ch_disease_management', 'ch_market_competition'],
+          marketTrendsKey: 'crop_market_trends_mango',
+          sustainabilityKey: 'crop_sustainability_mango'
         },
         
         // Cash Crops
         cotton: {
-          name: 'Cotton',
+          nameKey: 'crop_cotton',
           scientificName: 'Gossypium hirsutum',
           soil: ['black', 'loamy'],
           climate: ['tropical', 'subtropical'],
@@ -237,15 +244,16 @@ const CropRecommendation = () => {
           water: ['moderate'],
           experience: ['intermediate', 'expert'],
           market: ['processing', 'export'],
-          profit: 'High',
-          risk: 'Medium',
-          duration: '150-180 days',
-          investment: '₹15,000-25,000 per acre',
-          yield: '2-3 quintals per acre',
-          bestPractices: ['Pest management', 'Proper spacing', 'Quality picking'],
-          challenges: ['Pest management', 'Price fluctuations', 'Labor intensive'],
-          marketTrends: 'Stable textile industry demand',
-          sustainability: 'Medium - cash crop'
+          profitLevel: 'high',
+          riskLevel: 'medium',
+          durationKey: 'crop_duration_cotton',
+          investmentKey: 'crop_investment_cotton',
+          investmentMax: 25000,
+          yieldKey: 'crop_yield_cotton',
+          bestPractices: ['bp_pest_management', 'bp_proper_spacing', 'bp_quality_picking'],
+          challenges: ['ch_pest_management', 'ch_price_fluctuations', 'ch_labor_intensive'],
+          marketTrendsKey: 'crop_market_trends_cotton',
+          sustainabilityKey: 'crop_sustainability_cotton'
         }
       };
 
@@ -272,7 +280,7 @@ const CropRecommendation = () => {
         if (crop.market.includes(data.marketPreference)) score += 5;
         
         // Budget consideration (10 points)
-        const cropInvestment = parseInt(crop.investment.split('-')[1].replace(/[^\d]/g, ''));
+        const cropInvestment = crop.investmentMax || 50000;
         const userBudget = parseInt(data.budget) || 50000;
         if (cropInvestment <= userBudget) score += 10;
         
@@ -287,7 +295,7 @@ const CropRecommendation = () => {
             ...crop,
             score,
             key,
-            suitability: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Fair',
+            suitability: score >= 80 ? 'excellent' : score >= 60 ? 'good' : 'fair',
             matchPercentage: score
           });
         }
@@ -339,38 +347,38 @@ const CropRecommendation = () => {
 
   const downloadReport = (crop) => {
     const report = `
-Crop Recommendation Report
-=========================
+  ${t('crop_recommendation_report') || 'Crop Recommendation Report'}
+  =========================
 
-Crop: ${crop.name}
-Scientific Name: ${crop.scientificName}
-Suitability Score: ${crop.score}/100
-Match Percentage: ${crop.matchPercentage}%
+  ${t('crop_label') || 'Crop'}: ${t(crop.nameKey) || crop.key}
+  ${t('scientific_name') || 'Scientific Name'}: ${crop.scientificName}
+  ${t('suitability_score') || 'Suitability Score'}: ${crop.score}/100
+  ${t('match_percentage') || 'Match Percentage'}: ${crop.matchPercentage}%
 
-Details:
-- Profit Potential: ${crop.profit}
-- Risk Level: ${crop.risk}
-- Duration: ${crop.duration}
-- Investment: ${crop.investment}
-- Expected Yield: ${crop.yield}
+  ${t('report_details') || 'Details'}:
+  - ${t('profit_potential') || 'Profit Potential'}: ${t(`level_${crop.profitLevel}`) || crop.profitLevel}
+  - ${t('risk_level') || 'Risk Level'}: ${t(`level_${crop.riskLevel}`) || crop.riskLevel}
+  - ${t('duration') || 'Duration'}: ${t(crop.durationKey) || ''}
+  - ${t('investment') || 'Investment'}: ${t(crop.investmentKey) || ''}
+  - ${t('expected_yield') || 'Expected Yield'}: ${t(crop.yieldKey) || ''}
 
-Best Practices:
-${crop.bestPractices.map(practice => `• ${practice}`).join('\n')}
+  ${t('best_practices') || 'Best Practices'}:
+  ${crop.bestPractices.map((practiceKey) => `• ${t(practiceKey) || practiceKey}`).join('\n')}
 
-Challenges:
-${crop.challenges.map(challenge => `• ${challenge}`).join('\n')}
+  ${t('challenges') || 'Challenges'}:
+  ${crop.challenges.map((challengeKey) => `• ${t(challengeKey) || challengeKey}`).join('\n')}
 
-Market Trends: ${crop.marketTrends}
-Sustainability: ${crop.sustainability}
+  ${t('market_trends') || 'Market Trends'}: ${t(crop.marketTrendsKey) || ''}
+  ${t('sustainability') || 'Sustainability'}: ${t(crop.sustainabilityKey) || ''}
 
-Generated on: ${new Date().toLocaleDateString()}
+  ${t('generated_on') || 'Generated on'}: ${new Date().toLocaleDateString()}
     `;
     
     const blob = new Blob([report], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${crop.name}_recommendation.txt`;
+    a.download = `${crop.key}_recommendation.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -412,18 +420,18 @@ Generated on: ${new Date().toLocaleDateString()}
 
       {showSaved ? (
         <div style={savedContainer}>
-          <h2 style={sectionTitle}>Saved Recommendations</h2>
+          <h2 style={sectionTitle}>{t('saved_recommendations') || 'Saved Recommendations'}</h2>
           {savedRecommendations.length === 0 ? (
-            <p style={emptyMessage}>No saved recommendations yet.</p>
+            <p style={emptyMessage}>{t('no_saved_recommendations') || 'No saved recommendations yet.'}</p>
           ) : (
             <div style={savedGrid}>
               {savedRecommendations.map((crop, index) => (
                 <div key={index} style={savedCard}>
-                  <h3>{crop.name}</h3>
-                  <p>Score: {crop.score}/100</p>
-                  <p>Saved: {new Date(crop.savedAt).toLocaleDateString()}</p>
+                  <h3>{t(crop.nameKey) || crop.key}</h3>
+                  <p>{t('score') || 'Score'}: {crop.score}/100</p>
+                  <p>{t('saved_on') || 'Saved'}: {new Date(crop.savedAt).toLocaleDateString()}</p>
                   <button onClick={() => setSelectedCrop(crop)} style={viewButton}>
-                    View Details
+                    {t('view_details') || 'View Details'}
                   </button>
                 </div>
               ))}
@@ -454,7 +462,7 @@ Generated on: ${new Date().toLocaleDateString()}
               </select>
               {formData.soilType && (
                 <div style={characteristicsBox}>
-                  <h4>Characteristics:</h4>
+                  <h4>{t('characteristics') || 'Characteristics'}:</h4>
                   <ul>
                     {soilTypes.find(s => s.value === formData.soilType)?.characteristics.map((char, i) => (
                       <li key={i}>{char}</li>
@@ -618,7 +626,7 @@ Generated on: ${new Date().toLocaleDateString()}
           </div>
 
           <button type="submit" style={submitButton}>
-            Get Crop Recommendations
+            {t('get_crop_recommendations') || 'Get Crop Recommendations'}
           </button>
         </form>
       ) : (
@@ -646,44 +654,44 @@ Generated on: ${new Date().toLocaleDateString()}
                 {recommendations.map((crop, index) => (
                   <div key={crop.key} style={cropCard}>
                     <div style={cardHeader}>
-                      <h3 style={cropName}>{crop.name}</h3>
+                      <h3 style={cropName}>{t(crop.nameKey) || crop.key}</h3>
                       <div style={scoreBadge(crop.suitability)}>
                         {crop.score}/100
                       </div>
                     </div>
                     
                     <div style={suitabilityBadge(crop.suitability)}>
-                      {crop.suitability} Match
+                      {t('suitability_match', { suitability: t(`suitability_${crop.suitability}`) }) || `${crop.suitability} Match`}
                     </div>
 
                     <div style={cropDetails}>
                       <div style={detailRow}>
-                        <span style={detailLabel}>Scientific Name:</span>
+                        <span style={detailLabel}>{t('scientific_name') || 'Scientific Name'}:</span>
                         <span>{crop.scientificName}</span>
                       </div>
                       <div style={detailRow}>
                         <span style={detailLabel}>{t('profit_potential') || 'Profit Potential'}:</span>
-                        <span style={profitBadge(crop.profit)}>{crop.profit}</span>
+                        <span style={profitBadge(crop.profitLevel)}>{t(`level_${crop.profitLevel}`) || crop.profitLevel}</span>
                       </div>
                       
                       <div style={detailRow}>
                         <span style={detailLabel}>{t('risk_level') || 'Risk Level'}:</span>
-                        <span style={riskBadge(crop.risk)}>{crop.risk}</span>
+                        <span style={riskBadge(crop.riskLevel)}>{t(`level_${crop.riskLevel}`) || crop.riskLevel}</span>
                       </div>
                       
                       <div style={detailRow}>
                         <span style={detailLabel}>{t('duration') || 'Duration'}:</span>
-                        <span>{crop.duration}</span>
+                        <span>{t(crop.durationKey) || ''}</span>
                       </div>
                       
                       <div style={detailRow}>
                         <span style={detailLabel}>{t('investment') || 'Investment'}:</span>
-                        <span>{crop.investment}</span>
+                        <span>{t(crop.investmentKey) || ''}</span>
                       </div>
                       
                       <div style={detailRow}>
                         <span style={detailLabel}>{t('expected_yield') || 'Expected Yield'}:</span>
-                        <span>{crop.yield}</span>
+                        <span>{t(crop.yieldKey) || ''}</span>
                       </div>
                     </div>
 
@@ -694,11 +702,11 @@ Generated on: ${new Date().toLocaleDateString()}
                       </button>
                       <button onClick={() => saveRecommendation(crop)} style={secondaryButton}>
                         <FaBookmark style={{ marginRight: '4px' }} />
-                        Save
+                        {t('save') || 'Save'}
                       </button>
                       <button onClick={() => downloadReport(crop)} style={downloadButton}>
                         <FaDownload style={{ marginRight: '4px' }} />
-                        Download
+                        {t('download') || 'Download'}
                       </button>
                     </div>
                   </div>
@@ -732,58 +740,58 @@ Generated on: ${new Date().toLocaleDateString()}
         <div style={modalOverlay} onClick={() => setSelectedCrop(null)}>
           <div style={modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeader}>
-              <h2>{selectedCrop.name}</h2>
+              <h2>{t(selectedCrop.nameKey) || selectedCrop.key}</h2>
               <button onClick={() => setSelectedCrop(null)} style={closeModalButton}>×</button>
             </div>
             <div style={modalBody}>
               <div style={modalSection}>
-                <h3>Basic Information</h3>
-                <p><strong>Scientific Name:</strong> {selectedCrop.scientificName}</p>
-                <p><strong>Suitability Score:</strong> {selectedCrop.score}/100</p>
-                <p><strong>Match Percentage:</strong> {selectedCrop.matchPercentage}%</p>
+                <h3>{t('basic_information') || 'Basic Information'}</h3>
+                <p><strong>{t('scientific_name') || 'Scientific Name'}:</strong> {selectedCrop.scientificName}</p>
+                <p><strong>{t('suitability_score') || 'Suitability Score'}:</strong> {selectedCrop.score}/100</p>
+                <p><strong>{t('match_percentage') || 'Match Percentage'}:</strong> {selectedCrop.matchPercentage}%</p>
               </div>
               
               <div style={modalSection}>
-                <h3>Economic Details</h3>
-                <p><strong>Profit Potential:</strong> {selectedCrop.profit}</p>
-                <p><strong>Risk Level:</strong> {selectedCrop.risk}</p>
-                <p><strong>Investment:</strong> {selectedCrop.investment}</p>
-                <p><strong>Expected Yield:</strong> {selectedCrop.yield}</p>
-                <p><strong>Duration:</strong> {selectedCrop.duration}</p>
+                <h3>{t('economic_details') || 'Economic Details'}</h3>
+                <p><strong>{t('profit_potential') || 'Profit Potential'}:</strong> {t(`level_${selectedCrop.profitLevel}`) || selectedCrop.profitLevel}</p>
+                <p><strong>{t('risk_level') || 'Risk Level'}:</strong> {t(`level_${selectedCrop.riskLevel}`) || selectedCrop.riskLevel}</p>
+                <p><strong>{t('investment') || 'Investment'}:</strong> {t(selectedCrop.investmentKey) || ''}</p>
+                <p><strong>{t('expected_yield') || 'Expected Yield'}:</strong> {t(selectedCrop.yieldKey) || ''}</p>
+                <p><strong>{t('duration') || 'Duration'}:</strong> {t(selectedCrop.durationKey) || ''}</p>
               </div>
               
               <div style={modalSection}>
-                <h3>Best Practices</h3>
+                <h3>{t('best_practices') || 'Best Practices'}</h3>
                 <ul>
-                  {selectedCrop.bestPractices.map((practice, index) => (
-                    <li key={index}>{practice}</li>
+                  {selectedCrop.bestPractices.map((practiceKey, index) => (
+                    <li key={index}>{t(practiceKey) || practiceKey}</li>
                   ))}
                 </ul>
               </div>
               
               <div style={modalSection}>
-                <h3>Challenges</h3>
+                <h3>{t('challenges') || 'Challenges'}</h3>
                 <ul>
-                  {selectedCrop.challenges.map((challenge, index) => (
-                    <li key={index}>{challenge}</li>
+                  {selectedCrop.challenges.map((challengeKey, index) => (
+                    <li key={index}>{t(challengeKey) || challengeKey}</li>
                   ))}
                 </ul>
               </div>
               
               <div style={modalSection}>
-                <h3>Market & Sustainability</h3>
-                <p><strong>Market Trends:</strong> {selectedCrop.marketTrends}</p>
-                <p><strong>Sustainability:</strong> {selectedCrop.sustainability}</p>
+                <h3>{t('market_and_sustainability') || 'Market & Sustainability'}</h3>
+                <p><strong>{t('market_trends') || 'Market Trends'}:</strong> {t(selectedCrop.marketTrendsKey) || ''}</p>
+                <p><strong>{t('sustainability') || 'Sustainability'}:</strong> {t(selectedCrop.sustainabilityKey) || ''}</p>
               </div>
             </div>
             <div style={modalFooter}>
               <button onClick={() => saveRecommendation(selectedCrop)} style={saveButton}>
                 <FaBookmark style={{ marginRight: '4px' }} />
-                Save Recommendation
+                {t('save_recommendation') || 'Save Recommendation'}
               </button>
               <button onClick={() => downloadReport(selectedCrop)} style={downloadButton}>
                 <FaDownload style={{ marginRight: '4px' }} />
-                Download Report
+                {t('download_report') || 'Download Report'}
               </button>
             </div>
           </div>
@@ -1021,7 +1029,7 @@ const cropName = {
 };
 
 const scoreBadge = (suitability) => ({
-  background: suitability === 'Excellent' ? '#28a745' : suitability === 'Good' ? '#ffc107' : '#dc3545',
+  background: suitability === 'excellent' ? '#28a745' : suitability === 'good' ? '#ffc107' : '#dc3545',
   color: '#fff',
   padding: '4px 12px',
   borderRadius: '20px',
@@ -1030,8 +1038,8 @@ const scoreBadge = (suitability) => ({
 });
 
 const suitabilityBadge = (suitability) => ({
-  background: suitability === 'Excellent' ? '#d4edda' : suitability === 'Good' ? '#fff3cd' : '#f8d7da',
-  color: suitability === 'Excellent' ? '#155724' : suitability === 'Good' ? '#856404' : '#721c24',
+  background: suitability === 'excellent' ? '#d4edda' : suitability === 'good' ? '#fff3cd' : '#f8d7da',
+  color: suitability === 'excellent' ? '#155724' : suitability === 'good' ? '#856404' : '#721c24',
   padding: '6px 12px',
   borderRadius: '6px',
   fontSize: '14px',
@@ -1057,8 +1065,8 @@ const detailLabel = {
   color: '#666'
 };
 
-const profitBadge = (profit) => ({
-  background: profit === 'Very High' ? '#28a745' : profit === 'High' ? '#20c997' : '#ffc107',
+const profitBadge = (profitLevel) => ({
+  background: profitLevel === 'very_high' ? '#28a745' : profitLevel === 'high' ? '#20c997' : '#ffc107',
   color: '#fff',
   padding: '2px 8px',
   borderRadius: '4px',
@@ -1066,8 +1074,8 @@ const profitBadge = (profit) => ({
   fontWeight: '600'
 });
 
-const riskBadge = (risk) => ({
-  background: risk === 'Low' ? '#28a745' : risk === 'Medium' ? '#ffc107' : '#dc3545',
+const riskBadge = (riskLevel) => ({
+  background: riskLevel === 'low' ? '#28a745' : riskLevel === 'medium' ? '#ffc107' : '#dc3545',
   color: '#fff',
   padding: '2px 8px',
   borderRadius: '4px',

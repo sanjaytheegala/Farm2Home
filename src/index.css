@@ -11,12 +11,20 @@ html, body {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Nirmala UI',
+    'Noto Sans Malayalam', 'Noto Sans Kannada', 'Noto Sans', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding-top: 70px;
+}
+
+/* Indic-script rendering safety: avoid broken shaping/spacing on some fallbacks */
+html:lang(ml), body:lang(ml),
+html:lang(kn), body:lang(kn) {
+  letter-spacing: normal;
+  font-kerning: normal;
 }
 
 #root {

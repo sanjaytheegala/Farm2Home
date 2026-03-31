@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../../../firebase';
 import { 
@@ -10,6 +10,8 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { FaUserAlt, FaEnvelope, FaLock, FaUserTie, FaSeedling, FaPhone } from 'react-icons/fa';
+import { GMAIL_SUFFIX, coerceEmailOrPhone, isGmailComplete, isPhoneLike, keepCaretInLocalPart, moveCaretToLocalEnd } from '../../../utils/gmailInput';
+import { COUNTRY_CODE_PREFIX, isPhoneComplete, normalizePhoneForLookup } from '../../../utils/phoneInput';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -25,11 +27,13 @@ const AuthPage = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    email: '',
+    email: GMAIL_SUFFIX,
     password: '',
-    phone: '',
+    phone: COUNTRY_CODE_PREFIX,
     role: roleParam === 'farmer' ? 'farmer' : 'consumer'
   });
+
+  const emailInputRef = useRef(null);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -37,9 +41,11 @@ const AuthPage = () => {
 
   // Handle input changes
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    const nextValue = name === 'email' ? coerceEmailOrPhone(value) : value;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: nextValue
     });
     setError('');
     setSuccess('');
@@ -54,7 +60,7 @@ const AuthPage = () => {
 
     try {
       // Validate inputs
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      if (!formData.firstName || !formData.lastName || !formData.password || !isGmailComplete(formData.email)) {
         throw new Error('Please fill in all fields');
       }
 
@@ -82,8 +88,8 @@ const AuthPage = () => {
         throw new Error('Password must be at least 6 characters');
       }
 
-      const cleanPhone = formData.phone.replace(/\D/g, '');
-      if (!cleanPhone || cleanPhone.length !== 10) {
+      const cleanPhone = normalizePhoneForLookup(formData.phone);
+      if (!isPhoneComplete(formData.phone)) {
         throw new Error('Please enter a valid 10-digit phone number');
       }
 
@@ -110,8 +116,8 @@ const AuthPage = () => {
         lastName: formData.lastName,
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
-        phoneNumber: formData.phone.replace(/\D/g, ''),
-        phone: formData.phone.replace(/\D/g, ''),
+        phoneNumber: cleanPhone,
+        phone: cleanPhone,
         role: formData.role,
         status: 'active',
         createdAt: new Date().toISOString()
@@ -158,24 +164,19 @@ const AuthPage = () => {
 
     try {
       // Validate inputs
-      if (!formData.email || !formData.password) {
+      const emailRaw = String(formData.email || '').trim();
+      if (!formData.password || !emailRaw || emailRaw.toLowerCase() === GMAIL_SUFFIX) {
         throw new Error('Please enter email/phone and password');
       }
 
-      let emailToUse = formData.email.trim();
+      let emailToUse = emailRaw;
 
-      if (!/^[^@\s]+@gmail\.com$/i.test(emailToUse)) {
-        throw new Error('Only Gmail addresses are allowed for login.');
-      }
-
-      // Check if input is a phone number (contains only digits and possibly +, -, spaces)
-      const phonePattern = /^[\d\s\-+()]+$/;
-      const isPhoneNumber = phonePattern.test(emailToUse);
+      const isPhoneNumber = isPhoneLike(emailToUse);
 
       if (isPhoneNumber) {
 
         // Clean phone number - remove all non-digit characters
-        const cleanPhone = emailToUse.replace(/\D/g, '');
+        const cleanPhone = normalizePhoneForLookup(emailToUse);
         
         // Query Firestore for user with this phone number
         const usersRef = collection(db, 'users');
@@ -191,6 +192,10 @@ const AuthPage = () => {
         const userData = userDoc.data();
         emailToUse = userData.email;
 
+      }
+
+      if (!isPhoneNumber && (!isGmailComplete(emailToUse) || !/^[^@\s]+@gmail\.com$/i.test(emailToUse))) {
+        throw new Error('Only Gmail addresses are allowed for login.');
       }
 
       // Ensure session persists across page-reload and browser-restart
@@ -609,6 +614,7 @@ const AuthPage = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  ref={emailInputRef}
                   required
                   placeholder="Email or 10-digit phone number"
                   style={{
@@ -624,11 +630,15 @@ const AuthPage = () => {
                   onFocus={(e) => {
                     e.target.style.borderColor = '#16a34a';
                     e.target.style.boxShadow = '0 0 0 3px rgba(22, 163, 74, 0.1)';
+                    requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current));
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#d1d5db';
                     e.target.style.boxShadow = 'none';
                   }}
+                  onClick={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                  onKeyUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                  onMouseUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
                 />
               </div>
             </div>

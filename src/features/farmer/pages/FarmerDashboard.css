@@ -1402,6 +1402,233 @@
 }
 
 /* ─── MARKET OPPORTUNITIES TAB ───────────────────────── */
+.fd-market-filters {
+  position: fixed;
+  left: 0;
+  top: 172px;
+  z-index: 60;
+  width: 280px;
+  max-width: 92vw;
+  height: calc(100vh - 172px);
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0 14px 14px 0;
+  padding: 12px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.09);
+}
+
+.fd-market-filters-header {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+  padding: 6px 0 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fd-market-filters-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #111827;
+  letter-spacing: 0.2px;
+}
+
+.fd-market-filters-clear {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 900;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+
+.fd-market-filters-clear:hover {
+  background: #eff6ff;
+}
+
+.fd-market-filters-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.fd-market-filters-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #374151;
+  font-weight: 800;
+  padding: 8px 10px;
+  border: 1px solid #f3f4f6;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+.fd-market-filters-check-input {
+  width: 16px;
+  height: 16px;
+}
+
+.fd-market-filters-field {
+  padding: 8px 10px;
+  border: 1px solid #f3f4f6;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.fd-market-filters-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+
+.fd-market-filters-accordion {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #111827;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fd-market-filters-accordion:hover {
+  border-color: #d1d5db;
+}
+
+.fd-market-filters-accordion:focus {
+  outline: none;
+  border-color: rgba(124,58,237,0.6);
+  box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+}
+
+.fd-market-filters-accordion-text {
+  text-align: left;
+}
+
+.fd-market-filters-caret {
+  display: inline-block;
+  transform: rotate(-90deg);
+  transition: transform 0.12s ease;
+  line-height: 1;
+  color: #6b7280;
+}
+
+.fd-market-filters-caret--open {
+  transform: rotate(0deg);
+}
+
+.fd-market-filters-row {
+  display: flex;
+  gap: 8px;
+}
+
+.fd-market-filters-selectwrap {
+  position: relative;
+  width: 100%;
+}
+
+.fd-market-filters-row .fd-market-filters-selectwrap {
+  flex: 1;
+}
+
+.fd-market-filters-selectwrap::after {
+  content: '▾';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.fd-market-filters-input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fd-market-filters-select {
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 34px;
+}
+
+.fd-market-filters-select option {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fd-market-filters-input:focus {
+  border-color: rgba(124,58,237,0.6);
+  box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+}
+
+.fd-market-filters-note {
+  font-size: 10px;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+.fd-market-filters-buckets {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fd-market-filters-bucket {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #f3f4f6;
+  background: #f9fafb;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  color: #374151;
+  user-select: none;
+}
+
+.fd-market-filters-bucket:hover {
+  background: #f3f4f6;
+}
+
+.fd-market-filters-bucket-text {
+  line-height: 1.1;
+}
+
 .fd-market-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

@@ -349,6 +349,18 @@
     "fd_recently": "हाल ही में",
 
     "fd_market_subtitle": "उपभोक्ता इन फसलों की मांग कर रहे हैं — अपना सर्वोत्तम मूल्य प्रस्ताव भेजें और सौदा जीतें!",
+    "fd_filters": "फ़िल्टर",
+    "fd_clear_all": "हटाएँ",
+    "fd_my_location_only": "केवल मेरा राज्य/जिला",
+    "fd_verified_only": "केवल सत्यापित",
+    "fd_has_phone_only": "केवल फोन वाले",
+    "fd_filter_crop": "फसल",
+    "fd_filter_crop_placeholder": "फसल खोजें…",
+    "fd_filter_quantity": "मात्रा (kg)",
+    "fd_filter_price": "कीमत (₹/kg)",
+    "fd_filter_price_note": "उपभोक्ता की सुझाई गई कीमत (अगर उपलब्ध हो) के आधार पर",
+    "fd_min": "न्यूनतम",
+    "fd_max": "अधिकतम",
     "fd_no_open_requests_title": "अभी कोई खुले अनुरोध नहीं हैं",
     "fd_no_open_requests_sub": "जब उपभोक्ता फसलों का अनुरोध करेंगे, वे यहाँ दिखाई देंगे।",
 

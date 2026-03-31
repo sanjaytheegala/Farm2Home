@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db, functions } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { FaTimes, FaEnvelope, FaLock, FaUser, FaPhone } from 'react-icons/fa';
+import { GMAIL_SUFFIX, isGmailComplete, keepCaretInLocalPart, moveCaretToLocalEnd, normalizeGmailInput } from '../utils/gmailInput';
+import { COUNTRY_CODE_PREFIX, isPhoneComplete, normalizePhoneForLookup } from '../utils/phoneInput';
 
 const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const navigate = useNavigate();
@@ -12,11 +14,13 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'phone' for login
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    email: GMAIL_SUFFIX,
     password: '',
     confirmPassword: '',
-    phoneNumber: ''
+    phoneNumber: COUNTRY_CODE_PREFIX
   });
+
+  const emailInputRef = useRef(null);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,11 +28,18 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
 
   // Handle input changes
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    const shouldForceGmail = name === 'email' && (formType === 'register' || loginMethod === 'email');
+    const nextValue = shouldForceGmail ? normalizeGmailInput(value) : value;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: nextValue
     });
     setError('');
+
+    if (shouldForceGmail) {
+      requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current));
+    }
   };
 
   // Handle Register
@@ -40,7 +51,7 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
 
     try {
       // Validate inputs
-      if (!formData.name || !formData.email || !formData.password || !formData.phoneNumber) {
+      if (!formData.name || !isGmailComplete(formData.email) || !formData.password || !formData.phoneNumber) {
         throw new Error('Please fill in all fields');
       }
 
@@ -57,8 +68,8 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       }
 
       // Validate phone number (basic validation)
-      const phoneRegex = /^[0-9]{10}$/;
-      if (!phoneRegex.test(formData.phoneNumber.replace(/\D/g, ''))) {
+      const cleanPhone = normalizePhoneForLookup(formData.phoneNumber);
+      if (!isPhoneComplete(formData.phoneNumber)) {
         throw new Error('Please enter a valid 10-digit phone number');
       }
 
@@ -83,7 +94,7 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
         uid: user.uid,
         name: formData.name,
         email: formData.email,
-        phoneNumber: formData.phoneNumber,
+        phoneNumber: cleanPhone,
         role: 'farmer', // Auto-set to farmer in background
         status: 'active',
         createdAt: new Date().toISOString()
@@ -150,11 +161,17 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
         try {
           // Call cloud function to get email from phone
           const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
-          const cleanPhone = emailToUse.replace(/\D/g, '');
+          const cleanPhone = normalizePhoneForLookup(emailToUse);
           const result = await getEmailByPhone({ phoneNumber: cleanPhone });
           emailToUse = result.data.email;
         } catch (fnErr) {
           throw new Error(fnErr.message || 'Phone number not found. Please check and try again.');
+        }
+      }
+
+      if (loginMethod === 'email') {
+        if (!isGmailComplete(emailToUse) || !/^[^@\s]+@gmail\.com$/i.test(emailToUse)) {
+          throw new Error('Only Gmail addresses are allowed for login.');
         }
       }
 
@@ -526,11 +543,15 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    ref={emailInputRef}
                     placeholder="Email Address"
                     style={{ ...inputStyle, paddingLeft: 38 }}
                     disabled={loading}
-                    onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}
+                    onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current)); }}
                     onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+                    onClick={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                    onKeyUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
+                    onMouseUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
                     required
                   />
                 </div>
@@ -566,7 +587,7 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                   type="button"
                   onClick={() => {
                     setLoginMethod('email');
-                    setFormData({ ...formData, email: '' });
+                    setFormData({ ...formData, email: GMAIL_SUFFIX });
                     setError('');
                   }}
                   style={loginMethodButtonStyle(loginMethod === 'email')}
@@ -577,7 +598,7 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                   type="button"
                   onClick={() => {
                     setLoginMethod('phone');
-                    setFormData({ ...formData, email: '' });
+                    setFormData({ ...formData, email: COUNTRY_CODE_PREFIX });
                     setError('');
                   }}
                   style={loginMethodButtonStyle(loginMethod === 'phone')}
@@ -598,11 +619,15 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    ref={loginMethod === 'email' ? emailInputRef : undefined}
                     placeholder={loginMethod === 'email' ? 'Email Address' : 'Phone Number (with country code)'}
                     style={{ ...inputStyle, paddingLeft: 38 }}
                     disabled={loading}
-                    onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; }}
+                    onFocus={(e) => { e.target.style.borderColor = '#16a34a'; e.target.style.backgroundColor = 'white'; if (loginMethod === 'email') requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current)); }}
                     onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.backgroundColor = '#fafafa'; }}
+                    onClick={() => { if (loginMethod === 'email') requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current)); }}
+                    onKeyUp={() => { if (loginMethod === 'email') requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current)); }}
+                    onMouseUp={() => { if (loginMethod === 'email') requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current)); }}
                     required
                   />
                 </div>

@@ -44,6 +44,13 @@ i18n
     },
   });
 
+// Apply current language to <html lang> immediately (not only after user toggles language)
+try {
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = (i18n.language || getInitialLanguage() || 'en').split('-')[0];
+  }
+} catch {}
+
 // Persist language choice across refreshes (covers all UI entry points)
 i18n.on('languageChanged', (lng) => {
   try {
