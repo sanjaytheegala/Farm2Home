@@ -26,8 +26,14 @@ const RouteLoader = () => (
  * Correct   → render children
  */
 const ProtectedRoute = ({ children, allowedRoles }) => {
+  // TEMP: Auth bypass switch (disable login/register UI and allow direct navigation)
+  // Set to false to restore normal authentication gating.
+  const TEMP_BYPASS_AUTH = true;
+
   const { currentUser, userData, loading } = useAuth();
   const location = useLocation();
+
+  if (TEMP_BYPASS_AUTH) return children;
 
   // ① Wait for Firebase onAuthStateChanged to fire before making any decision.
   //    Without this, a page refresh always sees currentUser=null for ~200ms and
@@ -40,14 +46,18 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/" state={{ openModal: true, role }} replace />;
   }
 
+  // ③ Waiting for user data profile
+  if (!userData) return <RouteLoader />;
+
   // ③ Authenticated but wrong role (e.g. consumer typing /farmer-dashboard in URL bar)
   if (allowedRoles) {
     // Some legacy users may not have a `role` field yet.
     // Defaulting to 'consumer' preserves access to non-admin routes and avoids
     // redirect loops like /consumer -> /consumer.
-    const role = userData?.role || 'consumer';
+    const role = (userData?.role || 'consumer').toString().toLowerCase();
+    const normalizedAllowed = allowedRoles.map(r => r.toString().toLowerCase());
 
-    if (!allowedRoles.includes(role)) {
+    if (!normalizedAllowed.includes(role)) {
       let dest = role === 'farmer' ? '/farmer-dashboard'
                : role === 'admin'  ? '/admin'
                : '/consumer';

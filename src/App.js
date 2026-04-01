@@ -72,10 +72,11 @@ const PublicOnlyRoute = ({ children }) => {
   if (loading) return <AuthSplash />;
 
   if (currentUser) {
-    const role = userData?.role
-    const dest = role === 'farmer' ? '/farmer-dashboard'
-               : role === 'admin'  ? '/admin'
-               : '/consumer'
+    if (!userData) return <AuthSplash />;
+    const rawRole = (userData?.role || '').toString().toLowerCase();
+    const dest = rawRole === 'farmer' ? '/farmer-dashboard'
+               : rawRole === 'admin'  ? '/admin'
+               : '/consumer';
     return <Navigate to={dest} replace />;
   }
 

@@ -19,6 +19,10 @@ import { GMAIL_SUFFIX, coerceEmailOrPhone, isGmailComplete, isPhoneLike, keepCar
 import { normalizePhoneForLookup } from '../../../utils/phoneInput'
 
 const HomePage = () => {
+  // TEMP: Disable login/register cards and allow direct navigation via buttons.
+  // Set to false to restore normal auth UI.
+  const TEMP_DISABLE_AUTH_CARDS = true
+
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
@@ -155,8 +159,8 @@ const HomePage = () => {
       }
 
       // Check role matches the selected portal (farmer vs consumer)
-      const expectedRole = selectedRole;
-      const actualRole = (userData.role || '').toString().toLowerCase();
+      const expectedRole = (selectedRole || 'consumer').toString().trim().toLowerCase();
+      const actualRole = (userData.role || '').toString().trim().toLowerCase();
       if (!actualRole) {
         throw new Error(t('user_profile_not_found'));
       }
@@ -177,13 +181,14 @@ const HomePage = () => {
       localStorage.setItem('currentUser', JSON.stringify({
         uid: user.uid,
         email: user.email,
-        role: userData.role || '',
+        role: actualRole,
       }));
 
       // Close the login card and navigate based on role
       closeLoginCard();
       setTimeout(() => {
-        navigate(actualRole === 'farmer' ? '/farmer-dashboard' : '/consumer');
+        const dest = expectedRole === 'farmer' ? '/farmer-dashboard' : '/consumer';
+        navigate(dest);
       }, 500);
 
     } catch (err) {
@@ -310,9 +315,17 @@ const HomePage = () => {
   };
 
   const openLoginCard = (role) => {
+    if (TEMP_DISABLE_AUTH_CARDS) {
+      navigate(role === 'farmer' ? '/farmer-dashboard' : '/consumer')
+      return
+    }
     // If user is already authenticated, skip the modal and go to their dashboard
     if (currentUser) {
-      navigate(userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
+      const userRole = (userData?.role || '').toString().toLowerCase();
+      const dest = userRole === 'farmer' ? '/farmer-dashboard' 
+                 : userRole === 'admin' ? '/admin' 
+                 : '/consumer';
+      navigate(dest);
       return;
     }
     resetForm();
@@ -330,7 +343,11 @@ const HomePage = () => {
   // Auto-open login modal when redirected from a ProtectedRoute
   useEffect(() => {
     if (location.state?.openModal) {
-      openLoginCard(location.state.role || 'consumer');
+      if (TEMP_DISABLE_AUTH_CARDS) {
+        navigate((location.state.role || 'consumer') === 'farmer' ? '/farmer-dashboard' : '/consumer', { replace: true })
+      } else {
+        openLoginCard(location.state.role || 'consumer');
+      }
       // Clear the state so refreshing doesn’t re-open the modal
       window.history.replaceState({}, document.title);
     }
@@ -478,11 +495,7 @@ const HomePage = () => {
             <div style={ctaButtons} className="cta-buttons">
               <button 
                 onClick={() => {
-                  if (currentUser) {
-                    navigate(userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
-                  } else {
-                    openLoginCard('farmer');
-                  }
+                  navigate('/farmer-dashboard')
                 }}
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
@@ -497,11 +510,7 @@ const HomePage = () => {
               </div>
               <button 
                 onClick={() => {
-                  if (currentUser) {
-                    navigate(userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
-                  } else {
-                    openLoginCard('consumer');
-                  }
+                  navigate('/consumer')
                 }}
                 style={shopFreshBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
@@ -517,7 +526,7 @@ const HomePage = () => {
       </div>
 
       {/* Login Card Section */}
-      {showLoginCard && (
+      {!TEMP_DISABLE_AUTH_CARDS && showLoginCard && (
         <div id="login-section" style={loginSectionStyle}>
           <div style={loginCardOverlay} onClick={closeLoginCard}></div>
           <div style={loginCardStyle}>

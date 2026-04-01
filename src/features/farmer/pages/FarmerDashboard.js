@@ -507,6 +507,10 @@ const DemandCard = ({ demand, isPriority, onSubmitOffer, onOpenChat, onToastErro
 }
 
 const FarmerDashboard = () => {
+  // TEMP: Auth bypass switch (keep dashboard open without login)
+  // Set to false to restore normal redirect-to-home behavior.
+  const TEMP_BYPASS_AUTH = true
+
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { t, i18n } = useTranslation()
@@ -589,6 +593,16 @@ const FarmerDashboard = () => {
 
   // Redirect + seed profile quickly from context/localStorage (no Firestore subscription here)
   useEffect(() => {
+    if (TEMP_BYPASS_AUTH) {
+      const seed = userData || (() => {
+        try { return JSON.parse(localStorage.getItem('currentUser') || '{}') } catch { return {} }
+      })()
+
+      setFarmerName(seed?.name || seed?.displayName || seed?.email || 'Farmer')
+      if (seed?.state && seed?.district) setUserLocation({ state: seed.state, district: seed.district })
+      return
+    }
+
     if (!currentUser && !userData) {
       navigate('/');
       return;
