@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db, functions } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, updateProfile, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { FaTimes, FaEnvelope, FaLock, FaUser, FaPhone } from 'react-icons/fa';
@@ -25,6 +25,7 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showVerifyScreen, setShowVerifyScreen] = useState(false);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -102,18 +103,16 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
 
       await setDoc(userDocRef, userData);
 
-      console.log('✅ Farmer account created successfully with UID:', user.uid);
-      setSuccess('Account created successfully! Redirecting to dashboard...');
+      // Send verification email
+      await sendEmailVerification(user);
 
-      // Store user data in localStorage
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+      // Sign out immediately — prevent AuthContext auto-navigation to dashboard
+      await auth.signOut();
+      localStorage.removeItem('currentUser');
 
-      // Wait a bit for auth state to propagate before redirecting
-      setTimeout(() => {
-        console.log('🔄 Redirecting to farmer dashboard...');
-        navigate('/farmer-dashboard');
-        onClose();
-      }, 1500);
+      // Show verify screen inside the modal
+      setShowVerifyScreen(true);
+      setLoading(false);
 
     } catch (err) {
       console.error('Signup error:', err);
@@ -162,7 +161,7 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
           // Call cloud function to get email from phone
           const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
           const cleanPhone = normalizePhoneForLookup(emailToUse);
-          const result = await getEmailByPhone({ phoneNumber: cleanPhone });
+          const result = await getEmailByPhone({ phoneNumber: cleanPhone, expectedRole: 'farmer' });
           emailToUse = result.data.email;
         } catch (fnErr) {
           throw new Error(fnErr.message || 'Phone number not found. Please check and try again.');
@@ -185,6 +184,12 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       );
       
       const user = userCredential.user;
+
+      // Block login if email not verified
+      if (!user.emailVerified) {
+        await auth.signOut();
+        throw new Error('📧 Email verified cheyyandi! Inbox check cheyandi — verification link click cheyandi.');
+      }
 
       // Fetch user data from Firestore
       const userDocRef = doc(db, 'users', user.uid);
@@ -285,7 +290,7 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     maxWidth: '420px',
     width: '100%',
     position: 'relative',
-    animation: 'fadeIn 0.3s ease-out'
+    animation: 'slideInFromRight 0.3s ease-out'
   };
 
   const closeButtonStyle = {
@@ -509,6 +514,45 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
           {/* Error Message */}
           {error && <div style={errorStyle}>{error}</div>}
 
+          {/* Email Verify Screen */}
+          {showVerifyScreen ? (
+            <div style={{ textAlign: 'center', padding: '10px 0 20px' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>📧</div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#166534', marginBottom: 10 }}>
+                Verify your email!
+              </div>
+              <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.7, marginBottom: 14 }}>
+                We sent a verification link to<br />
+                <strong>{formData.email}</strong><br />
+                Click that link, then come back and log in.
+              </div>
+              <div style={{ fontSize: 11.5, color: '#9ca3af', marginBottom: 18 }}>
+                📁 Spam folder కూడా check చేయండి.
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    if (auth.currentUser) await sendEmailVerification(auth.currentUser);
+                    else alert('Please register again to resend.');
+                    alert('Verification email resent!');
+                  } catch { alert('Could not resend. Please try again.'); }
+                }}
+                style={{ background: 'none', border: '1.5px solid #16a34a', color: '#16a34a', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 12 }}
+              >
+                🔄 Resend verification email
+              </button>
+              <br />
+              <button
+                type="button"
+                onClick={() => { setShowVerifyScreen(false); setFormType('login'); setError(''); setSuccess(''); }}
+                style={{ background: '#16a34a', color: 'white', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Go to Login →
+              </button>
+            </div>
+          ) : (
+            <>
           {/* Success Message */}
           {success && <div style={successStyle}>{success}</div>}
 
@@ -703,6 +747,8 @@ const FarmerSignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
               formType === 'login' ? 'Login' : 'Create Account'
             )}
           </button>
+          </>
+          )}
         </form>
       </div>
     </div>

@@ -1421,6 +1421,15 @@
   box-shadow: 0 10px 28px rgba(0,0,0,0.09);
 }
 
+@media (min-width: 1024px) {
+  .fd-content.fd-content--market {
+    --fd-market-sidebar-width: 280px;
+    --fd-market-sidebar-gap: 18px;
+    max-width: calc(1200px + var(--fd-market-sidebar-width) + var(--fd-market-sidebar-gap));
+    padding-left: calc(20px + var(--fd-market-sidebar-width) + var(--fd-market-sidebar-gap));
+  }
+}
+
 .fd-market-filters-header {
   position: -webkit-sticky;
   position: sticky;

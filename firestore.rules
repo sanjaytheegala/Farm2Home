@@ -25,7 +25,10 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.uid == request.auth.uid;
       allow update: if (isOwner(userId) || isAdmin())
-        && request.resource.data.uid == resource.data.uid;
+        && request.resource.data.uid == resource.data.uid
+        // Prevent self-escalation and self-unbanning: only admin can change these.
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status;
       allow delete: if isAdmin();
 
       // Cart Persistence
@@ -60,11 +63,21 @@ service cloud.firestore {
         (resource != null && (resource.data.customerId == request.auth.uid || resource.data.farmerId == request.auth.uid))
       );
       
+      // Farmer can update order status — but ONLY one step forward in sequence.
+      // Prevents jumping from pending → delivered directly.
       allow update: if isAdmin() || (
         isSignedIn()
         && resource.data.farmerId == request.auth.uid
         && request.resource.data.customerId == resource.data.customerId
         && request.resource.data.farmerId == resource.data.farmerId
+        && (
+          // pending → confirmed
+          (resource.data.status == 'pending'   && request.resource.data.status == 'confirmed')
+          // confirmed → shipped
+          || (resource.data.status == 'confirmed' && request.resource.data.status == 'shipped')
+          // shipped → delivered
+          || (resource.data.status == 'shipped'   && request.resource.data.status == 'delivered')
+        )
       );
       allow delete: if isAdmin();
     }
@@ -82,36 +95,105 @@ service cloud.firestore {
       // Only consumers can create their own demand
       allow create: if isSignedIn()
         && request.resource.data.consumerId == request.auth.uid
+        && request.resource.data.status == 'open'
+        && request.resource.data.committedFarmerId == null
+        && request.resource.data.committedFarmerName == null
+        && request.resource.data.farmerOfferPrice == null
+        && request.resource.data.farmerOfferDisplay == null
+        && request.resource.data.farmerOfferUnit == null
+        && request.resource.data.farmerPhone == null
         && request.resource.data.quantityKg is number
         && request.resource.data.quantityKg > 0
         && request.resource.data.quantityKg <= 50;
-      // Consumer can update their own demand document.
-      // Farmer can only quote an open demand (open -> quoted) by setting
-      // committedFarmerId to themselves, OR update demands where they are
-      // already the committedFarmerId.
-      // Admin can do anything.
+
       allow update: if isAdmin()
+        // ── Consumer updates their own open demand (edit/delete before offer) ──
         || (
           isSignedIn()
           && resource.data.consumerId == request.auth.uid
           && request.resource.data.consumerId == resource.data.consumerId
+          // Consumer cannot change committedFarmerId once a farmer is attached
+          && request.resource.data.committedFarmerId == resource.data.committedFarmerId
+          // Consumer status transitions are restricted to the expected workflow.
+          && (
+            // Regular edits: keep status unchanged
+            request.resource.data.status == resource.data.status
+            // Reject/cancel: quoted/deal_closed -> open (clears commitment + offer fields)
+            || (
+              (resource.data.status == 'quoted' || resource.data.status == 'deal_closed')
+              && request.resource.data.status == 'open'
+              && request.resource.data.committedFarmerId == null
+              && request.resource.data.committedFarmerName == null
+              && request.resource.data.farmerOfferPrice == null
+              && request.resource.data.farmerOfferDisplay == null
+              && request.resource.data.farmerOfferUnit == null
+              && request.resource.data.farmerPhone == null
+            )
+            // Accept a quote: quoted -> deal_closed (keeps committed farmer)
+            || (
+              resource.data.status == 'quoted'
+              && request.resource.data.status == 'deal_closed'
+              && request.resource.data.committedFarmerId == resource.data.committedFarmerId
+              && request.resource.data.committedFarmerId != null
+            )
+            // Mark received: deal_closed/in_progress -> completed
+            || (
+              (resource.data.status == 'deal_closed' || resource.data.status == 'in_progress')
+              && request.resource.data.status == 'completed'
+              && request.resource.data.committedFarmerId == resource.data.committedFarmerId
+            )
+          )
         )
+        // ── Farmer submits a NEW offer on an open demand ──
         || (
           isSignedIn()
+          && resource.data.status == 'open'
+          && request.resource.data.status == 'quoted'
+          && request.resource.data.consumerId == resource.data.consumerId
+          && request.resource.data.committedFarmerId == request.auth.uid
+        )
+        // ── Farmer updates/withdraws their own QUOTED offer (price edit allowed) ──
+        || (
+          isSignedIn()
+          && resource.data.committedFarmerId == request.auth.uid
+          && resource.data.status == 'quoted'
+          // Farmer can only touch offer fields — not consumerId or status
+          && request.resource.data.consumerId == resource.data.consumerId
+          && request.resource.data.committedFarmerId == resource.data.committedFarmerId
+        )
+        // ── Farmer advances status AFTER deal is closed (dispatch flow) ──
+        // Price fields are LOCKED once deal_closed — prevents price manipulation
+        || (
+          isSignedIn()
+          && resource.data.committedFarmerId == request.auth.uid
+          && resource.data.status != 'open'
+          && resource.data.status != 'quoted'
+          // Lock price fields after deal is accepted
+          && request.resource.data.farmerOfferPrice == resource.data.farmerOfferPrice
+          && request.resource.data.farmerOfferDisplay == resource.data.farmerOfferDisplay
+          && request.resource.data.farmerOfferUnit == resource.data.farmerOfferUnit
+          && request.resource.data.consumerId == resource.data.consumerId
+          && request.resource.data.committedFarmerId == resource.data.committedFarmerId
+          // Allowed status transitions: deal_closed→in_progress only
           && (
-            // Farmer submits an offer: open -> quoted, consumerId unchanged,
-            // committedFarmerId becomes the current farmer.
-            (
-              resource.data.status == 'open'
-              && request.resource.data.status == 'quoted'
-              && request.resource.data.consumerId == resource.data.consumerId
-              && request.resource.data.committedFarmerId == request.auth.uid
-            )
-            // Farmer updates an existing quote/deal for the demand they committed.
-            || resource.data.committedFarmerId == request.auth.uid
+            resource.data.status == 'deal_closed' && request.resource.data.status == 'in_progress'
+            || resource.data.status == request.resource.data.status
           )
         );
       allow delete: if isAdmin() || (isSignedIn() && resource.data.consumerId == request.auth.uid);
+
+      // ── Chat Messages Subcollection ──
+      // Read : any signed-in user (demand itself is already public to all farmers)
+      // Create: must be the sender, must include expiresAt for Firestore TTL auto-delete
+      // Update/Delete: immutable once sent
+      match /messages/{messageId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.expiresAt is timestamp;
+        allow update: if false;
+        allow delete: if false;
+      }
     }
 
     // 6. Complaints
@@ -128,7 +210,11 @@ service cloud.firestore {
     // 7. Reviews
     match /reviews/{reviewId} {
       // Only the consumer who made the deal can submit a review
-      allow create: if isSignedIn() && request.resource.data.consumerId == request.auth.uid;
+      // AND only if the demand hasn't already been reviewed (prevents spam)
+      allow create: if isSignedIn()
+        && request.resource.data.consumerId == request.auth.uid
+        && request.resource.data.demandId is string
+        && !get(/databases/$(database)/documents/market_demands/$(request.resource.data.demandId)).data.reviewed;
       // Public read so homepage can display original user reviews
       allow read: if true;
       // Admin-only updates/deletes (moderation)
@@ -162,24 +248,79 @@ service cloud.firestore {
     match /resource_requests/{requestId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.requesterId == request.auth.uid;
+      // Only the requester themselves can update their own request (immutable requesterId)
       allow update: if isAdmin()
         || (isSignedIn()
             && resource.data.requesterId == request.auth.uid
-            && request.resource.data.requesterId == resource.data.requesterId)
-        || (isSignedIn()
-            && resource.data.status == 'Pending'
             && request.resource.data.requesterId == resource.data.requesterId);
       allow delete: if isAdmin() || (isSignedIn() && resource.data.requesterId == request.auth.uid);
     }
 
     // 10. Rental Requests (used by ResourceSharePage / FarmerDashboard / App notifications)
     match /rental_requests/{requestId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.requesterId == request.auth.uid;
+      // Only participants (requester/tool owner) or admins can see rental requests.
+      allow read: if isSignedIn() && (
+        isAdmin()
+        || resource.data.requesterId == request.auth.uid
+        || resource.data.toolOwnerId == request.auth.uid
+      );
+
+      allow create: if isSignedIn()
+        && request.resource.data.requesterId == request.auth.uid
+        // Initial status only
+        && request.resource.data.status == 'Requested'
+        // Aadhaar storage path (optional at create, can be set once later by requester)
+        && (!request.resource.data.keys().hasAny(['aadhaarStoragePath']) || request.resource.data.aadhaarStoragePath == null);
+
       allow update: if isAdmin()
-        || (isSignedIn() && resource.data.requesterId == request.auth.uid)
-        || (isSignedIn() && resource.data.toolOwnerId == request.auth.uid);
-      allow delete: if isAdmin() || (isSignedIn() && resource.data.requesterId == request.auth.uid);
+        || (
+          // Requester updates: can cancel, add Aadhaar path once, and submit review
+          isSignedIn()
+          && resource.data.requesterId == request.auth.uid
+          // Immutable identity fields
+          && request.resource.data.requesterId == resource.data.requesterId
+          && request.resource.data.toolOwnerId == resource.data.toolOwnerId
+          && request.resource.data.toolId == resource.data.toolId
+          && request.resource.data.createdAt == resource.data.createdAt
+          // Aadhaar path can be written only once (null -> string), never changed after
+          && (
+            request.resource.data.aadhaarStoragePath == resource.data.aadhaarStoragePath
+            || (resource.data.aadhaarStoragePath == null && request.resource.data.aadhaarStoragePath is string)
+          )
+          // Status: unchanged OR cancel from Requested/Accepted
+          && (
+            request.resource.data.status == resource.data.status
+            || (
+              (resource.data.status == 'Requested' || resource.data.status == 'Accepted')
+              && request.resource.data.status == 'Cancelled'
+              && request.resource.data.cancelledBy == request.auth.uid
+            )
+          )
+        )
+        || (
+          // Tool owner updates: can advance status forward; cannot change identity fields
+          isSignedIn()
+          && resource.data.toolOwnerId == request.auth.uid
+          && request.resource.data.requesterId == resource.data.requesterId
+          && request.resource.data.toolOwnerId == resource.data.toolOwnerId
+          && request.resource.data.toolId == resource.data.toolId
+          && request.resource.data.createdAt == resource.data.createdAt
+          // Tool owner cannot change Aadhaar path
+          && request.resource.data.aadhaarStoragePath == resource.data.aadhaarStoragePath
+          // Allowed status transitions
+          && (
+            // Requested -> Accepted/Rejected
+            (resource.data.status == 'Requested' && (request.resource.data.status == 'Accepted' || request.resource.data.status == 'Rejected'))
+            // Accepted -> In Progress
+            || (resource.data.status == 'Accepted' && request.resource.data.status == 'In Progress')
+            // In Progress -> Completed
+            || (resource.data.status == 'In Progress' && request.resource.data.status == 'Completed')
+            // Allow no-op updates (e.g., notes) without changing status
+            || request.resource.data.status == resource.data.status
+          )
+        );
+
+      allow delete: if isAdmin();
     }
 
     // 11. Resource Reports (complaints for rental flows)

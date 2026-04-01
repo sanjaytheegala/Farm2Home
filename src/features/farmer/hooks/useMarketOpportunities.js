@@ -15,54 +15,65 @@ export const useMarketOpportunities = () => {
   const [myQuotes,    setMyQuotes]    = useState([])
   const [loading,     setLoading]     = useState(true)
 
-  /* ── All open requests (no farmer quoted yet) ── */
+  /* ── All open requests + farmer's own quotes — gated behind auth to
+     prevent Firestore watch-stream assertion failures during HMR when
+     listeners fire before the SDK is fully initialised. ── */
   useEffect(() => {
-    const q = query(
-      collection(db, 'market_demands'),
-      where('status', '==', 'open')
-    )
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        docs.sort((a, b) => {
-          const ta = a.createdAt?.toMillis?.() ?? 0
-          const tb = b.createdAt?.toMillis?.() ?? 0
-          return tb - ta
-        })
-        setOpenDemands(docs)
-        setLoading(false)
-      },
-      (err) => {
-        console.warn('useMarketOpportunities openDemands error:', err.message)
-        setLoading(false)
-      }
-    )
-    return () => { try { unsub() } catch (_) {} }
-  }, [])
+    let unsubOpen = null
+    let unsubQuotes = null
 
-  /* ── Deals where this farmer submitted a quote ── */
-  useEffect(() => {
-    let unsubSnap = null
     const unsubAuth = auth.onAuthStateChanged((user) => {
-      if (unsubSnap) { unsubSnap(); unsubSnap = null }
-      if (!user) return
-      const q = query(
+      // Tear down any existing listeners first
+      if (unsubOpen)   { try { unsubOpen() }   catch (_) {} unsubOpen   = null }
+      if (unsubQuotes) { try { unsubQuotes() }  catch (_) {} unsubQuotes = null }
+
+      if (!user) {
+        setOpenDemands([])
+        setMyQuotes([])
+        setLoading(false)
+        return
+      }
+
+      // Listener 1: all open demands
+      const openQ = query(
+        collection(db, 'market_demands'),
+        where('status', '==', 'open')
+      )
+      unsubOpen = onSnapshot(
+        openQ,
+        (snap) => {
+          const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          docs.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+          setOpenDemands(docs)
+          setLoading(false)
+        },
+        (err) => {
+          console.warn('useMarketOpportunities openDemands error:', err.message)
+          setLoading(false)
+        }
+      )
+
+      // Listener 2: deals where this farmer quoted
+      const quotesQ = query(
         collection(db, 'market_demands'),
         where('committedFarmerId', '==', user.uid)
       )
-      unsubSnap = onSnapshot(q, (snap) => {
-        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        docs.sort((a, b) => {
-          const ta = a.createdAt?.toMillis?.() ?? 0
-          const tb = b.createdAt?.toMillis?.() ?? 0
-          return tb - ta
-        })
-        setMyQuotes(docs)
-      })
+      unsubQuotes = onSnapshot(
+        quotesQ,
+        (snap) => {
+          const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          docs.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+          setMyQuotes(docs)
+        },
+        (err) => {
+          console.warn('useMarketOpportunities myQuotes error:', err.message)
+        }
+      )
     })
+
     return () => {
-      if (unsubSnap) { try { unsubSnap() } catch (_) {} }
+      if (unsubOpen)   { try { unsubOpen() }   catch (_) {} }
+      if (unsubQuotes) { try { unsubQuotes() }  catch (_) {} }
       try { unsubAuth() } catch (_) {}
     }
   }, [])

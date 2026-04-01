@@ -8,7 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import GlobalAutoTranslator from './components/GlobalAutoTranslator';
 import { useAuth } from './context/AuthContext';
 import { db } from './firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 // Import styles
 import './App.css';
@@ -126,17 +126,34 @@ const AppContent = () => {
       setResourceNotifCount(0);
       return;
     }
-    const unsub = onSnapshot(collection(db, 'rental_requests'), (snap) => {
-      const docs = snap.docs.map(d => d.data());
-      const pending = docs.filter(r => {
-        return (
-          (r.toolOwnerId === currentUser.uid && r.status === 'Requested') ||
-          (r.requesterId === currentUser.uid && r.status === 'Accepted')
-        );
-      }).length;
-      setResourceNotifCount(pending);
+    let ownerDocs = [];
+    let requesterDocs = [];
+
+    const recompute = () => {
+      const ownerPending = ownerDocs.filter(r => r.status === 'Requested').length;
+      const requesterPending = requesterDocs.filter(r => r.status === 'Accepted').length;
+      setResourceNotifCount(ownerPending + requesterPending);
+    };
+
+    const ownerQ = query(
+      collection(db, 'rental_requests'),
+      where('toolOwnerId', '==', currentUser.uid)
+    );
+    const requesterQ = query(
+      collection(db, 'rental_requests'),
+      where('requesterId', '==', currentUser.uid)
+    );
+
+    const unsubOwner = onSnapshot(ownerQ, (snap) => {
+      ownerDocs = snap.docs.map(d => d.data());
+      recompute();
     }, () => {});
-    return () => unsub();
+    const unsubRequester = onSnapshot(requesterQ, (snap) => {
+      requesterDocs = snap.docs.map(d => d.data());
+      recompute();
+    }, () => {});
+
+    return () => { try { unsubOwner(); } catch (_) {} try { unsubRequester(); } catch (_) {} };
   }, [currentUser]);
 
   // Handle tab changes in consumer dashboard
@@ -197,75 +214,124 @@ const AppContent = () => {
           <Route
             path="/"
             element={
-              <PublicOnlyRoute>
-                <HomePage />
-              </PublicOnlyRoute>
+              <ErrorBoundary>
+                <PublicOnlyRoute>
+                  <HomePage />
+                </PublicOnlyRoute>
+              </ErrorBoundary>
             }
           />
-          <Route path="/about" element={<AboutPage />} />
+          <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
           {/* /login, /signup, /auth redirect to "/" which PublicOnlyRoute guards */}
           <Route path="/auth" element={<Navigate to="/" replace />} />
           <Route path="/signup" element={<Navigate to="/" replace />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
+          <Route
+            path="/cart"
+            element={
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['consumer', 'farmer', 'admin']}>
+                  <CartPage />
+                </ProtectedRoute>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/orders"
+            element={
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['consumer', 'farmer', 'admin']}>
+                  <OrdersPage />
+                </ProtectedRoute>
+              </ErrorBoundary>
+            }
+          />
           <Route
             path="/checkout"
             element={
-              <ProtectedRoute allowedRoles={['consumer']}>
-                <OrderCheckout />
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['consumer']}>
+                  <OrderCheckout />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
-          <Route path="/profile" element={<ProfilePage />} />
-          {/* Removed ecommerce route */}
-          <Route path="/crop-recommendations" element={<CropRecommendationPage />} />
-          
+          <Route
+            path="/profile"
+            element={
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['consumer', 'farmer', 'admin']}>
+                  <ProfilePage />
+                </ProtectedRoute>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/crop-recommendations"
+            element={
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['consumer', 'farmer', 'admin']}>
+                  <CropRecommendationPage />
+                </ProtectedRoute>
+              </ErrorBoundary>
+            }
+          />
+
           {/* Resource Share - Protected route for farmers */}
-          {/* Temporarily disabled authentication - will be added later */}
           <Route
             path="/resource-share"
             element={
-              // <ProtectedRoute allowedRoles={['farmer']}>
-                <ResourceSharePage />
-              // </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['farmer']}>
+                  <ResourceSharePage />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
 
           <Route
             path="/farmer"
             element={
-              <ProtectedRoute allowedRoles={['farmer']}>
-                <FarmerDashboard />
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['farmer']}>
+                  <FarmerDashboard />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
           <Route
             path="/farmer-dashboard"
             element={
-              <ProtectedRoute allowedRoles={['farmer']}>
-                <FarmerDashboard />
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['farmer']}>
+                  <FarmerDashboard />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
           <Route
             path="/consumer"
             element={
-              <ProtectedRoute allowedRoles={['consumer']}>
-                <ConsumerDashboard />
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['consumer']}>
+                  <ConsumerDashboard />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
           <Route
             path="/admin"
             element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboard />
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
         </Routes>
       </Suspense>
+
     </>
   );
 };

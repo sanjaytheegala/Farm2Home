@@ -109,6 +109,7 @@ const OrdersPage = () => {
     )
   }
 
+
   const OrderDetails = ({ order }) => {
 
     // ── Step config ─────────────────────────────────────────────────────────
@@ -119,13 +120,13 @@ const OrdersPage = () => {
     const STEPS = [
       {
         key:   'pending',
-        label: 'Pending',
+        label: 'Order Placed',
         icon:  <FaClock />,
-        // The exact pulse spec: rgba(255,191,0,0.7) → rgba(255,191,0,0)
         pulseColor: 'rgba(255,191,0,0.7)',
-        activeColor: '#f59e0b',          // amber — active/current
-        doneColor:   '#16a34a',          // green  — completed
+        activeColor: '#f59e0b',
+        doneColor:   '#16a34a',
         pillStyle: { color: '#92400e', background: '#fef3c7' },
+        // Pending step always has the real order creation timestamp
         subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
         futureSubtitle: 'Awaiting order',
       },
@@ -137,7 +138,10 @@ const OrdersPage = () => {
         activeColor: '#16a34a',
         doneColor:   '#16a34a',
         pillStyle: { color: '#166534', background: '#dcfce7' },
-        subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
+        // confirmedAt timestamp if available, else a status note
+        subtitle: order.confirmedAt
+          ? `${formatDate(order.confirmedAt?.toMillis?.() || order.confirmedAt)} at ${formatTime(order.confirmedAt?.toMillis?.() || order.confirmedAt)}`
+          : 'Order confirmed',
         futureSubtitle: 'Awaiting confirmation',
       },
       {
@@ -148,7 +152,9 @@ const OrdersPage = () => {
         activeColor: '#0891b2',
         doneColor:   '#16a34a',
         pillStyle: { color: '#155e75', background: '#cffafe' },
-        subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
+        subtitle: order.shippedAt
+          ? `${formatDate(order.shippedAt?.toMillis?.() || order.shippedAt)} at ${formatTime(order.shippedAt?.toMillis?.() || order.shippedAt)}`
+          : 'In transit',
         futureSubtitle: 'Not yet shipped',
       },
       {
@@ -159,7 +165,9 @@ const OrdersPage = () => {
         activeColor: '#16a34a',
         doneColor:   '#16a34a',
         pillStyle: { color: '#166534', background: '#dcfce7' },
-        subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
+        subtitle: order.deliveredAt
+          ? `${formatDate(order.deliveredAt?.toMillis?.() || order.deliveredAt)} at ${formatTime(order.deliveredAt?.toMillis?.() || order.deliveredAt)}`
+          : 'Delivery complete',
         futureSubtitle: 'Pending delivery',
       },
     ];

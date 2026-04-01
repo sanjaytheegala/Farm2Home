@@ -295,8 +295,17 @@ export const useMarketDemands = () => {
 
   /* ── Consumer deletes an open request ── */
   const deleteDemand = useCallback(async (demandId) => {
+    const user = auth.currentUser
+    if (!user) return { success: false, error: 'Not logged in' }
     try {
-      await deleteDoc(doc(db, 'market_demands', demandId))
+      const demandRef = doc(db, 'market_demands', demandId)
+      const demandSnap = await getDoc(demandRef)
+      if (!demandSnap.exists()) return { success: false, error: 'Request not found' }
+      // Ownership check — only the original consumer can delete
+      if (demandSnap.data().consumerId !== user.uid) {
+        return { success: false, error: 'Unauthorized: You can only delete your own requests.' }
+      }
+      await deleteDoc(demandRef)
       return { success: true }
     } catch (err) {
       return { success: false, error: err.message }
@@ -305,7 +314,16 @@ export const useMarketDemands = () => {
 
   /* ── Consumer edits an open request ── */
   const updateDemand = useCallback(async (demandId, formData) => {
+    const user = auth.currentUser
+    if (!user) return { success: false, error: 'Not logged in' }
     try {
+      // Only allow edits when demand is in open or quoted state
+      const demandSnap = await getDoc(doc(db, 'market_demands', demandId))
+      if (!demandSnap.exists()) return { success: false, error: 'Request not found' }
+      const status = demandSnap.data().status
+      if (!['open', 'quoted'].includes(status)) {
+        return { success: false, error: 'Cannot edit a request that is already accepted or completed.' }
+      }
       await updateDoc(doc(db, 'market_demands', demandId), {
         cropName:   formData.cropName.trim(),
         quantityKg: parseFloat(formData.quantityKg),
@@ -333,6 +351,7 @@ export const useMarketDemands = () => {
         farmerOfferUnit:      null,
         dealClosedAt:         null,
         consumerPhone:        null,
+        orderId:              null,   // reset so next acceptOffer creates a fresh order
         cancelledAt:          serverTimestamp(),
       })
       return { success: true }

@@ -282,7 +282,9 @@ const ProfilePage = () => {
           </div>
           <div className="profile-name">
             <h2>{userData.fullName || 'User'}</h2>
-            <p className="user-role">{userData.role === 'farmer' ? t('farmer') : t('consumer')}</p>
+            <p className="user-role">
+              {userData.role === 'farmer' ? t('farmer') : userData.role === 'admin' ? 'Admin' : t('consumer')}
+            </p>
           </div>
         </div>
 
@@ -455,36 +457,14 @@ const ProfilePage = () => {
           )}
         </div>
 
-        {/* Saved Addresses */}
+        {/* Saved Addresses — Coming Soon */}
         <div className="saved-addresses-section">
           <div className="section-header">
             <h3>{t('saved_addresses')}</h3>
-            <button className="edit-btn">
-              {t('add_address')}
-            </button>
           </div>
-          
-          {addresses.length > 0 ? (
-            <div className="addresses-grid">
-              {addresses.map((address, index) => (
-                <div key={index} className="address-card">
-                  <div className="address-content">
-                    <p className="address-line">{address.addressLine}</p>
-                    <p>{address.city}, {address.state} - {address.pincode}</p>
-                    {address.isDefault && (
-                      <span className="default-badge">{t('default_address')}</span>
-                    )}
-                  </div>
-                  <div className="address-actions">
-                    <button className="icon-btn"><FaEdit /></button>
-                    <button className="icon-btn"><FaTimes /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="no-data">{t('no_saved_addresses')}</p>
-          )}
+          <p className="no-data" style={{ color: '#9ca3af', fontStyle: 'italic', padding: '16px 0' }}>
+            🚧 Address book feature coming soon.
+          </p>
         </div>
       </div>
     </div>

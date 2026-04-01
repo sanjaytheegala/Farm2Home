@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 // Shown while Firebase resolves the session — prevents incorrect redirects on refresh
@@ -27,6 +27,7 @@ const RouteLoader = () => (
  */
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userData, loading } = useAuth();
+  const location = useLocation();
 
   // ① Wait for Firebase onAuthStateChanged to fire before making any decision.
   //    Without this, a page refresh always sees currentUser=null for ~200ms and
@@ -40,12 +41,20 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   // ③ Authenticated but wrong role (e.g. consumer typing /farmer-dashboard in URL bar)
-  if (allowedRoles && !allowedRoles.includes(userData?.role)) {
-    const role = userData?.role
-    const dest = role === 'farmer' ? '/farmer-dashboard'
+  if (allowedRoles) {
+    // Some legacy users may not have a `role` field yet.
+    // Defaulting to 'consumer' preserves access to non-admin routes and avoids
+    // redirect loops like /consumer -> /consumer.
+    const role = userData?.role || 'consumer';
+
+    if (!allowedRoles.includes(role)) {
+      let dest = role === 'farmer' ? '/farmer-dashboard'
                : role === 'admin'  ? '/admin'
-               : '/consumer'
-    return <Navigate to={dest} replace />;
+               : '/consumer';
+
+      if (dest === location.pathname) dest = '/';
+      return <Navigate to={dest} replace />;
+    }
   }
 
   // ④ All checks passed — render the protected page

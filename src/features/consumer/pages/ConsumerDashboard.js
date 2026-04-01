@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../firebase';
 import { findCropByKeyword } from '../../../data/cropData';
-import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 import {
   FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
   FaShieldAlt, FaHeart, FaBox,
@@ -12,6 +12,7 @@ import {
   FaRegClock, FaLock, FaFlag, FaEdit, FaTrash, FaSave, FaTimes as FaX, FaComments, FaCalendarAlt,
 } from 'react-icons/fa';
 import ChatModal from '../../../shared/components/ChatModal/ChatModal';
+import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog';
 import ProductCard from '../components/ProductCard/ProductCard';
 import SearchBar from '../components/Filters/SearchBar';
 import FilterSection from '../components/Filters/FilterSection';
@@ -70,6 +71,15 @@ const ConsumerDashboard = () => {
   const [preponeDate, setPreponeDate] = useState('');
   const categorySectionRef = useRef(null);
   const prevDemandsRef = useRef({});
+  const [farmerCount, setFarmerCount] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+
+  // Fetch total farmer count for hero stats
+  useEffect(() => {
+    getCountFromServer(query(collection(db, 'users'), where('role', '==', 'farmer')))
+      .then(snap => setFarmerCount(snap.data().count))
+      .catch(() => setFarmerCount(null));
+  }, []);
 
   // Fetch already-reported demand IDs for this user
   useEffect(() => {
@@ -180,7 +190,8 @@ const ConsumerDashboard = () => {
   };
 
   return (
-    <div className="cd-root">
+    <>
+      <div className="cd-root">
       {showRequestModal && <RequestCropModal onClose={() => { setShowRequestModal(false); setSelectedProductForRequest(null); }} onSubmit={submitDemand} initialProduct={selectedProductForRequest} />}
       {editingDemand && (
         <RequestCropModal
@@ -281,7 +292,7 @@ const ConsumerDashboard = () => {
           <div className="cd-hs-divider"></div>
           <div className="cd-hs-stat"><span className="cd-hs-num">{organicCount}</span><span className="cd-hs-lbl">Organic</span></div>
           <div className="cd-hs-divider"></div>
-          <div className="cd-hs-stat"><span className="cd-hs-num">150+</span><span className="cd-hs-lbl">Farmers</span></div>
+          <div className="cd-hs-stat"><span className="cd-hs-num">{farmerCount !== null ? `${farmerCount}+` : '150+'}</span><span className="cd-hs-lbl">Farmers</span></div>
           <div className="cd-hs-divider"></div>
           <div className="cd-hs-stat"><span className="cd-hs-num">Rs.500+</span><span className="cd-hs-lbl">Free Delivery</span></div>
         </div>
@@ -412,9 +423,15 @@ const ConsumerDashboard = () => {
                             <button
                               title="Delete Request"
                               onClick={async () => {
-                                if (!window.confirm('Delete this request?')) return;
-                                const res = await deleteDemand(demand.id);
-                                if (!res.success) toastError(res.error || 'Failed to delete');
+                                setConfirmDialog({
+                                  message: 'Delete this crop request? This cannot be undone.',
+                                  confirmLabel: 'Delete',
+                                  danger: true,
+                                  onConfirm: async () => {
+                                    const res = await deleteDemand(demand.id);
+                                    if (!res.success) toastError(res.error || 'Failed to delete');
+                                  },
+                                });
                               }}
                               style={{display:'flex',alignItems:'center',gap:3,background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:6,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}
                             >
@@ -489,9 +506,9 @@ const ConsumerDashboard = () => {
                               <span className="cd-verified-badge">✓ Verified</span>
                             )}
                           </div>
-                          <a href={`tel:${demand.farmerPhone}`} style={{ fontSize:12, fontWeight:600, color:'#b45309', display:'flex', alignItems:'center', gap:4, textDecoration:'none' }}>
-                            <FaPhone style={{ fontSize:11 }} />{demand.farmerPhone || 'Not provided'}
-                          </a>
+                          <span style={{ fontSize:11, fontWeight:600, color:'#9ca3af', display:'flex', alignItems:'center', gap:4, background:'#f3f4f6', padding:'3px 8px', borderRadius:6, border:'1px dashed #d1d5db' }}>
+                            🔒 Accept to reveal contact
+                          </span>
                         </div>
                         {/* Row 3: QTY | RATE | TOTAL */}
                         {demand.farmerAvailableUntil && (
@@ -587,7 +604,8 @@ const ConsumerDashboard = () => {
                             )}
                           </div>
                         )}
-                        {demand.status === 'deal_closed' && (
+                        {/* Action buttons — deal_closed: Received + Cancel + Chat | in_progress: Received + Chat */}
+                        {(demand.status === 'deal_closed' || demand.status === 'in_progress') && (
                         <div style={{display:'flex', gap:6, marginTop:8}}>
                           <button
                             onClick={async () => {
@@ -597,38 +615,26 @@ const ConsumerDashboard = () => {
                             }}
                             style={{flex:1, padding:'8px 4px', background:'#f0fdf4', color:'#15803d', border:'1.5px solid #86efac', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4}}
                           >
-                            <FaBox style={{fontSize:11}}/> Received
+                            <FaCheckCircle style={{fontSize:11}}/> Mark Received
                           </button>
-                          <button
-                            onClick={async () => {
-                              const res = await cancelDeal(demand.id);
-                              if (res.success) toastSuccess('Deal cancelled. Request is open again.');
-                              else toastError(res.error || 'Failed to cancel deal');
-                            }}
-                            style={{flex:1, padding:'8px 4px', background:'#fef2f2', color:'#dc2626', border:'1.5px solid #fca5a5', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4}}
-                          >
-                            <FaX style={{fontSize:11}}/> Reject
-                          </button>
+                          {demand.status === 'deal_closed' && (
+                            <button
+                              onClick={async () => {
+                                const res = await cancelDeal(demand.id);
+                                if (res.success) toastSuccess('Deal cancelled. Request is open again.');
+                                else toastError(res.error || 'Failed to cancel deal');
+                              }}
+                              style={{flex:1, padding:'8px 4px', background:'#fef2f2', color:'#dc2626', border:'1.5px solid #fca5a5', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4}}
+                            >
+                              <FaX style={{fontSize:11}}/> Cancel Deal
+                            </button>
+                          )}
                           <button className="chat-trigger-btn" style={{flex:1, justifyContent:'center', padding:'8px 4px', fontSize:12}} onClick={() => setActiveChatDemand(demand)}>
                             <FaComments style={{fontSize:11, marginRight:3}}/> Chat
                           </button>
                         </div>
                         )}
                       </div>
-                    )}
-
-                    {/* Mark as Received — shown when farmer marks in_progress */}
-                    {demand.status === 'in_progress' && (
-                      <button
-                        className="cd-received-btn"
-                        onClick={async () => {
-                          const res = await markReceived(demand.id);
-                          if (res.success) toastSuccess('Order marked as received!');
-                          else toastError(res.error || 'Failed to update status');
-                        }}
-                      >
-                        <FaCheckCircle style={{marginRight:8}}/> Mark as Received
-                      </button>
                     )}
 
                     {/* Review form — shown only after completed */}
@@ -944,7 +950,9 @@ const ConsumerDashboard = () => {
           </div>
         );
       })()}
-    </div>
+      </div>
+      <ConfirmDialog config={confirmDialog} onClose={() => setConfirmDialog(null)} />
+    </>
   );
 };
 

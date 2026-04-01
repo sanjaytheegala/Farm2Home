@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../../context/ToastContext';
 import { auth } from '../../../firebase';
+import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog';
 import './ShowCrops.css';
 import { FaSearch, FaMapMarkerAlt, FaSort, FaLeaf, FaRupeeSign, FaCalendarAlt, FaEdit, FaTrash } from 'react-icons/fa';
 
@@ -15,6 +16,7 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
   const [editingCrop, setEditingCrop] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [uid, setUid] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name }
 
   // Districts list (South Indian districts)
   const districts = [
@@ -131,19 +133,17 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
 
   // Handle delete crop
   const handleDeleteCrop = async (cropId, cropName) => {
-    if (!window.confirm(`Are you sure you want to delete "${cropName}"?`)) {
-      return;
-    }
+    setConfirmDelete({ id: cropId, name: cropName });
+  };
 
+  const confirmDeleteCropAction = async () => {
+    if (!confirmDelete) return;
+    const { id: cropId } = confirmDelete;
+    setConfirmDelete(null);
     try {
-      console.log('🗑️ Deleting crop:', cropId);
-      
-      // Get all crops and remove the specified one
       const allCrops = JSON.parse(localStorage.getItem('crops') || '[]');
       const updatedCrops = allCrops.filter(crop => crop.id !== cropId);
       localStorage.setItem('crops', JSON.stringify(updatedCrops));
-      
-      console.log('Crop deleted successfully');
       toastSuccess('Crop deleted successfully!');
       fetchCrops();
     } catch (error) {
@@ -188,6 +188,18 @@ const ShowCrops = ({ showAdminInfo = false, enableEdit = false }) => {
 
   return (
     <div className="show-crops-container">
+      {/* Confirm Delete Dialog */}
+      {confirmDelete && (
+        <ConfirmDialog
+          isOpen={true}
+          title="Delete Crop"
+          message={`Are you sure you want to delete "${confirmDelete.name}"? This action cannot be undone.`}
+          onConfirm={confirmDeleteCropAction}
+          onCancel={() => setConfirmDelete(null)}
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
+      )}
       {/* Sticky Header with Search and Filters */}
       <div className="crops-header-sticky">
         <div className="crops-header-content">

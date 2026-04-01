@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../../../firebase';
 import { useToast } from '../../../context/ToastContext';
+import { logger } from '../../../utils/logger';
+import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog';
 import { 
   collection, 
   query, 
@@ -15,11 +18,13 @@ import { FaSeedling, FaRupeeSign, FaEdit, FaTrash, FaCheckCircle, FaClock, FaTim
 
 const FarmerCropsList = () => {
   const { success: toastSuccess, error: toastError } = useToast();
+  const navigate = useNavigate();
   const [crops, setCrops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingCrop, setEditingCrop] = useState(null);
   const [editForm, setEditForm] = useState({ price: '', quantity: '' });
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name }
 
   // Fetch farmer's crops
   const fetchCrops = async () => {
@@ -47,7 +52,7 @@ const FarmerCropsList = () => {
       }));
 
       setCrops(cropsData);
-      console.log('✅ Fetched', cropsData.length, 'crops');
+      logger.log('✅ Fetched', cropsData.length, 'crops');
     } catch (err) {
       console.error('Error fetching crops:', err);
       setError('Failed to load crops. Please try again.');
@@ -62,15 +67,16 @@ const FarmerCropsList = () => {
 
   // Handle delete crop
   const handleDelete = async (cropId, cropName) => {
-    if (!window.confirm(`Are you sure you want to delete "${cropName}"?`)) {
-      return;
-    }
+    setConfirmDelete({ id: cropId, name: cropName });
+  };
 
+  const confirmDeleteCrop = async () => {
+    if (!confirmDelete) return;
+    const { id: cropId } = confirmDelete;
+    setConfirmDelete(null);
     try {
       const cropDocRef = doc(db, 'crops', cropId);
       await deleteDoc(cropDocRef);
-      
-      // Remove from state
       setCrops(crops.filter(crop => crop.id !== cropId));
       toastSuccess('Crop deleted successfully!');
     } catch (err) {
@@ -216,8 +222,8 @@ const FarmerCropsList = () => {
             <h2 className="text-2xl font-semibold text-gray-800 mb-2">No Crops Yet</h2>
             <p className="text-gray-600 mb-6">Start by adding your first crop to reach consumers</p>
             <button 
-              onClick={() => window.location.href = '/farmer/add-crop'}
-              className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all"
+              onClick={() => navigate('/farmer-dashboard')}
+              style={{ padding: '12px 24px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}
             >
               Add Your First Crop
             </button>
@@ -359,6 +365,19 @@ const FarmerCropsList = () => {
           </div>
         )}
       </div>
+
+      {/* Confirm Delete Dialog */}
+      {confirmDelete && (
+        <ConfirmDialog
+          isOpen={true}
+          title="Delete Crop"
+          message={`Are you sure you want to delete "${confirmDelete.name}"? This action cannot be undone.`}
+          onConfirm={confirmDeleteCrop}
+          onCancel={() => setConfirmDelete(null)}
+          confirmText="Delete"
+          cancelText="Cancel"
+        />
+      )}
     </div>
   );
 };

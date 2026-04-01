@@ -1,0 +1,55 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && firestore.exists(/databases/(default)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Profile photos: public read, owner/admin write
+    match /profile_photos/{uid} {
+      allow read: if true;
+      allow write: if isOwner(uid) || isAdmin();
+    }
+
+    // Tool images: public read, tool owner/admin write
+    // Uses the resource_tools/{toolId} doc to authorize writes.
+    match /tool_images/{toolId} {
+      allow read: if true;
+      allow write: if isSignedIn() && (
+        isAdmin()
+        || firestore.get(/databases/(default)/documents/resource_tools/$(toolId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    // Aadhaar uploads: request-scoped path; only requester, tool owner, or admin can read.
+    // Only requester/admin can write.
+    match /aadhaar_requests/{requestId}/{fileName} {
+      allow read: if isSignedIn() && (
+        isAdmin()
+        || firestore.get(/databases/(default)/documents/rental_requests/$(requestId)).data.requesterId == request.auth.uid
+        || firestore.get(/databases/(default)/documents/rental_requests/$(requestId)).data.toolOwnerId == request.auth.uid
+      );
+
+      allow write: if isSignedIn() && (
+        isAdmin()
+        || firestore.get(/databases/(default)/documents/rental_requests/$(requestId)).data.requesterId == request.auth.uid
+      )
+      && request.resource.size < 5 * 1024 * 1024
+      && request.resource.contentType.matches('image/.*');
+    }
+
+    // Default deny for any other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -27,20 +27,33 @@ export const AuthProvider = ({ children }) => {
           // get the full profile (with role) instead of falling back to basic data.
           if (!userDoc.exists()) {
             await new Promise((r) => setTimeout(r, 1500));
-            userDoc = await getDoc(userDocRef);
+            // Check again if user is still logged in before retrying getDoc
+            if (auth.currentUser) {
+              userDoc = await getDoc(userDocRef);
+            }
           }
 
           if (userDoc.exists()) {
             const fullUserData = { uid: user.uid, email: user.email, displayName: user.displayName, ...userDoc.data() };
             setCurrentUser(user);
             setUserData(fullUserData);
-            localStorage.setItem('currentUser', JSON.stringify(fullUserData));
+            // Store only minimal non-sensitive data in localStorage
+            // Full profile is always fetched fresh from Firestore via onAuthStateChanged
+            localStorage.setItem('currentUser', JSON.stringify({
+              uid: user.uid,
+              email: user.email,
+              role: fullUserData.role || '',
+            }));
           } else {
             logger.warn('User found in Auth but not in Firestore');
             const basicData = { uid: user.uid, email: user.email, displayName: user.displayName };
             setCurrentUser(user);
             setUserData(basicData);
-            localStorage.setItem('currentUser', JSON.stringify(basicData));
+            localStorage.setItem('currentUser', JSON.stringify({
+              uid: user.uid,
+              email: user.email,
+              role: '',
+            }));
           }
         } catch (error) {
           logger.error('Error fetching user data:', error);

@@ -20,6 +20,7 @@ import { FaLeaf, FaChartLine, FaPlus, FaEdit, FaTrash, FaSave,
 import { findCropByKeyword, CROP_DICTIONARY } from '../../../data/cropData'
 import ComplaintModal from '../../../shared/components/ComplaintModal/ComplaintModal'
 import ChatModal from '../../../shared/components/ChatModal/ChatModal'
+import ConfirmDialog from '../../../shared/components/ConfirmDialog/ConfirmDialog'
 import { resolveCanonicalCropName } from '../../../utils/cropValidation'
 
 // Avatar palette — deterministic color per farmer name first letter
@@ -177,8 +178,10 @@ const formatRelTime = (ts, t, i18n) => {
   const date = ts?.toDate ? ts.toDate() : ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts)
   const diff = Math.floor((Date.now() - date.getTime()) / 1000)
 
+  // Safe translation helper — works even if t/i18n are undefined (e.g. called without args)
   const safeTWith = (key, options, fallback) => {
     try {
+      if (!t || !i18n) return fallback
       return i18n?.exists?.(key) ? t(key, options) : fallback
     } catch {
       return fallback
@@ -651,6 +654,7 @@ const FarmerDashboard = () => {
   const [offerPrices, setOfferPrices] = useState({})      // { [demandId]: string }
   const [submittingOfferId, setSubmittingOfferId] = useState(null)
   const [bulkAlert, setBulkAlert] = useState(null) // { cropName, quantity, location }
+  const [confirmDialog, setConfirmDialog] = useState(null) // { message, onConfirm }
 
   const [isQtyBucketsOpen, setIsQtyBucketsOpen] = useState(false)
   const [isPriceBucketsOpen, setIsPriceBucketsOpen] = useState(false)
@@ -915,7 +919,12 @@ const FarmerDashboard = () => {
   }
 
   const handleDelete = async (cropId) => {
-    if (window.confirm('Are you sure you want to delete this crop?')) await deleteCrop(cropId)
+    setConfirmDialog({
+      message: 'Are you sure you want to delete this crop?',
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: () => deleteCrop(cropId),
+    })
   }
 
   const handleOpenEditProfile = () => {
@@ -1976,7 +1985,7 @@ const FarmerDashboard = () => {
 
       {/* ─── MARKET OPPORTUNITIES TAB ─── */}
       {activeTab === 'market' && (
-        <div className="fd-content" style={{ paddingLeft: 300 }}>
+        <div className="fd-content fd-content--market">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 className="fd-content-title">
@@ -2229,8 +2238,11 @@ const FarmerDashboard = () => {
           )}
         </div>
       )}
+      {/* Confirm Dialog — replaces window.confirm() for delete actions */}
+      <ConfirmDialog config={confirmDialog} onClose={() => setConfirmDialog(null)} />
     </div>
   )
 }
+
 
 export default FarmerDashboard

@@ -6,7 +6,7 @@ import {
   FaBars, FaTimes, FaPhoneAlt, FaUserTie, FaRegClock, FaAlignLeft,
   FaThumbsUp, FaThumbsDown, FaBan, FaSpinner, FaExclamationTriangle,
   FaMapPin, FaSlidersH, FaEye, FaEyeSlash, FaTachometerAlt, FaTruck,
-  FaShieldAlt, FaSortAmountDown, FaStickyNote
+  FaShieldAlt, FaSortAmountDown, FaStickyNote, FaCamera, FaSyncAlt
 } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './ResourceSharePage.css';
@@ -15,6 +15,7 @@ import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimest
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import ConfirmDialog from '../shared/components/ConfirmDialog/ConfirmDialog';
 
 /* ── category meta ── */
 const CATEGORY_META = {
@@ -283,6 +284,7 @@ const BLANK_RENT_REQUEST = {
   durationType: 'hours', // 'hours' | 'days'
   workNote: '',         // Work conditions note
   requesterPhone: '',   // phone entered in modal
+  aadhaarImageUrl: '',  // URL of uploaded Aadhaar card image
 };
 
 const VALID_RESOURCE_TABS = new Set(['browse', 'requests', 'my-tools', 'list']);
@@ -307,6 +309,7 @@ const ResourceSharePage = () => {
   const [editingTool, setEditingTool]       = useState(null);  // tool being edited
   const [editForm, setEditForm]             = useState({});    // form values
   const [savingEdit, setSavingEdit]         = useState(false);
+  const [confirmDeleteTool, setConfirmDeleteTool] = useState(null); // { id } for ConfirmDialog
 
   // sidebar
   const [sidebarOpen, setSidebarOpen]       = useState(false);
@@ -342,13 +345,53 @@ const ResourceSharePage = () => {
       (snap) => setUserTools(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
       (err) => console.error('resource_tools listener error:', err)
     );
-    const unsubRentals = onSnapshot(
-      collection(db, 'rental_requests'),
-      (snap) => setRentalRequests(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
-      (err) => console.error('rental_requests listener error:', err)
-    );
-    return () => { unsubTools(); unsubRentals(); };
-  }, []);
+
+    // rental_requests: subscribe only to the current user's relevant docs
+    let unsubRentalsRequester = () => {};
+    let unsubRentalsOwner = () => {};
+    if (currentUser) {
+      let requesterDocs = [];
+      let ownerDocs = [];
+
+      const mergeAndSet = () => {
+        const map = new Map();
+        [...requesterDocs, ...ownerDocs].forEach((r) => map.set(r.id, r));
+        setRentalRequests(Array.from(map.values()));
+      };
+
+      const requesterQ = query(
+        collection(db, 'rental_requests'),
+        where('requesterId', '==', currentUser.uid)
+      );
+      const ownerQ = query(
+        collection(db, 'rental_requests'),
+        where('toolOwnerId', '==', currentUser.uid)
+      );
+
+      unsubRentalsRequester = onSnapshot(
+        requesterQ,
+        (snap) => {
+          requesterDocs = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+          mergeAndSet();
+        },
+        (err) => console.error('rental_requests(requester) listener error:', err)
+      );
+      unsubRentalsOwner = onSnapshot(
+        ownerQ,
+        (snap) => {
+          ownerDocs = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+          mergeAndSet();
+        },
+        (err) => console.error('rental_requests(owner) listener error:', err)
+      );
+    }
+
+    return () => {
+      unsubTools();
+      unsubRentalsRequester();
+      unsubRentalsOwner();
+    };
+  }, [currentUser]);
 
   useEffect(() => {
     if (!currentUser?.uid) {
@@ -454,6 +497,9 @@ const ResourceSharePage = () => {
   const [rentModalTool, setRentModalTool]   = useState(null);
   const [rentForm, setRentForm]             = useState(BLANK_RENT_REQUEST);
   const [rentSubmitting, setRentSubmitting] = useState(false);
+  const [aadhaarFile, setAadhaarFile]       = useState(null);
+  const [aadhaarPreview, setAadhaarPreview] = useState('');
+  const aadhaarFileRef                      = useRef(null);
 
   /* ── helpers ── */
   // Normalise legacy tools (INITIAL_TOOLS use `name`, new tools use `toolName`)
@@ -556,8 +602,15 @@ const ResourceSharePage = () => {
     }
     setRentModalTool(tool);
     setRentForm({ ...BLANK_RENT_REQUEST, requesterPhone: myPhone || '' });
+    setAadhaarFile(null);
+    setAadhaarPreview('');
   };
-  const closeRentModal = () => { setRentModalTool(null); setRentForm(BLANK_RENT_REQUEST); };
+  const closeRentModal = () => { 
+    setRentModalTool(null); 
+    setRentForm(BLANK_RENT_REQUEST);
+    setAadhaarFile(null);
+    setAadhaarPreview('');
+  };
   const proceedDespiteWarning = () => {
     setRentModalTool(districtWarnTool);
     setRentForm({ ...BLANK_RENT_REQUEST, requesterPhone: myPhone || '' });
@@ -595,35 +648,51 @@ const ResourceSharePage = () => {
     }
 
     setRentSubmitting(true);
-    try {
-      const requestPayload = {
-        toolId:           rentModalTool.id || null,
-        toolName:         rentModalTool.toolName || rentModalTool.name,
-        toolOwnerId:      rentModalTool.ownerId || null,
-        ownerName:        rentModalTool.owner,
-        ownerPhone:       rentModalTool.phone,
-        ownerDistrict:    rentModalTool.district || '',
-        category:         rentModalTool.category,
-        withOperator:     rentModalTool.withOperator || false,
-        durationType:     rentForm.durationType,
-        duration:         rentForm.duration,
-        estimatedHours,
-        workNote:         rentForm.workNote || '',
-        dateOfUse:        rentForm.dateOfUse,
-        requesterId:      currentUser?.uid || null,
-        requesterName:    authUserData?.name || currentUser?.displayName || '',
-        requesterPhone:   phoneToUse,
-        requesterDistrict: myDistrict || '',
-        status:           'Requested',
-        createdAt:        serverTimestamp(),
-        reviewSubmitted:  false,
-      };
+    // ── Aadhaar Upload ──────────────────────────────────────
+    if (!aadhaarFile) {
+      toastError('Please upload an image of your Aadhaar card to proceed.');
+      setRentSubmitting(false);
+      return;
+    }
 
-      if (latestSameToolReq && ['Rejected', 'Completed', 'Cancelled'].includes(latestSameToolReq.status)) {
-        await updateDoc(doc(db, 'rental_requests', latestSameToolReq.id), requestPayload);
-      } else {
-        await addDoc(collection(db, 'rental_requests'), requestPayload);
-      }
+    let requestDocRef = null;
+    let aadhaarStoragePath = '';
+    try {
+      // 1) Create the rental request first (so Storage rules can authorize uploads)
+      requestDocRef = await addDoc(collection(db, 'rental_requests'), {
+        toolId:            rentModalTool.id || null,
+        toolName:          rentModalTool.toolName || rentModalTool.name,
+        toolOwnerId:       rentModalTool.ownerId || null,
+        ownerName:         rentModalTool.owner,
+        ownerPhone:        rentModalTool.phone,
+        ownerDistrict:     rentModalTool.district || '',
+        category:          rentModalTool.category,
+        withOperator:      rentModalTool.withOperator || false,
+        durationType:      rentForm.durationType,
+        duration:          rentForm.duration,
+        estimatedHours,
+        workNote:          rentForm.workNote || '',
+        dateOfUse:         rentForm.dateOfUse,
+        requesterId:       currentUser?.uid || null,
+        requesterName:     authUserData?.name || currentUser?.displayName || '',
+        requesterPhone:    phoneToUse,
+        requesterDistrict: myDistrict || '',
+        aadhaarStoragePath: null,
+        status:            'Requested',
+        createdAt:         serverTimestamp(),
+        reviewSubmitted:   false,
+      });
+
+      // 2) Upload Aadhaar under a request-scoped path (no public download URL stored)
+      aadhaarStoragePath = `aadhaar_requests/${requestDocRef.id}/${Date.now()}_aadhaar.png`;
+      const storageRef = ref(storage, aadhaarStoragePath);
+      await uploadBytes(storageRef, aadhaarFile, { contentType: aadhaarFile.type || 'image/png' });
+
+      // 3) Save the Storage path into the request doc (written once)
+      await updateDoc(doc(db, 'rental_requests', requestDocRef.id), {
+        aadhaarStoragePath,
+        aadhaarUploadedAt: serverTimestamp(),
+      });
 
       toastSuccess(`🚜 Request sent for "${rentModalTool.toolName || rentModalTool.name}"! Owner will contact you soon.`);
       closeRentModal();
@@ -631,6 +700,10 @@ const ResourceSharePage = () => {
     } catch (err) {
       console.error('Error sending rental request:', err);
       toastError('Failed to send request. Please try again.');
+      // Best-effort cleanup of partially created request docs
+      if (requestDocRef?.id) {
+        try { await deleteDoc(doc(db, 'rental_requests', requestDocRef.id)); } catch (_) {}
+      }
     } finally {
       setRentSubmitting(false);
     }
@@ -890,7 +963,13 @@ const ResourceSharePage = () => {
   };
 
   const handleDeleteTool = async (toolId) => {
-    if (!window.confirm('Remove this listing?')) return;
+    setConfirmDeleteTool({ id: toolId });
+  };
+
+  const confirmDeleteToolAction = async () => {
+    if (!confirmDeleteTool) return;
+    const { id: toolId } = confirmDeleteTool;
+    setConfirmDeleteTool(null);
     try {
       await deleteDoc(doc(db, 'resource_tools', toolId));
       toastSuccess('Listing removed.');
@@ -1360,6 +1439,19 @@ const ResourceSharePage = () => {
   return (
     <div className="resource-share-page">
       <div className="resource-container">
+
+        {/* Confirm Delete Tool Dialog */}
+        {confirmDeleteTool && (
+          <ConfirmDialog
+            isOpen={true}
+            title="Remove Listing"
+            message="Are you sure you want to remove this tool listing? This action cannot be undone."
+            onConfirm={confirmDeleteToolAction}
+            onCancel={() => setConfirmDeleteTool(null)}
+            confirmText="Remove"
+            cancelText="Cancel"
+          />
+        )}
 
         {/* ═══════ TAB NAVIGATION BAR ═══════ */}
         <div className="rs-top-action-bar">
@@ -2069,6 +2161,48 @@ const ResourceSharePage = () => {
             </p>
           </div>
 
+          {/* Aadhaar Verification - IMAGE UPLOAD */}
+          <div className="rs-modal-section">
+            <label className="rs-modal-label">🪪 Aadhaar Card Image <span className="p2p-required">*</span></label>
+            <div className="rs-file-upload-block" 
+                 onClick={() => aadhaarFileRef.current?.click()}
+                 style={aadhaarPreview ? { borderColor: '#16a34a', background: '#f0fdf4' } : {}}>
+              <input 
+                type="file" 
+                accept="image/*" 
+                hidden 
+                ref={aadhaarFileRef}
+                onChange={e => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setAadhaarFile(file);
+                    setAadhaarPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+              {aadhaarPreview ? (
+                <div className="rs-aadhaar-preview-container">
+                  <img src={aadhaarPreview} alt="Aadhaar Preview" className="rs-aadhaar-preview-img" />
+                  <div className="rs-aadhaar-preview-overlay">
+                    <FaSyncAlt /> Change Image
+                  </div>
+                </div>
+              ) : (
+                <div className="rs-file-upload-placeholder">
+                  <FaCamera size={24} />
+                  <span>Click to Upload Aadhaar Photo</span>
+                  <p>Image showing front or back of card</p>
+                </div>
+              )}
+            </div>
+            <p style={{ fontSize: '0.75rem', marginTop: 4, fontWeight: 500,
+              color: aadhaarFile ? '#16a34a' : '#b45309' }}>
+              {aadhaarFile
+                ? '✅ Aadhaar image selected.'
+                : '⚠️ Required: Please upload your Aadhaar card image for verification.'}
+            </p>
+          </div>
+
           {/* Work Conditions Note */}
           <div className="rs-modal-section">
             <label className="rs-modal-label"><FaStickyNote /> Work Conditions Note</label>
@@ -2094,7 +2228,7 @@ const ResourceSharePage = () => {
           {/* Actions */}
           <div className="rs-modal-actions">
             <button className="rs-modal-btn-primary"
-              disabled={rentSubmitting || !rentForm.dateOfUse || !rentForm.duration}
+              disabled={rentSubmitting || !rentForm.dateOfUse || !rentForm.duration || !aadhaarFile}
               onClick={handleRentRequest}>
               {rentSubmitting ? <><FaSpinner /> Sending...</> : <><FaHandshake /> Send Request</>}
             </button>

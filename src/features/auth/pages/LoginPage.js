@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { auth, db, functions } from '../../../firebase';
-import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { doc, getDoc } from 'firebase/firestore';
 import { GMAIL_SUFFIX, isGmailComplete, isPhoneLike, keepCaretInLocalPart, moveCaretToLocalEnd, normalizeGmailInput } from '../../../utils/gmailInput';
@@ -17,6 +17,10 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
   const navigate = useNavigate();
   const { t } = useTranslation();
   const emailInputRef = useRef(null);
@@ -60,7 +64,8 @@ const LoginPage = () => {
         // Call the Cloud Function (runs with Admin SDK — bypasses all Firestore rules)
         const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
         const cleanPhone = normalizePhoneForLookup(emailToUse);
-        const result = await getEmailByPhone({ phoneNumber: cleanPhone });
+        const expectedRole = isFarmer ? 'farmer' : 'consumer';
+        const result = await getEmailByPhone({ phoneNumber: cleanPhone, expectedRole });
         emailToUse = result.data.email;
       }
 
@@ -73,6 +78,15 @@ const LoginPage = () => {
       // Sign in with Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, emailToUse, passwordInput);
       const user = userCredential.user;
+
+      // ── Email verification gate ──────────────────────────────────
+      if (!user.emailVerified) {
+        await signOut(auth);
+        setError('Your email is not verified. Please check your inbox and click the verification link before logging in.');
+        setLoading(false);
+        return;
+      }
+      // ────────────────────────────────────────────────────────────
 
       // Fetch user profile from Firestore
       const userDocRef = doc(db, 'users', user.uid);
@@ -123,7 +137,29 @@ const LoginPage = () => {
     return handleEmailLogin(email, password);
   };
 
-  return (
+  const handleForgotPassword = async () => {
+    const raw = resetEmail.trim();
+    if (!raw) {
+      setResetMessage('Please enter your email address.');
+      return;
+    }
+    setResetLoading(true);
+    setResetMessage('');
+    try {
+      await sendPasswordResetEmail(auth, raw);
+      setResetMessage('Reset link sent to your email! Check your inbox.');
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        setResetMessage('No account found with this email address.');
+      } else {
+        setResetMessage('Failed to send reset email. Please try again.');
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  return (<>
     <div style={{ padding: '20px', backgroundColor: '#181818', minHeight: '100vh', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{ background: '#2a2a2a', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', width: '400px', position: 'relative' }}>
         {/* Back to Home Button */}
@@ -233,9 +269,58 @@ const LoginPage = () => {
             {loading ? t('loading') : t('login')}
           </button>
         </form>
+
+        {/* Forgot Password link */}
+        <p style={{ textAlign: 'center', marginTop: '16px' }}>
+          <button
+            onClick={() => { setShowForgotPassword(true); setResetMessage(''); setResetEmail(''); }}
+            style={{ background: 'none', border: 'none', color: '#28a745', cursor: 'pointer', fontSize: '0.9rem', textDecoration: 'underline' }}
+          >
+            Forgot Password?
+          </button>
+        </p>
       </div>
     </div>
-  );
+
+    {/* ── Forgot Password Modal ── */}
+    {showForgotPassword && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}
+           onClick={() => setShowForgotPassword(false)}>
+        <div style={{ background: '#2a2a2a', padding: '36px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', width: '360px' }}
+             onClick={e => e.stopPropagation()}>
+          <h3 style={{ color: '#28a745', marginBottom: '8px', textAlign: 'center' }}>Reset Password</h3>
+          <p style={{ color: '#999', fontSize: '0.85rem', textAlign: 'center', marginBottom: '20px' }}>
+            Enter your email and we'll send you a reset link.
+          </p>
+          <input
+            type="email"
+            placeholder="Enter your email address"
+            value={resetEmail}
+            onChange={e => setResetEmail(e.target.value)}
+            style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px', marginBottom: '12px', boxSizing: 'border-box' }}
+          />
+          {resetMessage && (
+            <p style={{ color: resetMessage.includes('sent') ? '#28a745' : '#f87171', fontSize: '0.85rem', textAlign: 'center', marginBottom: '12px' }}>
+              {resetMessage}
+            </p>
+          )}
+          <button
+            onClick={handleForgotPassword}
+            disabled={resetLoading}
+            style={{ width: '100%', padding: '11px', background: resetLoading ? '#555' : '#28a745', border: 'none', borderRadius: '5px', color: 'white', cursor: resetLoading ? 'not-allowed' : 'pointer', fontSize: '15px', marginBottom: '10px' }}
+          >
+            {resetLoading ? 'Sending...' : 'Send Reset Link'}
+          </button>
+          <button
+            onClick={() => setShowForgotPassword(false)}
+            style={{ width: '100%', padding: '10px', background: 'transparent', border: '1px solid #555', borderRadius: '5px', color: '#aaa', cursor: 'pointer', fontSize: '14px' }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )}
+  </>);
 };
 
 export default LoginPage;

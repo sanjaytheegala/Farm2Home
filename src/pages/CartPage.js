@@ -68,18 +68,24 @@ const CartPage = () => {
     setCheckoutStep('address')
   }
 
+
   const validateAndPlaceOrder = () => {
-    if (!deliveryAddress.fullName || !deliveryAddress.phone || !deliveryAddress.addressLine ||
-        !deliveryAddress.city || !deliveryAddress.state || !deliveryAddress.pincode) {
+    const { fullName, phone, addressLine, city, state, pincode } = deliveryAddress
+    if (!fullName.trim() || !phone || !addressLine.trim() || !city.trim() || !state || !pincode) {
       toastWarning(t('fill_address') || 'Please fill all address fields')
       return
     }
-    if (deliveryAddress.phone.length !== 10) {
+    if (!/^\d{10}$/.test(phone)) {
       toastWarning(t('valid_phone') || 'Please enter a valid 10-digit phone number')
+      return
+    }
+    if (!/^\d{6}$/.test(pincode)) {
+      toastWarning('Please enter a valid 6-digit pincode')
       return
     }
     placeOrder()
   }
+
 
   const placeOrder = async () => {
     setLoading(true)

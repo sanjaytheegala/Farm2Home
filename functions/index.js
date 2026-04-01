@@ -1,7 +1,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onDocumentDeleted } = require('firebase-functions/v2/firestore');
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
 
 initializeApp();
@@ -14,7 +14,48 @@ initializeApp();
  * Returns { email: "user@example.com" } or throws if not found.
  */
 exports.getEmailByPhone = onCall(async (request) => {
-  const { phoneNumber } = request.data;
+  const { phoneNumber, expectedRole } = request.data || {};
+
+  const db = getFirestore();
+
+  // Basic rate limiting to reduce brute-force enumeration.
+  // Note: this is not a perfect defense, but it meaningfully raises the cost of abuse.
+  async function enforceRateLimit(key, limit, windowMs) {
+    const ref = db.collection('rate_limits').doc(key);
+    const nowMs = Date.now();
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) {
+        tx.set(ref, {
+          count: 1,
+          windowStart: Timestamp.fromMillis(nowMs),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        return;
+      }
+      const data = snap.data() || {};
+      const start = data.windowStart?.toMillis ? data.windowStart.toMillis() : 0;
+      const count = Number(data.count || 0);
+
+      if (!start || (nowMs - start) > windowMs) {
+        tx.set(ref, {
+          count: 1,
+          windowStart: Timestamp.fromMillis(nowMs),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return;
+      }
+
+      if (count >= limit) {
+        throw new HttpsError('resource-exhausted', 'Too many attempts. Please try again later.');
+      }
+
+      tx.set(ref, {
+        count: FieldValue.increment(1),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    });
+  }
 
   if (!phoneNumber || typeof phoneNumber !== 'string') {
     throw new HttpsError('invalid-argument', 'A valid phoneNumber is required.');
@@ -23,11 +64,16 @@ exports.getEmailByPhone = onCall(async (request) => {
   // Normalize: digits only
   const cleanPhone = phoneNumber.replace(/\D/g, '');
 
-  if (cleanPhone.length < 7) {
-    throw new HttpsError('invalid-argument', 'Phone number is too short.');
+  // Expect India-style local 10-digit phone numbers (caller already normalizes)
+  if (cleanPhone.length !== 10) {
+    throw new HttpsError('invalid-argument', 'Phone number must be 10 digits.');
   }
 
-  const db = getFirestore();
+  // Rate limit by phone + IP
+  const ip = request.rawRequest?.ip || request.rawRequest?.headers?.['x-forwarded-for'] || 'unknown';
+  await enforceRateLimit(`getEmailByPhone:phone:${cleanPhone}`, 5, 15 * 60 * 1000);
+  await enforceRateLimit(`getEmailByPhone:ip:${String(ip).split(',')[0].trim()}`, 30, 15 * 60 * 1000);
+
   const snapshot = await db
     .collection('users')
     .where('phoneNumber', '==', cleanPhone)
@@ -41,7 +87,21 @@ exports.getEmailByPhone = onCall(async (request) => {
     );
   }
 
-  const email = snapshot.docs[0].data().email;
+  const userData = snapshot.docs[0].data() || {};
+  const email = userData.email;
+
+  if (expectedRole && typeof expectedRole === 'string') {
+    if (!userData.role || userData.role !== expectedRole) {
+      // Keep error generic to avoid leaking extra information
+      throw new HttpsError('not-found', 'No account found with this phone number.');
+    }
+  }
+
+  // Optional: block inactive/suspended accounts from phone lookup
+  const normalizedStatus = String(userData.status || '').toLowerCase();
+  if (normalizedStatus === 'inactive' || normalizedStatus === 'suspended') {
+    throw new HttpsError('permission-denied', 'This account is not active.');
+  }
 
   if (!email) {
     throw new HttpsError(

@@ -113,6 +113,16 @@ const Navbar = React.memo(({
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [showNotifDropdown])
 
+  // Auto-close mobile menu when chat drawer opens
+  useEffect(() => {
+    const handleChatOpen = () => {
+      setShowMobileMenu(false)
+      setShowNotifDropdown(false)
+    }
+    document.addEventListener('chat:open', handleChatOpen)
+    return () => document.removeEventListener('chat:open', handleChatOpen)
+  }, [])
+
   return (
     <div className={`navbar-container ${isScrolled ? 'scrolled' : ''}`}>
       <div className="navbar-content">

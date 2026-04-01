@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { auth, db } from '../../../firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { GMAIL_SUFFIX, isGmailComplete, keepCaretInLocalPart, moveCaretToLocalEnd, normalizeGmailInput } from '../../../utils/gmailInput';
 import { COUNTRY_CODE_PREFIX, normalizePhoneForLookup, isPhoneComplete } from '../../../utils/phoneInput';
@@ -17,6 +17,7 @@ const SignupPage = () => {
   const [phone, setPhone] = useState(COUNTRY_CODE_PREFIX);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const emailInputRef = useRef(null);
@@ -86,13 +87,15 @@ const SignupPage = () => {
         phone: cleanPhone,
         role: userType,
         status: 'active',
+        emailVerified: false,
         createdAt: serverTimestamp(),
       };
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
-      localStorage.setItem('currentUser', JSON.stringify({ ...userData, createdAt: new Date().toISOString() }));
-      navigate(userType === 'farmer' ? '/farmer-dashboard' : '/consumer');
+      // Send email verification — user must verify before logging in
+      await sendEmailVerification(user);
+      setVerificationSent(true);
 
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
@@ -108,6 +111,29 @@ const SignupPage = () => {
       setLoading(false);
     }
   };
+
+  if (verificationSent) {
+    return (
+      <div style={{ padding: '20px', backgroundColor: '#181818', minHeight: '100vh', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ background: '#2a2a2a', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', width: '420px', textAlign: 'center' }}>
+          <div style={{ fontSize: '60px', marginBottom: '20px' }}>📧</div>
+          <h2 style={{ color: '#28a745', marginBottom: '16px' }}>Verify Your Email</h2>
+          <p style={{ color: '#ccc', marginBottom: '12px', lineHeight: '1.6' }}>
+            A verification link has been sent to <strong style={{ color: '#28a745' }}>{email}</strong>.
+          </p>
+          <p style={{ color: '#999', marginBottom: '28px', fontSize: '0.9rem' }}>
+            Please check your inbox and click the link to activate your account. Once verified, you can log in.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            style={{ width: '100%', padding: '12px', background: '#28a745', border: 'none', borderRadius: '5px', cursor: 'pointer', color: 'white', fontSize: '16px' }}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#181818', minHeight: '100vh', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

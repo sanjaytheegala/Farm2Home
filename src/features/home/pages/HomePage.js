@@ -11,9 +11,8 @@ import {
   FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaApple, FaGooglePlay
 } from 'react-icons/fa'
 import { logger } from '../../../utils/logger'
-import FarmerSignupModal from '../../../components/FarmerSignupModal'
 import { auth, db, functions } from '../../../firebase'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserLocalPersistence } from 'firebase/auth'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, setDoc, serverTimestamp } from 'firebase/firestore'
 import { GMAIL_SUFFIX, coerceEmailOrPhone, isGmailComplete, isPhoneLike, keepCaretInLocalPart, moveCaretToLocalEnd } from '../../../utils/gmailInput'
@@ -26,7 +25,6 @@ const HomePage = () => {
   const { currentUser, userData } = useAuth()
   const [hoveredCard, setHoveredCard] = useState(null)
   const [showLoginCard, setShowLoginCard] = useState(false)
-  const [showFarmerSignupModal, setShowFarmerSignupModal] = useState(false)
   const [selectedRole, setSelectedRole] = useState('consumer') // 'farmer' or 'consumer'
   
   // Auth form states
@@ -43,7 +41,8 @@ const HomePage = () => {
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotMessage, setForgotMessage] = useState('')
   const [forgotError, setForgotError] = useState('')
-  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotLoading, setForgotLoading]       = useState(false)
+  const [showVerifyScreen, setShowVerifyScreen] = useState(false) // shown after signup
   const [animatedStats, setAnimatedStats] = useState({
     farmers: 0,
     consumers: 0,
@@ -105,7 +104,7 @@ const HomePage = () => {
         // Call the Cloud Function (runs with Admin SDK — bypasses all Firestore rules)
         const getEmailByPhone = httpsCallable(functions, 'getEmailByPhone');
         const cleanPhone = normalizePhoneForLookup(emailToUse);
-        const result = await getEmailByPhone({ phoneNumber: cleanPhone });
+        const result = await getEmailByPhone({ phoneNumber: cleanPhone, expectedRole: selectedRole });
         emailToUse = result.data.email;
       }
 
@@ -129,6 +128,17 @@ const HomePage = () => {
 
       const user = userCredential.user;
 
+      // Block login if email is not verified
+      if (!user.emailVerified) {
+        await auth.signOut();
+        setError(
+          '📧 Your email is not verified yet. Please check your inbox and click the verification link. ' +
+          'Check spam folder too.'
+        );
+        setLoading(false);
+        return;
+      }
+
       // Fetch user data from Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
@@ -144,18 +154,36 @@ const HomePage = () => {
         userData.uid = user.uid;
       }
 
-      // Check if user is active
-      if (userData.status !== 'active') {
-        throw new Error('Your account is inactive. Please contact support.');
+      // Check role matches the selected portal (farmer vs consumer)
+      const expectedRole = selectedRole;
+      const actualRole = (userData.role || '').toString().toLowerCase();
+      if (!actualRole) {
+        throw new Error(t('user_profile_not_found'));
       }
 
-      // Store user data in localStorage with uid
-      localStorage.setItem('currentUser', JSON.stringify(userData));
+      if (actualRole !== expectedRole) {
+        // Prevent "login succeeds but redirects to other dashboard".
+        await auth.signOut();
+        throw new Error(t('account_registered_as_role', { role: actualRole }));
+      }
+
+      // Block only explicitly inactive/suspended accounts (legacy users may not have status)
+      const normalizedStatus = (userData.status || '').toString().toLowerCase();
+      if (normalizedStatus === 'inactive' || normalizedStatus === 'suspended') {
+        throw new Error(t('account_inactive'));
+      }
+
+      // Store only minimal non-sensitive data — full profile is always fetched from Firestore via AuthContext
+      localStorage.setItem('currentUser', JSON.stringify({
+        uid: user.uid,
+        email: user.email,
+        role: userData.role || '',
+      }));
 
       // Close the login card and navigate based on role
       closeLoginCard();
       setTimeout(() => {
-        navigate(userData.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
+        navigate(actualRole === 'farmer' ? '/farmer-dashboard' : '/consumer');
       }, 500);
 
     } catch (err) {
@@ -226,12 +254,17 @@ const HomePage = () => {
       };
       await setDoc(doc(db, 'users', user.uid), userProfile);
 
-      localStorage.setItem('currentUser', JSON.stringify({ ...userProfile, createdAt: new Date().toISOString() }));
+      // Send verification email BEFORE doing anything else
+      await sendEmailVerification(user);
 
-      closeLoginCard();
-      setTimeout(() => {
-        navigate(selectedRole === 'farmer' ? '/farmer-dashboard' : '/consumer');
-      }, 300);
+      // Sign out immediately — prevents AuthContext from auto-navigating to dashboard
+      // User must verify email and then log in manually
+      await auth.signOut();
+      localStorage.removeItem('currentUser');
+
+      // Show verify screen
+      setShowVerifyScreen(true);
+      setLoading(false);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setError(t('account_exists_login_instead'));
@@ -418,7 +451,9 @@ const HomePage = () => {
     }
 
     return () => observer.disconnect()
-  }, [])
+  // statsTargets added so the observer always uses the latest loaded values
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statsTargets])
 
   const animateStats = (targets) => {
     setAnimatedStats({
@@ -446,7 +481,7 @@ const HomePage = () => {
                   if (currentUser) {
                     navigate(userData?.role === 'farmer' ? '/farmer-dashboard' : '/consumer');
                   } else {
-                    setShowFarmerSignupModal(true);
+                    openLoginCard('farmer');
                   }
                 }}
                 style={secondaryBtn}
@@ -608,25 +643,36 @@ const HomePage = () => {
               <div style={formContainer}>
                 {/* Email Login with icon */}
                 <form onSubmit={handleEmailLogin}>
-                    <div style={{...inputGroup, position: 'relative'}}>
-                      <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
-                      <input
-                        type="email"
-                        placeholder={t('email_address_placeholder')}
-                        value={email}
-                        onChange={(e) => {
-                          const next = coerceEmailOrPhone(e.target.value);
-                          setEmail(next);
-                          requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current));
-                        }}
-                        onFocus={() => requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current))}
-                        onClick={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
-                        onKeyUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
-                        onMouseUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
-                        ref={emailInputRef}
-                        style={{...inputField, paddingLeft: 32}}
-                        required
-                      />
+                    <div style={{ ...inputGroup, display: 'flex', gap: 0, alignItems: 'stretch' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
+                        <input
+                          type="text"
+                          placeholder="username"
+                          value={email.endsWith('@gmail.com') ? email.slice(0, -10) : email}
+                          onChange={(e) => {
+                            const local = e.target.value.replace(/@.*/, '');
+                            setEmail(local + '@gmail.com');
+                          }}
+                          ref={emailInputRef}
+                          style={{ ...inputField, paddingLeft: 32, borderRadius: '8px 0 0 8px', borderRight: 'none' }}
+                          required
+                          autoComplete="username"
+                        />
+                      </div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center',
+                        padding: '0 12px',
+                        background: '#f3f4f6',
+                        border: '1.5px solid #d1d5db',
+                        borderLeft: 'none',
+                        borderRadius: '0 8px 8px 0',
+                        color: '#6b7280',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        whiteSpace: 'nowrap',
+                        userSelect: 'none',
+                      }}>@gmail.com</div>
                     </div>
                     <div style={inputGroup}>
                       <div style={passwordContainer}>
@@ -676,25 +722,36 @@ const HomePage = () => {
               <div style={formContainer}>
                 {/* Email Signup with icon */}
                   <form onSubmit={handleSignup}>
-                    <div style={{...inputGroup, position: 'relative'}}>
-                      <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
-                      <input
-                        type="email"
-                        placeholder={t('email_placeholder')}
-                        value={email}
-                        onChange={(e) => {
-                          const next = coerceEmailOrPhone(e.target.value);
-                          setEmail(next);
-                          requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current));
-                        }}
-                        onFocus={() => requestAnimationFrame(() => moveCaretToLocalEnd(emailInputRef.current))}
-                        onClick={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
-                        onKeyUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
-                        onMouseUp={() => requestAnimationFrame(() => keepCaretInLocalPart(emailInputRef.current))}
-                        ref={emailInputRef}
-                        style={{...inputField, paddingLeft: 32}}
-                        required
-                      />
+                    <div style={{ ...inputGroup, display: 'flex', gap: 0, alignItems: 'stretch' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
+                        <input
+                          type="text"
+                          placeholder="username"
+                          value={email.endsWith('@gmail.com') ? email.slice(0, -10) : email}
+                          onChange={(e) => {
+                            const local = e.target.value.replace(/@.*/, '');
+                            setEmail(local + '@gmail.com');
+                          }}
+                          ref={emailInputRef}
+                          style={{ ...inputField, paddingLeft: 32, borderRadius: '8px 0 0 8px', borderRight: 'none' }}
+                          required
+                          autoComplete="username"
+                        />
+                      </div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center',
+                        padding: '0 12px',
+                        background: '#f3f4f6',
+                        border: '1.5px solid #d1d5db',
+                        borderLeft: 'none',
+                        borderRadius: '0 8px 8px 0',
+                        color: '#6b7280',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        whiteSpace: 'nowrap',
+                        userSelect: 'none',
+                      }}>@gmail.com</div>
                     </div>
                     <div style={inputGroup}>
                       <div style={passwordContainer}>
@@ -730,11 +787,71 @@ const HomePage = () => {
                       disabled={loading}
                       style={{...submitButton, opacity: loading ? 0.7 : 1}}
                     >
-                      {loading ? t('creating_account') : t('create_account')}
+                       {loading ? t('creating_account') : t('create_account')}
                     </button>
                   </form>
               </div>
             ) : null}
+
+            {/* ── Email Verification Screen ── */}
+            {showVerifyScreen && (
+              <div style={{
+                margin: '16px 0',
+                background: '#f0fdf4',
+                border: '1.5px solid #bbf7d0',
+                borderRadius: 14,
+                padding: '22px 20px',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>📧</div>
+                <div style={{ fontWeight: 800, fontSize: 16, color: '#166534', marginBottom: 8 }}>
+                  Verify your email!
+                </div>
+                <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, marginBottom: 16 }}>
+                  We sent a verification link to <strong>{email}</strong>.<br />
+                  Click that link to activate your account,<br />
+                  then come back here and log in.
+                </div>
+                <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 16 }}>
+                  📁 Spam folder కూడా check చేయండి.
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (auth.currentUser) await sendEmailVerification(auth.currentUser);
+                      alert('Verification email resent! Check your inbox.');
+                    } catch (e) {
+                      alert('Could not resend. Please try registering again.');
+                    }
+                  }}
+                  style={{
+                    background: 'none', border: '1.5px solid #16a34a', color: '#16a34a',
+                    borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', marginBottom: 12, display: 'block', margin: '0 auto 12px',
+                  }}
+                >
+                  🔄 Resend verification email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowVerifyScreen(false);
+                    setFormType('login');
+                    setPassword('');
+                    setConfirmPassword('');
+                    setError('');
+                  }}
+                  style={{
+                    background: '#16a34a', color: 'white', border: 'none',
+                    borderRadius: 8, padding: '9px 22px', fontSize: 13, fontWeight: 700,
+                    cursor: 'pointer', display: 'block', margin: '0 auto',
+                  }}
+                >
+                  Go to Login →
+                </button>
+              </div>
+            )}
 
 
           </div>
@@ -962,15 +1079,6 @@ const HomePage = () => {
       {/* Recaptcha Container - Hidden */}
       <div id="recaptcha-container" style={{ display: 'none' }}></div>
 
-      {/* Farmer Signup Modal */}
-      <FarmerSignupModal 
-        isOpen={showFarmerSignupModal} 
-        onClose={() => setShowFarmerSignupModal(false)}
-        onSwitchToLogin={() => {
-          setShowFarmerSignupModal(false);
-          openLoginCard('farmer');
-        }}
-      />
     </div>
   )
 }
@@ -1596,7 +1704,7 @@ const loginCardStyle = {
   boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)',
   textAlign: 'center',
   transform: 'scale(1)',
-  animation: 'fadeInScale 0.3s ease-out',
+  animation: 'slideInFromRight 0.3s ease-out',
 };
 
 const closeButtonStyle = {
