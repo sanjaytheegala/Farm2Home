@@ -18,6 +18,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        // Fetch Firestore profile irrespective of email verification status.
+        // Route guards and UI components will handle directing unverified users.
+
         try {
           const userDocRef = doc(db, 'users', user.uid);
           let userDoc = await getDoc(userDocRef);
@@ -45,21 +48,21 @@ export const AuthProvider = ({ children }) => {
               role: fullUserData.role || '',
             }));
           } else {
-            logger.warn('User found in Auth but not in Firestore');
-            const basicData = { uid: user.uid, email: user.email, displayName: user.displayName };
-            setCurrentUser(user);
-            setUserData(basicData);
-            localStorage.setItem('currentUser', JSON.stringify({
-              uid: user.uid,
-              email: user.email,
-              role: '',
-            }));
+            // If profile doc is missing, the app can't determine role safely.
+            // Sign out to avoid redirect loops and show the user the login card again.
+            logger.warn('User found in Auth but not in Firestore; signing out to avoid role ambiguity');
+            try { await firebaseSignOut(auth); } catch (_) {}
+            setCurrentUser(null);
+            setUserData(null);
+            localStorage.removeItem('currentUser');
           }
         } catch (error) {
           logger.error('Error fetching user data:', error);
-          const basicData = { uid: user.uid, email: user.email, displayName: user.displayName };
-          setCurrentUser(user);
-          setUserData(basicData);
+          // If we can't read the profile (rules/network), sign out to avoid infinite splash.
+          try { await firebaseSignOut(auth); } catch (_) {}
+          setCurrentUser(null);
+          setUserData(null);
+          localStorage.removeItem('currentUser');
         }
       } else {
         setCurrentUser(null);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
@@ -11,8 +11,21 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState(null)
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+
+  const dateLocale = useMemo(() => {
+    const lang = (i18n.language || 'en').split('-')[0]
+    const localeMap = {
+      en: 'en-IN',
+      te: 'te-IN',
+      hi: 'hi-IN',
+      ta: 'ta-IN',
+      kn: 'kn-IN',
+      ml: 'ml-IN',
+    }
+    return localeMap[lang] || 'en-IN'
+  }, [i18n.language])
 
   useEffect(() => {
     const user = auth.currentUser
@@ -52,13 +65,13 @@ const OrdersPage = () => {
   const getStatusInfo = (status) => {
     switch (status) {
       case 'pending':
-        return { icon: <FaClock />, color: '#ffc107', text: t('pending') || 'Pending' }
+        return { icon: <FaClock />, color: '#ffc107', text: t('pending') }
       case 'confirmed':
-        return { icon: <FaCheckCircle />, color: '#28a745', text: t('confirmed') || 'Confirmed' }
+        return { icon: <FaCheckCircle />, color: '#28a745', text: t('confirmed') }
       case 'shipped':
-        return { icon: <FaTruck />, color: '#17a2b8', text: t('shipped') || 'Shipped' }
+        return { icon: <FaTruck />, color: '#17a2b8', text: t('shipped') }
       case 'delivered':
-        return { icon: <FaCheckCircle />, color: '#28a745', text: t('delivered') || 'Delivered' }
+        return { icon: <FaCheckCircle />, color: '#28a745', text: t('delivered') }
       default:
         return { icon: <FaClock />, color: '#999', text: status }
     }
@@ -66,12 +79,12 @@ const OrdersPage = () => {
 
   const formatDate = (ms) => {
     if (!ms) return ''
-    return new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    return new Date(ms).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
   const formatTime = (ms) => {
     if (!ms) return ''
-    return new Date(ms).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    return new Date(ms).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })
   }
 
   const OrderCard = ({ order }) => {
@@ -84,9 +97,9 @@ const OrdersPage = () => {
       >
         <div style={orderHeader}>
           <div>
-            <h3 style={orderId}>{t('order') || 'Order'} #{order.id.slice(0, 8).toUpperCase()}</h3>
+            <h3 style={orderId}>{t('order')} #{order.id.slice(0, 8).toUpperCase()}</h3>
             <p style={orderDate}>
-              <FaCalendar /> {formatDate(order.createdAtMs)} at {formatTime(order.createdAtMs)}
+              <FaCalendar /> {formatDate(order.createdAtMs)} {t('at')} {formatTime(order.createdAtMs)}
             </p>
           </div>
           <div style={{ ...statusBadge, backgroundColor: statusInfo.color + '20', color: statusInfo.color }}>
@@ -102,8 +115,8 @@ const OrdersPage = () => {
         </div>
 
         <div style={orderFooter}>
-          <strong>Total: ₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</strong>
-          <button style={viewDetailsBtn}>View Details</button>
+          <strong>{t('total')}: ₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</strong>
+          <button style={viewDetailsBtn}>{t('view_details')}</button>
         </div>
       </div>
     )
@@ -120,19 +133,19 @@ const OrdersPage = () => {
     const STEPS = [
       {
         key:   'pending',
-        label: 'Order Placed',
+        label: t('order_placed'),
         icon:  <FaClock />,
         pulseColor: 'rgba(255,191,0,0.7)',
         activeColor: '#f59e0b',
         doneColor:   '#16a34a',
         pillStyle: { color: '#92400e', background: '#fef3c7' },
         // Pending step always has the real order creation timestamp
-        subtitle: `${formatDate(order.createdAtMs)} at ${formatTime(order.createdAtMs)}`,
-        futureSubtitle: 'Awaiting order',
+        subtitle: `${formatDate(order.createdAtMs)} ${t('at')} ${formatTime(order.createdAtMs)}`,
+        futureSubtitle: t('awaiting_order'),
       },
       {
         key:   'confirmed',
-        label: 'Admin Confirmed',
+        label: t('admin_confirmed'),
         icon:  <FaCheckCircle />,
         pulseColor: 'rgba(22,163,74,0.6)',
         activeColor: '#16a34a',
@@ -140,35 +153,35 @@ const OrdersPage = () => {
         pillStyle: { color: '#166534', background: '#dcfce7' },
         // confirmedAt timestamp if available, else a status note
         subtitle: order.confirmedAt
-          ? `${formatDate(order.confirmedAt?.toMillis?.() || order.confirmedAt)} at ${formatTime(order.confirmedAt?.toMillis?.() || order.confirmedAt)}`
-          : 'Order confirmed',
-        futureSubtitle: 'Awaiting confirmation',
+          ? `${formatDate(order.confirmedAt?.toMillis?.() || order.confirmedAt)} ${t('at')} ${formatTime(order.confirmedAt?.toMillis?.() || order.confirmedAt)}`
+          : t('order_confirmed'),
+        futureSubtitle: t('awaiting_confirmation'),
       },
       {
         key:   'shipped',
-        label: 'Shipped',
+        label: t('shipped'),
         icon:  <FaTruck />,
         pulseColor: 'rgba(8,145,178,0.6)',
         activeColor: '#0891b2',
         doneColor:   '#16a34a',
         pillStyle: { color: '#155e75', background: '#cffafe' },
         subtitle: order.shippedAt
-          ? `${formatDate(order.shippedAt?.toMillis?.() || order.shippedAt)} at ${formatTime(order.shippedAt?.toMillis?.() || order.shippedAt)}`
-          : 'In transit',
-        futureSubtitle: 'Not yet shipped',
+          ? `${formatDate(order.shippedAt?.toMillis?.() || order.shippedAt)} ${t('at')} ${formatTime(order.shippedAt?.toMillis?.() || order.shippedAt)}`
+          : t('in_transit'),
+        futureSubtitle: t('not_yet_shipped'),
       },
       {
         key:   'delivered',
-        label: 'Delivered',
+        label: t('delivered'),
         icon:  <FaCheckCircle />,
         pulseColor: 'rgba(22,163,74,0.6)',
         activeColor: '#16a34a',
         doneColor:   '#16a34a',
         pillStyle: { color: '#166534', background: '#dcfce7' },
         subtitle: order.deliveredAt
-          ? `${formatDate(order.deliveredAt?.toMillis?.() || order.deliveredAt)} at ${formatTime(order.deliveredAt?.toMillis?.() || order.deliveredAt)}`
-          : 'Delivery complete',
-        futureSubtitle: 'Pending delivery',
+          ? `${formatDate(order.deliveredAt?.toMillis?.() || order.deliveredAt)} ${t('at')} ${formatTime(order.deliveredAt?.toMillis?.() || order.deliveredAt)}`
+          : t('delivery_complete'),
+        futureSubtitle: t('pending_delivery'),
       },
     ];
 
@@ -179,9 +192,9 @@ const OrdersPage = () => {
 
           {/* ── Header ── */}
           <div style={{ marginBottom: 8 }}>
-            <h2 style={detailsHeading}>Order Details</h2>
+            <h2 style={detailsHeading}>{t('order_details')}</h2>
             <p style={{ margin: '0 0 24px', fontSize: 13, color: '#6b7280' }}>
-              Order ID: <strong>#{order.id.slice(0, 8).toUpperCase()}</strong>
+              {t('order_id')}: <strong>#{order.id.slice(0, 8).toUpperCase()}</strong>
             </p>
           </div>
 
@@ -208,7 +221,7 @@ const OrdersPage = () => {
             `}</style>
 
             <h3 style={{ margin: '0 0 24px', fontSize: 16, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Tracking Status
+              {t('tracking_status')}
             </h3>
 
             {/* Stepper — position:relative so the connector line is absolutely placed */}
@@ -337,15 +350,15 @@ const OrdersPage = () => {
           </div>
 
           <div style={detailsSection}>
-            <h3>Payment Summary</h3>
+            <h3>{t('payment_summary')}</h3>
             <div style={summaryBox}>
               <div style={{ ...summaryRow, ...summaryTotal }}>
-                <strong>Total:</strong>
+                <strong>{t('total')}:</strong>
                 <strong>₹{parseFloat(order.totalPrice || order.totalAmount || 0).toFixed(2)}</strong>
               </div>
               <div style={paymentMethodBox}>
-                <span>Payment:</span>
-                <span style={paymentBadge}>Direct to Farmer</span>
+                <span>{t('payment')}:</span>
+                <span style={paymentBadge}>{t('direct_to_farmer')}</span>
               </div>
             </div>
           </div>
@@ -359,25 +372,25 @@ const OrdersPage = () => {
       <Navbar />
       <div style={contentWrapper}>
         <h2 style={heading}>
-          <FaBox /> {t('orders') || 'My Orders'}
+          <FaBox /> {t('my_orders')}
         </h2>
         
         {loading ? (
           <div style={loadingBox}>
             <div style={{ width: 40, height: 40, border: '4px solid #d1fae5', borderTop: '4px solid #16a34a', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            <p style={{ color: '#6b7280' }}>Loading your orders...</p>
+            <p style={{ color: '#6b7280' }}>{t('loading_orders')}</p>
           </div>
         ) : orders.length === 0 ? (
           <div style={emptyBox}>
             <FaShoppingBag size={64} color="#d1fae5" />
-            <p style={emptyText}>No orders yet. Start shopping!</p>
-            <p style={{ color: '#9ca3af', fontSize: 15, marginBottom: 24 }}>Browse products and place your first order!</p>
+            <p style={emptyText}>{t('orders_empty_title')}</p>
+            <p style={{ color: '#9ca3af', fontSize: 15, marginBottom: 24 }}>{t('orders_empty_subtitle')}</p>
             <button
               onClick={() => navigate('/consumer')}
               style={{ padding: '12px 28px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, margin: '0 auto' }}
             >
-              <FaArrowLeft /> Go Shopping
+              <FaArrowLeft /> {t('go_shopping')}
             </button>
           </div>
         ) : (

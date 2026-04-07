@@ -12,11 +12,21 @@ import {
 } from 'react-icons/fa'
 import { logger } from '../../../utils/logger'
 import { auth, db, functions } from '../../../firebase'
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, setPersistence, browserLocalPersistence } from 'firebase/auth'
+import { signInWithEmailAndPassword, sendPasswordResetEmail, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, updatePassword, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { httpsCallable } from 'firebase/functions'
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, setDoc, serverTimestamp } from 'firebase/firestore'
 import { GMAIL_SUFFIX, coerceEmailOrPhone, isGmailComplete, isPhoneLike, keepCaretInLocalPart, moveCaretToLocalEnd } from '../../../utils/gmailInput'
-import { normalizePhoneForLookup } from '../../../utils/phoneInput'
+import { isPhoneComplete, normalizePhoneForLookup } from '../../../utils/phoneInput'
+
+const EMAIL_LINK_HREF_KEY = 'farm2home_pendingEmailLinkHref'
+const EMAIL_LINK_LAST_SENT_AT_KEY = 'farm2home_emailLinkLastSentAt'
+
+// Cooldown for resending the email sign-in link (helps avoid Firebase quota issues during testing)
+const EMAIL_LINK_RESEND_COOLDOWN_MS = 10_000
+
+const EMAIL_LINK_EMAIL_KEY = 'farm2home_emailForSignIn'
+const EMAIL_LINK_ROLE_KEY = 'farm2home_roleForSignIn'
+const EMAIL_LINK_PHONE_KEY = 'farm2home_phoneForSignIn'
 
 const HomePage = () => {
   // TEMP: Disable login/register cards and allow direct navigation via buttons.
@@ -26,7 +36,7 @@ const HomePage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, userData } = useAuth()
+  const { currentUser, userData, signOut } = useAuth()
   const [hoveredCard, setHoveredCard] = useState(null)
   const [showLoginCard, setShowLoginCard] = useState(false)
   const [selectedRole, setSelectedRole] = useState('consumer') // 'farmer' or 'consumer'
@@ -34,6 +44,7 @@ const HomePage = () => {
   // Auth form states
   const [formType, setFormType] = useState('login') // 'login' or 'signup'
   const [email, setEmail] = useState(GMAIL_SUFFIX)
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -47,6 +58,9 @@ const HomePage = () => {
   const [forgotError, setForgotError] = useState('')
   const [forgotLoading, setForgotLoading]       = useState(false)
   const [showVerifyScreen, setShowVerifyScreen] = useState(false) // shown after signup
+  const [emailLinkSent, setEmailLinkSent] = useState(false)
+  const [resendSecondsLeft, setResendSecondsLeft] = useState(0)
+  const [isEmailVerified, setIsEmailVerified] = useState(false)
   const [animatedStats, setAnimatedStats] = useState({
     farmers: 0,
     consumers: 0,
@@ -63,6 +77,86 @@ const HomePage = () => {
   // Testimonial carousel state
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0)
   const [testimonials, setTestimonials] = useState([])
+
+  // Track resend cooldown (based on last-sent timestamp in localStorage)
+  useEffect(() => {
+    const shouldRun = showLoginCard || showVerifyScreen || emailLinkSent
+    if (!shouldRun) return
+
+    const computeSecondsLeft = () => {
+      try {
+        const lastSentAt = Number(localStorage.getItem(EMAIL_LINK_LAST_SENT_AT_KEY) || 0)
+        const now = Date.now()
+        const remainingMs = Math.max(0, EMAIL_LINK_RESEND_COOLDOWN_MS - (now - lastSentAt))
+        const seconds = Math.ceil(remainingMs / 1000)
+        setResendSecondsLeft(Number.isFinite(seconds) ? seconds : 0)
+      } catch {
+        setResendSecondsLeft(0)
+      }
+    }
+
+    computeSecondsLeft()
+    const id = setInterval(computeSecondsLeft, 300)
+    return () => clearInterval(id)
+  }, [showLoginCard, showVerifyScreen, emailLinkSent])
+
+  const resendEmailLink = async ({ explicitEmail } = {}) => {
+    setError('')
+
+    // Enforce a short cooldown
+    const secondsLeft = (() => {
+      try {
+        const lastSentAt = Number(localStorage.getItem(EMAIL_LINK_LAST_SENT_AT_KEY) || 0)
+        const now = Date.now()
+        const remainingMs = Math.max(0, EMAIL_LINK_RESEND_COOLDOWN_MS - (now - lastSentAt))
+        return Math.ceil(remainingMs / 1000)
+      } catch {
+        return 0
+      }
+    })()
+
+    if (secondsLeft > 0) {
+      setError(`Please wait ${secondsLeft}s before sending the link again.`)
+      return false
+    }
+
+    setLoading(true)
+    try {
+      const storedEmail = (() => {
+        if (explicitEmail) return String(explicitEmail).trim()
+        try {
+          return (localStorage.getItem(EMAIL_LINK_EMAIL_KEY) || email || '').trim()
+        } catch {
+          return (email || '').trim()
+        }
+      })()
+
+      if (!storedEmail) throw new Error(t('enter_email_error'))
+
+      const actionCodeSettings = {
+        url: (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : 'http://localhost:3000',
+        handleCodeInApp: true,
+      }
+
+      await sendSignInLinkToEmail(auth, storedEmail, actionCodeSettings)
+      try { localStorage.setItem(EMAIL_LINK_LAST_SENT_AT_KEY, String(Date.now())) } catch {}
+      setEmailLinkSent(true)
+      return true
+    } catch (e) {
+      if (e.code === 'auth/too-many-requests') {
+        setError('Too many requests. Please wait a bit and try again.')
+      } else if (e.code === 'auth/quota-exceeded') {
+        setError('Daily email link quota exceeded. Please try again later.')
+      } else if (e.code === 'auth/invalid-continue-uri') {
+        setError('System error: Continue URL / Authorized domains not configured.')
+      } else {
+        setError(e.message || 'Could not resend email.')
+      }
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleForgotPassword = async (e) => {
     e.preventDefault()
@@ -132,16 +226,8 @@ const HomePage = () => {
 
       const user = userCredential.user;
 
-      // Block login if email is not verified
-      if (!user.emailVerified) {
-        await auth.signOut();
-        setError(
-          '📧 Your email is not verified yet. Please check your inbox and click the verification link. ' +
-          'Check spam folder too.'
-        );
-        setLoading(false);
-        return;
-      }
+      // NOTE: Do NOT show the "Verify your email" screen during login.
+      // That screen should be shown only after signup.
 
       // Fetch user data from Firestore
       const userDocRef = doc(db, 'users', user.uid);
@@ -217,8 +303,8 @@ const HomePage = () => {
     setError('');
     setLoading(true);
 
-    if (!password || !isGmailComplete(email)) {
-      setError(t('enter_email_password'));
+    if (!isGmailComplete(email)) {
+      setError(t('enter_email_error'));
       setLoading(false);
       return;
     }
@@ -229,54 +315,48 @@ const HomePage = () => {
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError(t('passwords_do_not_match'));
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError(t('password_min_length'));
-      setLoading(false);
-      return;
-    }
-
     try {
       await setPersistence(auth, browserLocalPersistence);
 
-      // Create real Firebase Auth account
-      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      const user = userCredential.user;
+      // Prevent accidental repeated sends (helps avoid hitting Firebase daily quotas while testing)
+      try {
+        const lastSentAt = Number(localStorage.getItem(EMAIL_LINK_LAST_SENT_AT_KEY) || 0)
+        const now = Date.now()
+        if (Number.isFinite(lastSentAt) && lastSentAt > 0 && now - lastSentAt < EMAIL_LINK_RESEND_COOLDOWN_MS) {
+          const secondsLeft = Math.ceil((EMAIL_LINK_RESEND_COOLDOWN_MS - (now - lastSentAt)) / 1000)
+          setError(`Please wait ${Math.max(1, secondsLeft)}s before sending the link again.`)
+          setLoading(false)
+          return
+        }
+      } catch {}
 
-      // Save profile to Firestore users/{uid}
-      const userProfile = {
-        uid: user.uid,
-        email: user.email,
-        role: selectedRole,          // 'consumer' or 'farmer'
-        name: '',
-        status: 'active',
-        createdAt: serverTimestamp()
+      // Step 1: store email (and role) locally; do NOT create Firebase Auth user yet.
+      try {
+        localStorage.setItem(EMAIL_LINK_EMAIL_KEY, email.trim());
+        localStorage.setItem(EMAIL_LINK_ROLE_KEY, (selectedRole || 'consumer').toString().trim().toLowerCase());
+      } catch {}
+
+      const actionCodeSettings = {
+        url: (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : 'http://localhost:3000',
+        handleCodeInApp: true,
       };
-      await setDoc(doc(db, 'users', user.uid), userProfile);
 
-      // Send verification email BEFORE doing anything else
-      await sendEmailVerification(user);
+      await sendSignInLinkToEmail(auth, email.trim(), actionCodeSettings);
 
-      // Sign out immediately — prevents AuthContext from auto-navigating to dashboard
-      // User must verify email and then log in manually
-      await auth.signOut();
-      localStorage.removeItem('currentUser');
+      try { localStorage.setItem(EMAIL_LINK_LAST_SENT_AT_KEY, String(Date.now())) } catch {}
 
-      // Show verify screen
-      setShowVerifyScreen(true);
+      setEmailLinkSent(true);
+      setShowVerifyScreen(false);
       setLoading(false);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setError(t('account_exists_login_instead'));
       } else if (err.code === 'auth/invalid-email') {
         setError(t('invalid_email'));
-      } else if (err.code === 'auth/weak-password') {
-        setError(t('password_too_weak'));
+      } else if (err.code === 'auth/quota-exceeded') {
+        setError(t('email_link_quota_exceeded'));
+      } else if (err.code === 'auth/too-many-requests') {
+        setError(t('too_many_requests') + ' (Please try again later)');
       } else {
         setError(err.message || t('create_account_failed'));
       }
@@ -285,14 +365,142 @@ const HomePage = () => {
     }
   };
 
+  const handleFinalizeRegistration = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    const emailToUse = (() => {
+      try {
+        return (localStorage.getItem(EMAIL_LINK_EMAIL_KEY) || email || '').trim()
+      } catch {
+        return (email || '').trim()
+      }
+    })()
+
+    const roleToUse = (() => {
+      try {
+        return (localStorage.getItem(EMAIL_LINK_ROLE_KEY) || selectedRole || 'consumer').toString().trim().toLowerCase()
+      } catch {
+        return (selectedRole || 'consumer').toString().trim().toLowerCase()
+      }
+    })()
+
+    const href = (() => {
+      try {
+        return (localStorage.getItem(EMAIL_LINK_HREF_KEY) || '').toString()
+      } catch {
+        return ''
+      }
+    })()
+
+    if (!isGmailComplete(emailToUse)) {
+      setError(t('enter_email_error'));
+      setLoading(false);
+      return;
+    }
+
+    if (!/^[^@\s]+@gmail\.com$/i.test(emailToUse)) {
+      setError(t('gmail_only_signup'));
+      setLoading(false);
+      return;
+    }
+
+    if (!href || !isSignInWithEmailLink(auth, href)) {
+      setError(t('verification_link_missing'));
+      setLoading(false);
+      return;
+    }
+
+    if (!isPhoneComplete(phoneNumber)) {
+      setError(t('valid_10_digit_phone'));
+      setLoading(false);
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError(t('password_min_length'));
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+
+      const credential = await signInWithEmailLink(auth, emailToUse, href);
+      const user = credential?.user;
+
+      if (!user) {
+        throw new Error(t('create_account_failed'));
+      }
+
+      await updatePassword(user, password);
+
+      const normalizedRole = roleToUse === 'farmer' ? 'farmer' : 'consumer'
+      const cleanPhone = normalizePhoneForLookup(phoneNumber)
+
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          uid: user.uid,
+          email: (user.email || emailToUse).toLowerCase(),
+          phoneNumber: cleanPhone,
+          role: normalizedRole,
+          status: 'active',
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      )
+
+      try {
+        localStorage.setItem(
+          'currentUser',
+          JSON.stringify({ uid: user.uid, email: user.email || emailToUse, role: normalizedRole })
+        )
+      } catch {}
+
+      try {
+        localStorage.removeItem(EMAIL_LINK_HREF_KEY)
+        localStorage.removeItem(EMAIL_LINK_EMAIL_KEY)
+        localStorage.removeItem(EMAIL_LINK_ROLE_KEY)
+        localStorage.removeItem(EMAIL_LINK_PHONE_KEY)
+      } catch {}
+
+      closeLoginCard();
+      const dest = normalizedRole === 'farmer' ? '/farmer-dashboard' : '/consumer'
+      navigate(dest)
+    } catch (err) {
+      if (err?.code === 'auth/invalid-action-code' || err?.code === 'auth/expired-action-code') {
+        // Link is no longer usable. Clear stored href and go back to Step 1 so user can verify again.
+        try { localStorage.removeItem(EMAIL_LINK_HREF_KEY) } catch {}
+        setIsEmailVerified(false)
+        setEmailLinkSent(false)
+        setPassword('')
+        setError(t('invalid_or_expired_link'))
+      } else if (err?.code === 'auth/too-many-requests') {
+        setError(t('too_many_requests'))
+      } else if (err?.code === 'auth/requires-recent-login') {
+        setError(t('please_retry_register'))
+      } else {
+        setError(err?.message || t('create_account_failed'))
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const resetForm = () => {
     setEmail(GMAIL_SUFFIX);
+    setPhoneNumber('');
     setPassword('');
     setConfirmPassword('');
     setError('');
     setLoading(false);
     setShowPassword(false);
     setShowForgotPassword(false);
+    setShowVerifyScreen(false);
+    setEmailLinkSent(false);
+    setIsEmailVerified(false);
     setForgotEmail('');
     setForgotMessage('');
     setForgotError('');
@@ -315,21 +523,38 @@ const HomePage = () => {
   };
 
   const openLoginCard = (role) => {
+    const desiredRole = (role || 'consumer').toString().trim().toLowerCase()
+
+    // If auth UI is disabled, go straight to the requested dashboard.
     if (TEMP_DISABLE_AUTH_CARDS) {
-      navigate(role === 'farmer' ? '/farmer-dashboard' : '/consumer')
+      const dest = desiredRole === 'farmer' ? '/farmer-dashboard' : '/consumer'
+      navigate(dest)
       return
     }
+
     // If user is already authenticated, skip the modal and go to their dashboard
     if (currentUser) {
-      const userRole = (userData?.role || '').toString().toLowerCase();
-      const dest = userRole === 'farmer' ? '/farmer-dashboard' 
-                 : userRole === 'admin' ? '/admin' 
+      const userRole = (userData?.role || '').toString().trim().toLowerCase();
+
+      // If they're logged in as the wrong role, force sign-out then show the correct login card.
+      if (desiredRole && userRole && userRole !== desiredRole) {
+        Promise.resolve(signOut?.()).finally(() => {
+          resetForm();
+          setSelectedRole(desiredRole)
+          setShowLoginCard(true)
+          setFormType('login')
+        })
+        return
+      }
+
+      const dest = userRole === 'farmer' ? '/farmer-dashboard'
+                 : userRole === 'admin' ? '/admin'
                  : '/consumer';
       navigate(dest);
       return;
     }
     resetForm();
-    setSelectedRole(role)
+    setSelectedRole(desiredRole)
     setShowLoginCard(true)
     setFormType('login');
     setTimeout(() => {
@@ -343,16 +568,47 @@ const HomePage = () => {
   // Auto-open login modal when redirected from a ProtectedRoute
   useEffect(() => {
     if (location.state?.openModal) {
-      if (TEMP_DISABLE_AUTH_CARDS) {
-        navigate((location.state.role || 'consumer') === 'farmer' ? '/farmer-dashboard' : '/consumer', { replace: true })
-      } else {
-        openLoginCard(location.state.role || 'consumer');
-      }
+      openLoginCard(location.state.role || 'consumer');
+
       // Clear the state so refreshing doesn’t re-open the modal
       window.history.replaceState({}, document.title);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Step 2: When user returns via email-link, detect it and unlock the rest of registration.
+  useEffect(() => {
+    try {
+      const href = window.location.href
+      if (!href) return
+
+      if (isSignInWithEmailLink(auth, href)) {
+        try { localStorage.setItem(EMAIL_LINK_HREF_KEY, href) } catch {}
+
+        // Ensure the signup card is visible so user can finish registration.
+        try {
+          const storedRole = String(localStorage.getItem(EMAIL_LINK_ROLE_KEY) || '').trim().toLowerCase()
+          if (storedRole === 'farmer' || storedRole === 'consumer') setSelectedRole(storedRole)
+        } catch {}
+        setShowLoginCard(true)
+        setFormType('signup')
+
+        // Restore email from storage if present
+        try {
+          const storedEmail = String(localStorage.getItem(EMAIL_LINK_EMAIL_KEY) || '').trim()
+          if (storedEmail) setEmail(storedEmail)
+        } catch {}
+
+        setIsEmailVerified(true)
+        setEmailLinkSent(true)
+
+        // Remove query params (oobCode, apiKey...) but stay on same page
+        try { window.history.replaceState({}, document.title, window.location.pathname) } catch {}
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
 
   // Load homepage stats from public collections
   useEffect(() => {
@@ -485,6 +741,12 @@ const HomePage = () => {
     animateStats(statsTargets)
   }, [statsTargets])
 
+  const roleAccentBackground =
+    selectedRole === 'farmer'
+      ? 'linear-gradient(135deg, #b91c1c, #ef4444, #f97316)'
+      : 'linear-gradient(135deg, #28a745, #20c997)'
+  const roleAccentStyle = { background: roleAccentBackground }
+
   return (
     <div style={container} className="responsive-homepage">
       {/* Hero Section */}
@@ -551,25 +813,31 @@ const HomePage = () => {
                   : t('consumer_join_subtitle')}
             </p>
 
-            {/* Form Type Toggle — hidden when showing forgot password */}
-            {!showForgotPassword && (
+            {/* Form Type Toggle — hidden when showing forgot password or verify screen */}
+            {!showForgotPassword && !showVerifyScreen && (
               <div style={formToggleContainer}>
                 <button 
                   onClick={switchToLogin}
-                  style={{...formToggleButton, ...(formType === 'login' ? activeToggleButton : {})}}
+                  style={{
+                    ...formToggleButton,
+                    ...(formType === 'login' ? { ...activeToggleButton, ...roleAccentStyle } : {}),
+                  }}
                 >
                   {t('login')}
                 </button>
                 <button 
                   onClick={switchToSignup}
-                  style={{...formToggleButton, ...(formType === 'signup' ? activeToggleButton : {})}}
+                  style={{
+                    ...formToggleButton,
+                    ...(formType === 'signup' ? { ...activeToggleButton, ...roleAccentStyle } : {}),
+                  }}
                 >
                   {t('register')}
                 </button>
               </div>
             )}
 
-            {error && !showForgotPassword && <div style={errorMessage}>{error}</div>}
+            {error && !showForgotPassword && !showVerifyScreen && <div style={errorMessage}>{error}</div>}
 
             {/* ── Forgot Password View ── */}
             {showForgotPassword && (
@@ -592,7 +860,7 @@ const HomePage = () => {
                         setForgotMessage('');
                         setForgotError('');
                       }}
-                      style={submitButton}
+                      style={{ ...submitButton, ...roleAccentStyle }}
                     >
                       {t('back_to_login')}
                     </button>
@@ -622,7 +890,7 @@ const HomePage = () => {
                       <button
                         type="submit"
                         disabled={forgotLoading}
-                        style={{...submitButton, opacity: forgotLoading ? 0.7 : 1}}
+                        style={{ ...submitButton, ...roleAccentStyle, opacity: forgotLoading ? 0.7 : 1 }}
                       >
                         {forgotLoading ? t('sending_status') : t('send_reset_link_btn')}
                       </button>
@@ -648,7 +916,7 @@ const HomePage = () => {
               </div>
             )}
 
-            {!showForgotPassword && formType === 'login' ? (
+            {!showForgotPassword && !showVerifyScreen && formType === 'login' ? (
               <div style={formContainer}>
                 {/* Email Login with icon */}
                 <form onSubmit={handleEmailLogin}>
@@ -657,31 +925,43 @@ const HomePage = () => {
                         <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
                         <input
                           type="text"
-                          placeholder="username"
-                          value={email.endsWith('@gmail.com') ? email.slice(0, -10) : email}
+                          placeholder={t('email_placeholder')}
+                          value={isPhoneLike(email) ? email : (email.endsWith('@gmail.com') ? email.slice(0, -10) : email)}
                           onChange={(e) => {
-                            const local = e.target.value.replace(/@.*/, '');
+                            const raw = e.target.value;
+                            if (isPhoneLike(raw)) {
+                              setEmail(raw);
+                              return;
+                            }
+                            const local = raw.replace(/@.*/, '');
                             setEmail(local + '@gmail.com');
                           }}
                           ref={emailInputRef}
-                          style={{ ...inputField, paddingLeft: 32, borderRadius: '8px 0 0 8px', borderRight: 'none' }}
+                          style={{
+                            ...inputField,
+                            paddingLeft: 32,
+                            borderRadius: isPhoneLike(email) ? '8px' : '8px 0 0 8px',
+                            borderRight: isPhoneLike(email) ? inputField.border : 'none'
+                          }}
                           required
                           autoComplete="username"
                         />
                       </div>
-                      <div style={{
-                        display: 'flex', alignItems: 'center',
-                        padding: '0 12px',
-                        background: '#f3f4f6',
-                        border: '1.5px solid #d1d5db',
-                        borderLeft: 'none',
-                        borderRadius: '0 8px 8px 0',
-                        color: '#6b7280',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        whiteSpace: 'nowrap',
-                        userSelect: 'none',
-                      }}>@gmail.com</div>
+                      {!isPhoneLike(email) && (
+                        <div style={{
+                          display: 'flex', alignItems: 'center',
+                          padding: '0 12px',
+                          background: '#f3f4f6',
+                          border: '1.5px solid #d1d5db',
+                          borderLeft: 'none',
+                          borderRadius: '0 8px 8px 0',
+                          color: '#6b7280',
+                          fontSize: 14,
+                          fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                          userSelect: 'none',
+                        }}>@gmail.com</div>
+                      )}
                     </div>
                     <div style={inputGroup}>
                       <div style={passwordContainer}>
@@ -705,7 +985,7 @@ const HomePage = () => {
                     <button 
                       type="submit"
                       disabled={loading}
-                      style={{...submitButton, opacity: loading ? 0.7 : 1}}
+                      style={{ ...submitButton, ...roleAccentStyle, opacity: loading ? 0.7 : 1 }}
                     >
                       {loading ? t('logging_in') : t('login')}
                     </button>
@@ -727,25 +1007,26 @@ const HomePage = () => {
                     {t('forgot_password_btn')}
                   </button>
               </div>
-            ) : !showForgotPassword ? (
+            ) : !showForgotPassword && !showVerifyScreen ? (
               <div style={formContainer}>
                 {/* Email Signup with icon */}
-                  <form onSubmit={handleSignup}>
+                <form onSubmit={isEmailVerified ? handleFinalizeRegistration : handleSignup}>
                     <div style={{ ...inputGroup, display: 'flex', gap: 0, alignItems: 'stretch' }}>
                       <div style={{ position: 'relative', flex: 1 }}>
                         <FaEnvelope style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 14, pointerEvents: 'none', zIndex: 1 }} />
                         <input
                           type="text"
-                          placeholder="username"
+                          placeholder={t('enter_email_address')}
                           value={email.endsWith('@gmail.com') ? email.slice(0, -10) : email}
                           onChange={(e) => {
                             const local = e.target.value.replace(/@.*/, '');
                             setEmail(local + '@gmail.com');
                           }}
                           ref={emailInputRef}
-                          style={{ ...inputField, paddingLeft: 32, borderRadius: '8px 0 0 8px', borderRight: 'none' }}
+                          style={{ ...inputField, paddingLeft: 32, borderRadius: '8px 0 0 8px', borderRight: 'none', opacity: (isEmailVerified && isGmailComplete(email)) ? 0.85 : 1 }}
                           required
                           autoComplete="username"
+                          disabled={isEmailVerified && isGmailComplete(email)}
                         />
                       </div>
                       <div style={{
@@ -762,42 +1043,115 @@ const HomePage = () => {
                         userSelect: 'none',
                       }}>@gmail.com</div>
                     </div>
-                    <div style={inputGroup}>
-                      <div style={passwordContainer}>
+
+                    {isEmailVerified && (
+                      <div style={{
+                        marginTop: -2,
+                        marginBottom: 12,
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                      }}>
+                        <div style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#166534',
+                          background: '#dcfce7',
+                          border: '1px solid #86efac',
+                          padding: '4px 10px',
+                          borderRadius: 999,
+                        }}>
+                          {t('email_verified')}
+                        </div>
+                      </div>
+                    )}
+
+                    {isEmailVerified && (
+                      <div style={inputGroup}>
                         <input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder={t('password_placeholder')}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          type="tel"
+                          inputMode="numeric"
+                          placeholder={t('phone_number_10_digits')}
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
                           style={inputField}
                           required
+                          autoComplete="tel"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          style={passwordToggle}
-                        >
-                          {showPassword ? <FaEyeSlash /> : <FaEye />}
-                        </button>
                       </div>
-                    </div>
-                    <div style={inputGroup}>
-                      <input
-                        type="password"
-                        placeholder={t('confirm_password_placeholder')}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        style={inputField}
-                        required
-                      />
-                    </div>
+                    )}
+
+                    {isEmailVerified && (
+                      <div style={inputGroup}>
+                        <div style={passwordContainer}>
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder={t('password_min_6')}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            style={inputField}
+                            required
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={passwordToggle}
+                          >
+                            {showPassword ? <FaEyeSlash /> : <FaEye />}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <button 
                       type="submit"
                       disabled={loading}
-                      style={{...submitButton, opacity: loading ? 0.7 : 1}}
+                      style={{ ...submitButton, ...roleAccentStyle, opacity: loading ? 0.7 : 1 }}
                     >
-                       {loading ? t('creating_account') : t('create_account')}
+                       {loading
+                         ? (isEmailVerified ? t('creating_account') : t('sending_status'))
+                         : (isEmailVerified ? t('register') : t('verify_email'))}
                     </button>
+
+                    {!isEmailVerified && emailLinkSent && (
+                      <div style={{
+                        marginTop: 12,
+                        fontSize: 12,
+                        color: '#065f46',
+                        background: '#d1fae5',
+                        border: '1px solid #6ee7b7',
+                        borderRadius: 10,
+                        padding: '10px 12px',
+                        lineHeight: 1.5,
+                      }}>
+                        {t('email_link_sent_check_inbox')}
+
+                        <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                          <div style={{ fontSize: 11, color: '#047857' }}>
+                            {resendSecondsLeft > 0 ? `Send again in ${resendSecondsLeft}s` : 'Didn\'t get it?'}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => resendEmailLink()}
+                            disabled={loading || resendSecondsLeft > 0}
+                            style={{
+                              background: 'transparent',
+                              border: '1.5px solid #16a34a',
+                              color: '#16a34a',
+                              borderRadius: 8,
+                              padding: '6px 10px',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: (loading || resendSecondsLeft > 0) ? 'not-allowed' : 'pointer',
+                              opacity: (loading || resendSecondsLeft > 0) ? 0.6 : 1,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {resendSecondsLeft > 0 ? `Send again (${resendSecondsLeft}s)` : 'Send again'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </form>
               </div>
             ) : null}
@@ -817,34 +1171,44 @@ const HomePage = () => {
                   Verify your email!
                 </div>
                 <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, marginBottom: 16 }}>
-                  We sent a verification link to <strong>{email}</strong>.<br />
-                  Click that link to activate your account,<br />
-                  then come back here and log in.
+                  We sent a sign-in link to <strong>{email}</strong>.<br />
+                  Click that link to create your account and sign in.
                 </div>
+                {error && (
+                  <div style={{
+                    fontSize: 12, color: '#991b1b', background: '#fee2e2',
+                    padding: '8px 12px', borderRadius: 8, marginBottom: 14,
+                    border: '1px solid #fca5a5'
+                  }}>
+                    {error}
+                  </div>
+                )}
                 <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 16 }}>
                   📁 Spam folder కూడా check చేయండి.
                 </div>
                 <button
                   type="button"
+                  disabled={loading || resendSecondsLeft > 0}
                   onClick={async () => {
-                    try {
-                      if (auth.currentUser) await sendEmailVerification(auth.currentUser);
-                      alert('Verification email resent! Check your inbox.');
-                    } catch (e) {
-                      alert('Could not resend. Please try registering again.');
+                    const ok = await resendEmailLink()
+                    if (ok) {
+                      alert('Sign-in link resent! Check your inbox.');
                     }
                   }}
                   style={{
                     background: 'none', border: '1.5px solid #16a34a', color: '#16a34a',
                     borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 600,
                     cursor: 'pointer', marginBottom: 12, display: 'block', margin: '0 auto 12px',
+                    opacity: (loading || resendSecondsLeft > 0) ? 0.6 : 1
                   }}
                 >
-                  🔄 Resend verification email
+                  {loading ? 'Sending...' : (resendSecondsLeft > 0 ? `🔄 Resend sign-in link (${resendSecondsLeft}s)` : '🔄 Resend sign-in link')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
+                    // Sign out to clear the "unverified" session so they can try again or log in fresh
+                    await signOut?.();
                     setShowVerifyScreen(false);
                     setFormType('login');
                     setPassword('');
@@ -852,7 +1216,7 @@ const HomePage = () => {
                     setError('');
                   }}
                   style={{
-                    background: '#16a34a', color: 'white', border: 'none',
+                    background: '#166534', color: 'white', border: 'none',
                     borderRadius: 8, padding: '9px 22px', fontSize: 13, fontWeight: 700,
                     cursor: 'pointer', display: 'block', margin: '0 auto',
                   }}

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FaTools, FaPlus, FaSearch, FaMapMarkerAlt, FaRupeeSign, FaUser, FaPhone,
   FaTractor, FaStar, FaCalendarAlt, FaClock, FaFilter, FaImage, FaCheckCircle,
@@ -130,6 +131,7 @@ const sanitizeResourceDistrict = (state = '', district = '') => {
 
 /* ── Simple BLANK_TOOL for P2P listing ── */
 const BLANK_TOOL = {
+  seedToolId: null,
   toolName: '',
   category: 'Tractor', // simplified: Tractor | Tool | Transport
   brand: '',
@@ -298,6 +300,7 @@ const getTabFromSearch = (search = '') => {
 const ResourceSharePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { currentUser, userData: authUserData } = useAuth();
   const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast();
   const [activeTab, setActiveTab]           = useState('browse');
@@ -650,7 +653,7 @@ const ResourceSharePage = () => {
     setRentSubmitting(true);
     // ── Aadhaar Upload ──────────────────────────────────────
     if (!aadhaarFile) {
-      toastError('Please upload an image of your Aadhaar card to proceed.');
+      toastError(t('rs_aadhaar_upload_required_to_proceed', { defaultValue: 'Please upload an image of your Aadhaar card to proceed.' }));
       setRentSubmitting(false);
       return;
     }
@@ -888,6 +891,7 @@ const ResourceSharePage = () => {
         CATEGORY_META[newTool.category]?.fallback ||
         '';
       const docRef = await addDoc(collection(db, 'resource_tools'), {
+        seedToolId:    newTool.seedToolId || null,
         toolName:     newTool.toolName,
         name:         newTool.toolName,
         category:     newTool.category,
@@ -918,6 +922,7 @@ const ResourceSharePage = () => {
 
       const optimisticTool = {
         id:            docRef.id,
+        seedToolId:     newTool.seedToolId || null,
         toolName:      newTool.toolName,
         name:          newTool.toolName,
         category:      newTool.category,
@@ -1026,14 +1031,79 @@ const ResourceSharePage = () => {
     }
   };
 
+  const getUnitLabel = (unit = 'hour') => {
+    const normalized = String(unit || '').trim().toLowerCase();
+    if (normalized === 'day') return t('rs_unit_day', { defaultValue: 'day' });
+    if (normalized === 'acre') return t('rs_unit_acre', { defaultValue: 'acre' });
+    return t('rs_unit_hour', { defaultValue: 'hour' });
+  };
+
+  const getCategoryLabel = (category = '') => {
+    switch (category) {
+      case 'Heavy Machinery':
+        return t('rs_cat_heavy_machinery', { defaultValue: 'Heavy Machinery' });
+      case 'Tillage Equipment':
+        return t('rs_cat_tillage_equipment', { defaultValue: 'Tillage Equipment' });
+      case 'Irrigation':
+        return t('rs_cat_irrigation', { defaultValue: 'Irrigation' });
+      case 'Planting Equipment':
+        return t('rs_cat_planting_equipment', { defaultValue: 'Planting Equipment' });
+      case 'Harvesting':
+        return t('rs_cat_harvesting', { defaultValue: 'Harvesting' });
+      case 'Hand Tools':
+        return t('rs_cat_hand_tools', { defaultValue: 'Hand Tools' });
+      case 'Post-Harvest':
+        return t('rs_cat_post_harvest', { defaultValue: 'Post-Harvest' });
+      case 'Transport':
+        return t('rs_cat_transport', { defaultValue: 'Transport' });
+      case 'Modern Technology':
+        return t('rs_cat_modern_technology', { defaultValue: 'Modern Technology' });
+      default:
+        return category;
+    }
+  };
+
+  const getAvailabilityLabel = (availability = '') => {
+    switch (availability) {
+      case 'Available':
+        return t('rs_avail_available', { defaultValue: 'Available' });
+      case 'Requested':
+        return t('rs_avail_requested', { defaultValue: 'Requested' });
+      case 'Rented':
+        return t('rs_avail_in_use', { defaultValue: 'In Use' });
+      case 'Under Maintenance':
+        return t('rs_avail_maintenance', { defaultValue: 'Maintenance' });
+      default:
+        return availability;
+    }
+  };
+
+  const formatPriceLabel = (tool) => {
+    if (tool?.priceAmount) {
+      return `₹${tool.priceAmount}/${getUnitLabel(tool.priceUnit || 'hour')}`;
+    }
+    if (tool?.costPerHour) {
+      return `₹${tool.costPerHour}/${getUnitLabel('hour')}`;
+    }
+    return '';
+  };
+
   /* ── ToolCard ── */
   const ToolCard = ({ tool }) => {
     const img  = resolveImage(tool);
     const meta = CATEGORY_META[tool.category] || {};
     const displayName = tool.toolName || tool.name || '';
-    const priceLabel = tool.priceAmount
-      ? `₹${tool.priceAmount}/${tool.priceUnit || 'hour'}`
-      : tool.costPerHour ? `₹${tool.costPerHour}/hour` : '';
+    const seedToolId = Number.isInteger(tool?.seedToolId)
+      ? tool.seedToolId
+      : (Number.isInteger(tool?.id) ? tool.id : null);
+    const seedToolKeyPrefix = seedToolId != null ? `rs_tool_${seedToolId}` : null;
+    const localizedName = seedToolKeyPrefix
+      ? t(`${seedToolKeyPrefix}_name`, { defaultValue: displayName })
+      : displayName;
+    const localizedDesc = seedToolKeyPrefix
+      ? t(`${seedToolKeyPrefix}_desc`, { defaultValue: tool.description || '' })
+      : (tool.description || '');
+    const priceLabel = formatPriceLabel(tool);
     const isAvail    = tool.availability === 'Available';
     const isRented   = tool.availability === 'Rented';
     const isMaint    = tool.availability === 'Under Maintenance';
@@ -1048,11 +1118,15 @@ const ResourceSharePage = () => {
     const isFar = myDistrict && tool.district &&
       tool.district.toLowerCase() !== myDistrict.toLowerCase();
 
+    const locationText =
+      [tool.village, tool.district, tool.state].filter(Boolean).join(', ') ||
+      t('rs_location_not_set', { defaultValue: 'Location not set' });
+
     return (
       <div className={`tool-card p2p-tool-card ${isBusy ? 'p2p-card-busy' : ''}`}>
         <div className="tool-image-container">
           {img ? (
-            <img src={img} alt={displayName} className="tool-image"
+            <img src={img} alt={localizedName || displayName} className="tool-image"
               onError={e => { e.target.onerror = null; e.target.src = TOOL_IMAGE_BY_NAME[(displayName || '').trim().toLowerCase()] || meta.fallback || ''; }} />
           ) : (
             <div className="tool-image-placeholder" style={{ color: meta.color || '#16a34a' }}>
@@ -1061,23 +1135,23 @@ const ResourceSharePage = () => {
           )}
           <div className={`availability-badge ${isAvail ? 'available' : 'unavailable'}`}>
             {isAvail ? <FaCheckCircle /> : isRented ? <FaBan /> : isMaint ? <FaEyeSlash /> : <FaRegClock />}
-            {isAvail ? 'Open' : tool.availability}
+            {isAvail ? t('rs_status_open', { defaultValue: 'Open' }) : getAvailabilityLabel(tool.availability)}
           </div>
           {/* Local badge */}
           {isLocal && (
-            <div className="p2p-local-badge"><FaMapPin /> Local</div>
+            <div className="p2p-local-badge"><FaMapPin /> {t('rs_badge_local', { defaultValue: 'Local' })}</div>
           )}
         </div>
 
         <div className="tool-info">
           {/* F2F trust badge */}
           <div className="p2p-trust-badge">
-            <FaShieldAlt /> Direct Farmer-to-Farmer
+            <FaShieldAlt /> {t('rs_direct_farmer_to_farmer', { defaultValue: 'Direct Farmer-to-Farmer' })}
           </div>
 
           <div className="tool-header">
             <div className="tool-name-block">
-              <h3 className="tool-name">{displayName}</h3>
+              <h3 className="tool-name">{localizedName}</h3>
               {(tool.brand || tool.model || tool.hp) && (
                 <p className="tool-subtitle">
                   {[tool.brand, tool.model].filter(Boolean).join(' — ')}
@@ -1090,27 +1164,27 @@ const ResourceSharePage = () => {
           <div className="tool-meta">
             <span className="category-badge"
               style={{ background: (meta.color || '#16a34a') + '22', color: meta.color || '#16a34a' }}>
-              {meta.emoji || '🔧'} {tool.p2pCategory || tool.category}
+              {meta.emoji || '🔧'} {getCategoryLabel(tool.p2pCategory || tool.category)}
             </span>
             {(tool.withOperator || tool.serviceType === 'with_operator') ? (
-              <span className="rs-svc-badge rs-svc-op"><FaUserTie /> With Operator</span>
+              <span className="rs-svc-badge rs-svc-op"><FaUserTie /> {t('rs_with_operator', { defaultValue: 'With Operator' })}</span>
             ) : (
-              <span className="rs-svc-badge rs-svc-tool"><FaTools /> Tool Only</span>
+              <span className="rs-svc-badge rs-svc-tool"><FaTools /> {t('rs_tool_only', { defaultValue: 'Tool Only' })}</span>
             )}
           </div>
 
           {/* Cross-district warning note */}
           {isFar && (
             <div className="p2p-far-warning">
-              <FaExclamationTriangle /> Note: This resource is in a different district. Manual transport coordination may be required.
+              <FaExclamationTriangle /> {t('rs_note_different_district', { defaultValue: 'Note: This resource is in a different district. Manual transport coordination may be required.' })}
             </div>
           )}
 
-          {tool.description && <p className="tool-description">{tool.description}</p>}
+          {localizedDesc && <p className="tool-description">{localizedDesc}</p>}
 
           <div className="tool-details">
             {priceLabel && <div className="detail-item"><div className="detail-icon"><FaRupeeSign /></div><span className="detail-text price">{priceLabel}</span></div>}
-            <div className="detail-item"><div className="detail-icon"><FaMapMarkerAlt /></div><span className="detail-text">{[tool.village, tool.district, tool.state].filter(Boolean).join(', ')}</span></div>
+            <div className="detail-item"><div className="detail-icon"><FaMapMarkerAlt /></div><span className="detail-text">{locationText}</span></div>
             <div className="detail-item"><div className="detail-icon"><FaUser /></div><span className="detail-text">{tool.owner}</span></div>
             {tool.phone && <div className="detail-item"><div className="detail-icon"><FaPhone /></div><span className="detail-text">{tool.phone}</span></div>}
           </div>
@@ -1127,20 +1201,20 @@ const ResourceSharePage = () => {
               const hasActiveReq = myReq && ['Requested', 'Accepted', 'In Progress'].includes(myReq.status);
 
               if (myReq?.status === 'Completed') {
-                return <div className="rs-card-req-pending">✅ Completed — check My Requests for details</div>;
+                return <div className="rs-card-req-pending">✅ {t('rs_req_completed_hint', { defaultValue: 'Completed — check My Requests for details' })}</div>;
               }
               if (myReq?.status === 'Cancelled') {
-                return <div className="rs-card-req-pending">⚪ Request cancelled</div>;
+                return <div className="rs-card-req-pending">⚪ {t('rs_req_cancelled', { defaultValue: 'Request cancelled' })}</div>;
               }
               if (myReq?.status === 'Rejected') {
-                return <div className="rs-card-req-pending">❌ Request rejected — you can request again</div>;
+                return <div className="rs-card-req-pending">❌ {t('rs_req_rejected_hint', { defaultValue: 'Request rejected — you can request again' })}</div>;
               }
 
               if (myReq) {
                 if (myReq.status === 'Requested') {
                   return (
                     <div className="rs-card-req-pending">
-                      ⏳ Request sent — awaiting farmer's confirmation
+                      ⏳ {t('rs_req_sent_waiting', { defaultValue: "Request sent — awaiting farmer's confirmation" })}
                     </div>
                   );
                 }
@@ -1150,14 +1224,16 @@ const ResourceSharePage = () => {
                   <div className="rs-card-req-accepted">
                     <div className="rs-card-req-banner">
                       <FaCheckCircle />
-                      {myReq.status === 'Accepted' ? ' Request Accepted!' : ' Work in Progress'}
+                      {myReq.status === 'Accepted'
+                        ? ` ${t('rs_req_accepted', { defaultValue: 'Request Accepted!' })}`
+                        : ` ${t('rs_req_in_progress', { defaultValue: 'Work in Progress' })}`}
                     </div>
                     {ownerPhone ? (
                       <a href={`tel:${ownerPhone.replace(/\s/g,'')}`} className="rs-btn-call-owner">
-                        <FaPhoneAlt /> Call Owner: {ownerPhone}
+                        <FaPhoneAlt /> {t('rs_call_owner', { defaultValue: 'Call Owner' })}: {ownerPhone}
                       </a>
                     ) : (
-                      <span className="rs-no-phone">No phone on file</span>
+                      <span className="rs-no-phone">{t('rs_no_phone_on_file', { defaultValue: 'No phone on file' })}</span>
                     )}
                   </div>
                 );
@@ -1166,7 +1242,7 @@ const ResourceSharePage = () => {
               if (isAvail && !hasActiveReq) {
                 return (
                   <button className="btn-primary" onClick={() => openRentModal(tool)}>
-                    <FaHandshake /> Request for Use
+                    <FaHandshake /> {t('rs_request_for_use', { defaultValue: 'Request for Use' })}
                   </button>
                 );
               }
@@ -1444,12 +1520,12 @@ const ResourceSharePage = () => {
         {confirmDeleteTool && (
           <ConfirmDialog
             isOpen={true}
-            title="Remove Listing"
-            message="Are you sure you want to remove this tool listing? This action cannot be undone."
+            title={t('rs_remove_listing_title', { defaultValue: 'Remove Listing' })}
+            message={t('rs_remove_listing_message', { defaultValue: 'Are you sure you want to remove this tool listing? This action cannot be undone.' })}
             onConfirm={confirmDeleteToolAction}
             onCancel={() => setConfirmDeleteTool(null)}
-            confirmText="Remove"
-            cancelText="Cancel"
+            confirmText={t('rs_remove', { defaultValue: 'Remove' })}
+            cancelText={t('rs_cancel', { defaultValue: 'Cancel' })}
           />
         )}
 
@@ -1458,12 +1534,12 @@ const ResourceSharePage = () => {
           <button 
             className={`rs-tab-action-btn ${activeTab === 'browse' ? 'rs-tab-btn-active' : ''}`}
             onClick={() => setActiveTab('browse')}>
-            <FaSearch /> Browse Tools
+            <FaSearch /> {t('rs_browse_tools', { defaultValue: 'Browse Tools' })}
           </button>
           <button 
             className={`rs-tab-action-btn ${activeTab === 'requests' ? 'rs-tab-btn-active' : ''}`}
             onClick={() => setActiveTab('requests')}>
-            <FaBell /> My Requests
+            <FaBell /> {t('rs_my_requests', { defaultValue: 'My Requests' })}
             {rentalRequests.filter(r => (r.toolOwnerId === currentUser?.uid || r.requesterId === currentUser?.uid) && ['Requested', 'Accepted', 'In Progress'].includes(r.status)).length > 0 && (
               <span className="rs-tab-action-badge">
                 {rentalRequests.filter(r => (r.toolOwnerId === currentUser?.uid || r.requesterId === currentUser?.uid) && ['Requested', 'Accepted', 'In Progress'].includes(r.status)).length}
@@ -1473,12 +1549,12 @@ const ResourceSharePage = () => {
           <button 
             className={`rs-tab-action-btn ${activeTab === 'my-tools' ? 'rs-tab-btn-active' : ''}`}
             onClick={() => setActiveTab('my-tools')}>
-            <FaBoxOpen /> My Tools
+            <FaBoxOpen /> {t('rs_my_tools', { defaultValue: 'My Tools' })}
           </button>
           <button 
             className="rs-tab-add-btn"
             onClick={() => setActiveTab('list')}>
-            <FaPlus /> Add Tool
+            <FaPlus /> {t('rs_add_tool', { defaultValue: 'Add Tool' })}
           </button>
         </div>
 
@@ -1489,21 +1565,21 @@ const ResourceSharePage = () => {
             <div className="rs-my-listings-wrap">
               <div className="rs-my-listings-header">
                 <div>
-                  <h2 className="rs-my-listings-title"><FaBoxOpen /> My Listed Tools</h2>
-                  <p className="rs-my-listings-sub">{myTools.length} tool{myTools.length !== 1 ? 's' : ''} listed by you</p>
+                  <h2 className="rs-my-listings-title"><FaBoxOpen /> {t('rs_my_listed_tools', { defaultValue: 'My Listed Tools' })}</h2>
+                  <p className="rs-my-listings-sub">{t('rs_my_tools_listed_by_you', { count: myTools.length, defaultValue: `${myTools.length} tools listed by you` })}</p>
                 </div>
                 <button className="rs-my-listings-add-btn" onClick={() => setActiveTab('list')}>
-                  <FaPlus /> Add New Tool
+                  <FaPlus /> {t('rs_add_new_tool', { defaultValue: 'Add New Tool' })}
                 </button>
               </div>
 
               {myTools.length === 0 ? (
                 <div className="no-results">
                   <FaTools size={48} />
-                  <h3>No Tools Listed Yet</h3>
-                  <p>List your farming equipment and start getting rental requests.</p>
+                  <h3>{t('rs_no_tools_listed_title', { defaultValue: 'No Tools Listed Yet' })}</h3>
+                  <p>{t('rs_no_tools_listed_sub', { defaultValue: 'List your farming equipment and start getting rental requests.' })}</p>
                   <button className="btn-primary" style={{ marginTop: 16 }} onClick={() => setActiveTab('list')}>
-                    <FaPlus /> Add Your First Tool
+                    <FaPlus /> {t('rs_add_your_first_tool', { defaultValue: 'Add Your First Tool' })}
                   </button>
                 </div>
               ) : (
@@ -1532,15 +1608,15 @@ const ResourceSharePage = () => {
                             </div>
                           )}
                           <div className={`rs-mlc-status ${isAvailNow ? 'rs-mlc-status-open' : 'rs-mlc-status-busy'}`}>
-                            {isAvailNow ? <FaCheckCircle /> : <FaTimesCircle />} {tool.availability}
+                            {isAvailNow ? <FaCheckCircle /> : <FaTimesCircle />} {getAvailabilityLabel(tool.availability)}
                           </div>
                           {pendingReqs > 0 && (
                             <button
                               type="button"
                               className="rs-mlc-req-badge rs-mlc-req-badge-btn"
                               onClick={() => setActiveTab('requests')}
-                              title="View rental requests">
-                              <FaBell /> {pendingReqs} Request{pendingReqs > 1 ? 's' : ''}
+                              title={t('rs_view_rental_requests', { defaultValue: 'View rental requests' })}>
+                              <FaBell /> {t('rs_requests_count', { count: pendingReqs, defaultValue: `${pendingReqs} Requests` })}
                             </button>
                           )}
                         </div>
@@ -1550,7 +1626,7 @@ const ResourceSharePage = () => {
                           <div
                             className="rs-mlc-cat"
                             style={{ background: (meta.color || '#16a34a') + '18', color: meta.color || '#16a34a' }}>
-                            {meta.emoji || '🔧'} {tool.category}
+                            {meta.emoji || '🔧'} {getCategoryLabel(tool.category)}
                           </div>
 
                           <div className="rs-mlc-info-rows">
@@ -1561,7 +1637,7 @@ const ResourceSharePage = () => {
                             )}
                             <div className="rs-mlc-info-row">
                               <FaMapMarkerAlt className="rs-mlc-info-icon" />
-                              {[tool.village, tool.district, tool.state].filter(Boolean).join(', ') || 'Location not set'}
+                              {[tool.village, tool.district, tool.state].filter(Boolean).join(', ') || t('rs_location_not_set', { defaultValue: 'Location not set' })}
                             </div>
                             {tool.phone && (
                               <div className="rs-mlc-info-row">
@@ -1572,10 +1648,10 @@ const ResourceSharePage = () => {
 
                           <div className="rs-mlc-actions">
                             <button className="rs-mlc-btn rs-mlc-btn-edit" onClick={() => openEditTool(tool)}>
-                              <FaAlignLeft /> Edit / Status
+                              <FaAlignLeft /> {t('rs_edit_status', { defaultValue: 'Edit / Status' })}
                             </button>
                             <button className="rs-mlc-btn rs-mlc-btn-del" onClick={() => handleDeleteTool(tool.id)}>
-                              🗑 Delete
+                              🗑 {t('rs_delete', { defaultValue: 'Delete' })}
                             </button>
                           </div>
                         </div>
@@ -1603,7 +1679,7 @@ const ResourceSharePage = () => {
               {/* Header */}
               <div className="rs-sidebar-header">
                 <div className="rs-sidebar-header-left">
-                  <span>Filters & Sort</span>
+                  <span>{t('rs_filters_sort', { defaultValue: 'Filters & Sort' })}</span>
                   {activeFilterCount > 0 && (
                     <span className="rs-filter-badge">{activeFilterCount}</span>
                   )}
@@ -1613,10 +1689,10 @@ const ResourceSharePage = () => {
 
               {/* Search */}
               <div className="rs-sidebar-group">
-                <div className="rs-sidebar-group-title">Search</div>
+                <div className="rs-sidebar-group-title">{t('rs_search', { defaultValue: 'Search' })}</div>
                 <div className="rs-search-box">
                   <input type="text" className="rs-search-input"
-                    placeholder="Name, owner, location…"
+                    placeholder={t('rs_search_placeholder', { defaultValue: 'Name, owner, location…' })}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)} />
                   {searchTerm && (
@@ -1627,14 +1703,14 @@ const ResourceSharePage = () => {
 
               {/* Sort */}
               <div className="rs-sidebar-group">
-                <div className="rs-sidebar-group-title">Sort By</div>
+                <div className="rs-sidebar-group-title">{t('rs_sort_by', { defaultValue: 'Sort By' })}</div>
                 <div className="rs-sort-pills">
                   {[
-                    { key: 'default',    label: '📍 Nearby' },
-                    { key: 'price-asc',  label: '₹ Low→High' },
-                    { key: 'price-desc', label: '₹ High→Low' },
-                    { key: 'rating',     label: '⭐ Rating' },
-                    { key: 'bookings',   label: '🔥 Popular' },
+                    { key: 'default',    label: `📍 ${t('rs_sort_nearby', { defaultValue: 'Nearby' })}` },
+                    { key: 'price-asc',  label: `₹ ${t('rs_sort_price_low_high', { defaultValue: 'Low→High' })}` },
+                    { key: 'price-desc', label: `₹ ${t('rs_sort_price_high_low', { defaultValue: 'High→Low' })}` },
+                    { key: 'rating',     label: `⭐ ${t('rs_sort_rating', { defaultValue: 'Rating' })}` },
+                    { key: 'bookings',   label: `🔥 ${t('rs_sort_popular', { defaultValue: 'Popular' })}` },
                   ].map(s => (
                     <button key={s.key}
                       className={`rs-sort-pill ${sortBy === s.key ? 'rs-sort-pill-active' : ''}`}
@@ -1647,13 +1723,13 @@ const ResourceSharePage = () => {
 
               {/* Category */}
               <div className="rs-sidebar-group">
-                <div className="rs-sidebar-group-title">Category</div>
+                <div className="rs-sidebar-group-title">{t('rs_category', { defaultValue: 'Category' })}</div>
                 <div className="rs-category-grid">
                   <button
                     className={`rs-cat-chip ${selectedCategory === 'all' ? 'rs-cat-chip-active' : ''}`}
                     onClick={() => setSelectedCategory('all')}>
                     <span className="rs-cat-emoji">🌾</span>
-                    <span className="rs-cat-label">All</span>
+                    <span className="rs-cat-label">{t('rs_all', { defaultValue: 'All' })}</span>
                   </button>
                   {CATEGORY_ORDER.map(cat => {
                     const meta = CATEGORY_META[cat] || {};
@@ -1663,7 +1739,7 @@ const ResourceSharePage = () => {
                         style={selectedCategory === cat ? { borderColor: meta.color, background: meta.color + '18' } : {}}
                         onClick={() => setSelectedCategory(cat)}>
                         <span className="rs-cat-emoji">{meta.emoji}</span>
-                        <span className="rs-cat-label">{cat.replace(' Equipment','').replace(' Technology','Tech').replace('Post-Harvest','Post‑Harv.')}</span>
+                        <span className="rs-cat-label">{getCategoryLabel(cat)}</span>
                       </button>
                     );
                   })}
@@ -1672,13 +1748,13 @@ const ResourceSharePage = () => {
 
               {/* Availability */}
               <div className="rs-sidebar-group">
-                <div className="rs-sidebar-group-title">Availability</div>
+                <div className="rs-sidebar-group-title">{t('rs_availability', { defaultValue: 'Availability' })}</div>
                 {[
-                  { val: 'all',               label: 'All',               dot: '#94a3b8' },
-                  { val: 'Available',         label: 'Available',         dot: '#16a34a' },
-                  { val: 'Requested',         label: 'Requested',         dot: '#d97706' },
-                  { val: 'Rented',            label: 'In Use',            dot: '#dc2626' },
-                  { val: 'Under Maintenance', label: 'Maintenance',       dot: '#7c3aed' },
+                  { val: 'all',               label: t('rs_all', { defaultValue: 'All' }), dot: '#94a3b8' },
+                  { val: 'Available',         label: getAvailabilityLabel('Available'), dot: '#16a34a' },
+                  { val: 'Requested',         label: getAvailabilityLabel('Requested'), dot: '#d97706' },
+                  { val: 'Rented',            label: getAvailabilityLabel('Rented'), dot: '#dc2626' },
+                  { val: 'Under Maintenance', label: getAvailabilityLabel('Under Maintenance'), dot: '#7c3aed' },
                 ].map(({ val, label, dot }) => (
                   <button key={val}
                     className={`rs-avail-row ${selectedAvailability === val ? 'rs-avail-active' : ''}`}
@@ -1692,11 +1768,11 @@ const ResourceSharePage = () => {
 
               {/* Price Range */}
               <div className="rs-sidebar-group">
-                <div className="rs-sidebar-group-title">Max Price</div>
+                <div className="rs-sidebar-group-title">{t('rs_max_price', { defaultValue: 'Max Price' })}</div>
                 <div className="rs-price-display">
-                  <span className="rs-price-val">Up to <strong>₹{priceRange[1]}</strong>/unit</span>
+                  <span className="rs-price-val">{t('rs_price_up_to', { defaultValue: 'Up to' })} <strong>₹{priceRange[1]}</strong>/{t('rs_unit', { defaultValue: 'unit' })}</span>
                   {priceRange[1] < 2000 && (
-                    <button className="rs-price-reset" onClick={() => setPriceRange([0, 2000])}>Reset</button>
+                    <button className="rs-price-reset" onClick={() => setPriceRange([0, 2000])}>{t('rs_reset', { defaultValue: 'Reset' })}</button>
                   )}
                 </div>
                 <input type="range" className="rs-price-slider" min={0} max={2000} step={50}
@@ -1709,9 +1785,9 @@ const ResourceSharePage = () => {
 
               {/* Location */}
               <div className="rs-sidebar-group">
-                <div className="rs-sidebar-group-title">Location</div>
+                <div className="rs-sidebar-group-title">{t('rs_location', { defaultValue: 'Location' })}</div>
                 <div className="rs-toggle-row">
-                  <span className="rs-toggle-label">My district only</span>
+                  <span className="rs-toggle-label">{t('rs_my_district_only', { defaultValue: 'My district only' })}</span>
                   <button
                     className={`rs-toggle-switch ${locationPref === 'myDistrict' ? 'rs-toggle-on' : ''}`}
                     onClick={() => setLocationPref(locationPref === 'myDistrict' ? 'all' : 'myDistrict')}>
@@ -1719,15 +1795,15 @@ const ResourceSharePage = () => {
                   </button>
                 </div>
                 {!myDistrict && locationPref === 'myDistrict' && (
-                  <p className="rs-sidebar-hint">⚠️ Add your district in Profile to use this.</p>
+                  <p className="rs-sidebar-hint">⚠️ {t('rs_add_district_in_profile_hint', { defaultValue: 'Add your district in Profile to use this.' })}</p>
                 )}
               </div>
 
               {/* With Operator */}
               <div className="rs-sidebar-group">
-                <div className="rs-sidebar-group-title">Operator</div>
+                <div className="rs-sidebar-group-title">{t('rs_operator', { defaultValue: 'Operator' })}</div>
                 <div className="rs-toggle-row">
-                  <span className="rs-toggle-label">Includes operator</span>
+                  <span className="rs-toggle-label">{t('rs_includes_operator', { defaultValue: 'Includes operator' })}</span>
                   <button
                     className={`rs-toggle-switch ${withOperatorFilter ? 'rs-toggle-on' : ''}`}
                     onClick={() => setWithOperatorFilter(v => !v)}>
@@ -1739,7 +1815,7 @@ const ResourceSharePage = () => {
               {/* Footer */}
               <div className="rs-sidebar-footer">
                 <div className="rs-sidebar-result-count">
-                  <strong>{filteredTools.length}</strong> tool{filteredTools.length !== 1 ? 's' : ''} found
+                  {t('rs_tools_found', { count: filteredTools.length, defaultValue: `${filteredTools.length} tools found` })}
                 </div>
               </div>
             </aside>
@@ -1749,19 +1825,21 @@ const ResourceSharePage = () => {
               {/* Mobile toggle */}
               <button className="rs-sidebar-toggle" onClick={() => setSidebarOpen(v => !v)}>
                 {sidebarOpen ? <FaTimes /> : <FaBars />}
-                {sidebarOpen ? ' Close Filters' : ' Filters'}
+                {sidebarOpen
+                  ? ` ${t('rs_close_filters', { defaultValue: 'Close Filters' })}`
+                  : ` ${t('rs_filters', { defaultValue: 'Filters' })}`}
               </button>
 
               {/* Results summary */}
               <div className="rs-results-summary">
-                <span className="rs-results-count">{filteredTools.length} tool{filteredTools.length !== 1 ? 's' : ''} found</span>
+                <span className="rs-results-count">{t('rs_tools_found', { count: filteredTools.length, defaultValue: `${filteredTools.length} tools found` })}</span>
               </div>
 
               {filteredTools.length === 0 ? (
                 <div className="no-results">
                   <FaTools />
-                  <h3>No Tools Found</h3>
-                  <p>Try adjusting your search or filters</p>
+                  <h3>{t('rs_no_tools_found_title', { defaultValue: 'No Tools Found' })}</h3>
+                  <p>{t('rs_try_adjusting_search_filters', { defaultValue: 'Try adjusting your search or filters' })}</p>
 
                 </div>
               ) : (
@@ -1780,14 +1858,14 @@ const ResourceSharePage = () => {
           ));
           return (
             <div className="rs-requests-page">
-              <h2 className="section-title"><FaBell /> My Rental Requests</h2>
+              <h2 className="section-title"><FaBell /> {t('rs_my_rental_requests', { defaultValue: 'My Rental Requests' })}</h2>
               {myRequests.length === 0 ? (
                 <div className="no-results">
                   <FaBell />
-                  <h3>No Requests Yet</h3>
-                  <p>Browse tools and click "Request for Rent" to get started.</p>
+                  <h3>{t('rs_no_requests_yet_title', { defaultValue: 'No Requests Yet' })}</h3>
+                  <p>{t('rs_no_requests_yet_sub', { defaultValue: 'Browse tools and click "Request for Use" to get started.' })}</p>
                   <button className="btn-primary" style={{ marginTop: 16 }} onClick={() => setActiveTab('browse')}>
-                    Browse Tools
+                    {t('rs_browse_tools', { defaultValue: 'Browse Tools' })}
                   </button>
                 </div>
               ) : (
@@ -1803,17 +1881,34 @@ const ResourceSharePage = () => {
         {/* ═══════ LIST TOOL TAB ═══════ */}
         {activeTab === 'list' && (() => {
           const PICKER_CATS = [
-            { key: 'Heavy Machinery',    label: '🚜 Tractors' },
-            { key: 'Tillage Equipment',  label: '🔧 Tillage' },
-            { key: 'Harvesting',         label: '🌾 Harvesting' },
-            { key: 'Irrigation',         label: '💧 Irrigation' },
-            { key: 'Planting Equipment', label: '🌱 Planting' },
-            { key: 'Other',              label: '⚙️ Other' },
+            { key: 'Heavy Machinery',    icon: '🚜', labelKey: 'rs_picker_tab_tractors',   defaultLabel: 'Tractors' },
+            { key: 'Tillage Equipment',  icon: '🔧', labelKey: 'rs_picker_tab_tillage',    defaultLabel: 'Tillage' },
+            { key: 'Harvesting',         icon: '🌾', labelKey: 'rs_picker_tab_harvesting', defaultLabel: 'Harvesting' },
+            { key: 'Irrigation',         icon: '💧', labelKey: 'rs_picker_tab_irrigation', defaultLabel: 'Irrigation' },
+            { key: 'Planting Equipment', icon: '🌱', labelKey: 'rs_picker_tab_planting',   defaultLabel: 'Planting' },
+            { key: 'Other',              icon: '⚙️', labelKey: 'rs_picker_tab_other',      defaultLabel: 'Other' },
           ];
           const OTHER_CATS = ['Modern Technology','Hand Tools','Post-Harvest','Transport'];
           const pickerTools = listPickerCat === 'Other'
             ? INITIAL_TOOLS.filter(t => OTHER_CATS.includes(t.category))
             : INITIAL_TOOLS.filter(t => t.category === listPickerCat);
+
+          const getSeedToolKeyPrefix = (tool) => {
+            const seedToolId = Number.isInteger(tool?.seedToolId)
+              ? tool.seedToolId
+              : (Number.isInteger(tool?.id) ? tool.id : null);
+            return seedToolId != null ? `rs_tool_${seedToolId}` : null;
+          };
+
+          const getToolDisplayName = (tool) => {
+            const displayName = tool?.toolName || tool?.name || '';
+            const seedToolKeyPrefix = getSeedToolKeyPrefix(tool);
+            return seedToolKeyPrefix
+              ? t(`${seedToolKeyPrefix}_name`, { defaultValue: displayName })
+              : displayName;
+          };
+
+          const selectedTemplateName = selectedTemplate ? getToolDisplayName(selectedTemplate) : '';
 
           const resetForm = () => {
             setNewTool({ ...BLANK_TOOL, ...profileDefaults }); setImagePreview('');
@@ -1823,13 +1918,13 @@ const ResourceSharePage = () => {
 
           return (
             <div className="add-tool-section">
-              <h2 className="section-title"><FaPlus /> Add Tool</h2>
+              <h2 className="section-title"><FaPlus /> {t('rs_add_tool', { defaultValue: 'Add Tool' })}</h2>
               <form className="add-tool-form" onSubmit={e => { e.preventDefault(); handleAddTool(); }}>
 
                 {/* ── STEP 1: Pick a tool ── */}
                 <div className="rs-picker-step">
                   <div className="rs-picker-step-label">
-                    <span className="rs-step-num">1</span> Select Your Tool
+                    <span className="rs-step-num">1</span> {t('rs_select_your_tool', { defaultValue: 'Select Your Tool' })}
                   </div>
 
                   {/* Category tabs */}
@@ -1838,57 +1933,61 @@ const ResourceSharePage = () => {
                       <button key={pc.key} type="button"
                         className={`rs-picker-cat-btn ${listPickerCat === pc.key ? 'rs-picker-cat-active' : ''}`}
                         onClick={() => setListPickerCat(pc.key)}>
-                        {pc.label}
+                        {pc.icon} {t(pc.labelKey, { defaultValue: pc.defaultLabel })}
                       </button>
                     ))}
                   </div>
 
                   {/* Scrollable horizontal tool cards */}
                   <div className="rs-tool-picker-strip">
-                    {pickerTools.map(t => (
-                      <button key={t.id} type="button"
-                        className={`rs-tool-pick-card ${selectedTemplate?.id === t.id ? 'rs-tool-pick-selected' : ''}`}
-                        onClick={() => {
-                          setSelectedTemplate(t);
-                          setNewTool(p => ({
-                            ...p,
-                            toolName:    t.name,
-                            category:    t.category,
-                            description: t.description || '',
-                            image:       t.image || '',
-                          }));
-                        }}>
-                        <div className="rs-pick-card-img-wrap">
-                          <img src={t.image} alt={t.name} className="rs-pick-card-img"
-                            onError={e => { e.target.style.display='none'; }} />
-                          {selectedTemplate?.id === t.id && (
-                            <div className="rs-pick-card-check"><FaCheckCircle /></div>
-                          )}
-                        </div>
-                        <span className="rs-pick-card-name">{t.name}</span>
-                      </button>
-                    ))}
+                    {pickerTools.map(tool => {
+                      const displayName = getToolDisplayName(tool);
+                      return (
+                        <button key={tool.id} type="button"
+                          className={`rs-tool-pick-card ${selectedTemplate?.id === tool.id ? 'rs-tool-pick-selected' : ''}`}
+                          onClick={() => {
+                            setSelectedTemplate(tool);
+                            setNewTool(p => ({
+                              ...p,
+                              seedToolId:  tool.id,
+                              toolName:    tool.name,
+                              category:    tool.category,
+                              description: tool.description || '',
+                              image:       tool.image || '',
+                            }));
+                          }}>
+                          <div className="rs-pick-card-img-wrap">
+                            <img src={tool.image} alt={displayName || tool.name} className="rs-pick-card-img"
+                              onError={e => { e.target.style.display='none'; }} />
+                            {selectedTemplate?.id === tool.id && (
+                              <div className="rs-pick-card-check"><FaCheckCircle /></div>
+                            )}
+                          </div>
+                          <span className="rs-pick-card-name">{displayName}</span>
+                        </button>
+                      );
+                    })}
                     {/* Other / Custom card */}
                     <button type="button"
                       className={`rs-tool-pick-card rs-tool-pick-card-custom ${selectedTemplate?.id === 'custom' ? 'rs-tool-pick-selected' : ''}`}
                       onClick={() => {
                         const cat = listPickerCat === 'Other' ? 'Hand Tools' : listPickerCat;
                         setSelectedTemplate({ id: 'custom', name: '', category: cat });
-                        setNewTool(p => ({ ...p, toolName: '', category: cat, description: '', image: '' }));
+                        setNewTool(p => ({ ...p, seedToolId: null, toolName: '', category: cat, description: '', image: '' }));
                       }}>
                       <div className="rs-pick-card-img-wrap rs-pick-card-custom-icon">
                         <FaPlus size={26} />
                       </div>
-                      <span className="rs-pick-card-name">Other / Custom</span>
+                      <span className="rs-pick-card-name">{t('rs_other_custom', { defaultValue: 'Other / Custom' })}</span>
                     </button>
                   </div>
 
                   {/* Custom name input */}
                   {selectedTemplate?.id === 'custom' && (
                     <div className="form-group full-width" style={{ marginTop: 12 }}>
-                      <label className="form-label"><FaTools /> Tool Name <span className="p2p-required">*</span></label>
+                      <label className="form-label"><FaTools /> {t('rs_tool_name_label', { defaultValue: 'Tool Name' })} <span className="p2p-required">*</span></label>
                       <input type="text" className="form-input"
-                        placeholder="e.g., My Old Thresher, Custom Cultivator..."
+                        placeholder={t('rs_tool_name_placeholder', { defaultValue: 'e.g., My Old Thresher, Custom Cultivator...' })}
                         value={newTool.toolName}
                         onChange={e => setNewTool(p => ({ ...p, toolName: e.target.value }))} required />
                     </div>
@@ -1898,9 +1997,9 @@ const ResourceSharePage = () => {
                   {selectedTemplate && selectedTemplate.id !== 'custom' && (
                     <div className="rs-selected-tool-banner">
                       <FaCheckCircle />
-                      <strong>{selectedTemplate.name}</strong> selected
+                      <strong>{selectedTemplateName || selectedTemplate.name}</strong> {t('rs_selected', { defaultValue: 'selected' })}
                       <button type="button" className="rs-deselect-btn" onClick={resetForm}>
-                        <FaTimes /> Change
+                        <FaTimes /> {t('rs_change', { defaultValue: 'Change' })}
                       </button>
                     </div>
                   )}
@@ -1910,7 +2009,7 @@ const ResourceSharePage = () => {
                 {selectedTemplate && (
                   <>
                     <div className="rs-picker-step-label" style={{ marginTop: 22 }}>
-                      <span className="rs-step-num">2</span> Set Price &amp; Details
+                      <span className="rs-step-num">2</span> {t('rs_set_price_details', { defaultValue: 'Set Price & Details' })}
                     </div>
 
                     {/* Rent Price */}
@@ -2163,7 +2262,7 @@ const ResourceSharePage = () => {
 
           {/* Aadhaar Verification - IMAGE UPLOAD */}
           <div className="rs-modal-section">
-            <label className="rs-modal-label">🪪 Aadhaar Card Image <span className="p2p-required">*</span></label>
+            <label className="rs-modal-label">🪪 {t('rs_aadhaar_card_image_label', { defaultValue: 'Aadhaar Card Image' })} <span className="p2p-required">*</span></label>
             <div className="rs-file-upload-block" 
                  onClick={() => aadhaarFileRef.current?.click()}
                  style={aadhaarPreview ? { borderColor: '#16a34a', background: '#f0fdf4' } : {}}>
@@ -2184,22 +2283,22 @@ const ResourceSharePage = () => {
                 <div className="rs-aadhaar-preview-container">
                   <img src={aadhaarPreview} alt="Aadhaar Preview" className="rs-aadhaar-preview-img" />
                   <div className="rs-aadhaar-preview-overlay">
-                    <FaSyncAlt /> Change Image
+                    <FaSyncAlt /> {t('rs_change_image', { defaultValue: 'Change Image' })}
                   </div>
                 </div>
               ) : (
                 <div className="rs-file-upload-placeholder">
                   <FaCamera size={24} />
-                  <span>Click to Upload Aadhaar Photo</span>
-                  <p>Image showing front or back of card</p>
+                  <span>{t('rs_click_upload_aadhaar_photo', { defaultValue: 'Click to Upload Aadhaar Photo' })}</span>
+                  <p>{t('rs_aadhaar_photo_hint', { defaultValue: 'Image showing front or back of card' })}</p>
                 </div>
               )}
             </div>
             <p style={{ fontSize: '0.75rem', marginTop: 4, fontWeight: 500,
               color: aadhaarFile ? '#16a34a' : '#b45309' }}>
               {aadhaarFile
-                ? '✅ Aadhaar image selected.'
-                : '⚠️ Required: Please upload your Aadhaar card image for verification.'}
+                ? t('rs_aadhaar_selected', { defaultValue: '✅ Aadhaar image selected.' })
+                : t('rs_aadhaar_required_upload_for_verification', { defaultValue: '⚠️ Required: Please upload your Aadhaar card image for verification.' })}
             </p>
           </div>
 

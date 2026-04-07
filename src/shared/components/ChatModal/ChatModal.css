@@ -293,6 +293,61 @@
   opacity: 0.7;
 }
 
+/* ─── Input Panel (free text) ─── */
+.chat-input-panel {
+  flex-shrink: 0;
+  border-top: 1px solid #e5e7eb;
+  background: #fafafa;
+  padding: 10px 12px;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 10px 13px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 13.5px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  background: #fff;
+}
+
+.chat-input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+.chat-send-btn {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* ─── Menu Panel (replaces quick chips + text input) ─── */
 .chat-menu-panel {
   flex-shrink: 0;

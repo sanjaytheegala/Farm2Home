@@ -85,15 +85,15 @@ const ProfilePage = () => {
 
   const handleSaveProfile = async () => {
     if (!userData.fullName.trim()) {
-      showMessage('error', 'Name cannot be empty');
+      showMessage('error', t('profile_name_empty_error'));
       return;
     }
     if (userData.phone && !/^[6-9]\d{9}$/.test(userData.phone.replace(/\s+/g, ''))) {
-      showMessage('error', 'Enter a valid 10-digit Indian phone number');
+      showMessage('error', t('profile_phone_invalid_error'));
       return;
     }
     if (userData.pincode && !/^\d{6}$/.test(userData.pincode)) {
-      showMessage('error', 'Enter a valid 6-digit pincode');
+      showMessage('error', t('profile_pincode_invalid_error'));
       return;
     }
     try {
@@ -148,7 +148,7 @@ const ProfilePage = () => {
     } catch (error) {
       console.error('Error changing password:', error);
       if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        showMessage('error', t('current_password_wrong') || 'Current password is incorrect');
+        showMessage('error', t('current_password_wrong'));
       } else {
         showMessage('error', t('password_change_error'));
       }
@@ -176,11 +176,11 @@ const ProfilePage = () => {
     if (!file) return;
 
     const user = auth.currentUser;
-    if (!user) { showMessage('error', 'Please log in first'); return; }
+    if (!user) { showMessage('error', t('profile_login_first_error')); return; }
 
     // Client-side size guard (5 MB)
     if (file.size > 5 * 1024 * 1024) {
-      showMessage('error', 'Image too large. Maximum size is 5 MB.');
+      showMessage('error', t('profile_image_too_large_error'));
       return;
     }
 
@@ -199,7 +199,7 @@ const ProfilePage = () => {
         },
         (error) => {
           console.error('Upload error:', error);
-          showMessage('error', 'Photo upload failed. Please try again.');
+          showMessage('error', t('profile_photo_upload_failed'));
           setUploadingPhoto(false);
         },
         async () => {
@@ -213,13 +213,13 @@ const ProfilePage = () => {
 
           setUserData((prev) => ({ ...prev, photoURL: downloadURL }));
           setOriginalData((prev) => ({ ...prev, photoURL: downloadURL }));
-          showMessage('success', 'Profile photo updated!');
+          showMessage('success', t('profile_photo_updated'));
           setUploadingPhoto(false);
         }
       );
     } catch (err) {
       console.error('Upload error:', err);
-      showMessage('error', 'Photo upload failed. Please try again.');
+      showMessage('error', t('profile_photo_upload_failed'));
       setUploadingPhoto(false);
     }
   };
@@ -281,9 +281,9 @@ const ProfilePage = () => {
             </label>
           </div>
           <div className="profile-name">
-            <h2>{userData.fullName || 'User'}</h2>
+            <h2>{userData.fullName || t('user')}</h2>
             <p className="user-role">
-              {userData.role === 'farmer' ? t('farmer') : userData.role === 'admin' ? 'Admin' : t('consumer')}
+              {userData.role === 'farmer' ? t('farmer') : userData.role === 'admin' ? t('admin') : t('consumer')}
             </p>
           </div>
         </div>

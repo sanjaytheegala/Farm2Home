@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../firebase';
 import { findCropByKeyword } from '../../../data/cropData';
@@ -6,7 +7,7 @@ import { doc, onSnapshot, updateDoc, collection, query, where, getDocs, getCount
 import {
   FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
   FaShieldAlt, FaHeart, FaBox,
-  FaUsers, FaCheckCircle, FaSearch, FaThLarge,
+  FaUsers, FaCheckCircle, FaThLarge,
   FaSlidersH, FaPlusCircle, FaMapMarkerAlt, FaCoins,
   FaStar, FaPhone, FaRobot, FaBell, FaChevronRight,
   FaRegClock, FaLock, FaFlag, FaEdit, FaTrash, FaSave, FaTimes as FaX, FaComments, FaCalendarAlt,
@@ -28,22 +29,40 @@ import './ConsumerDashboard.css';
 
 const AVATAR_PALETTE = ['#FFBF00','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#BE6DB7','#F7A738','#2ECC71'];
 const getAvatarColor = (name) => AVATAR_PALETTE[((name||'U').charCodeAt(0)-65+26)%AVATAR_PALETTE.length];
-const getGreeting = () => { const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; };
-const formatRelTime = (ts) => {
-  if (!ts) return null;
-  const date = ts?.toDate ? ts.toDate() : ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-};
 
 const getDemandUnit = (demand) => demand?.quantityUnit || 'kg';
 
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+
+  const getLocaleForDate = () => {
+    const lng = (i18n.language || 'en').toLowerCase();
+    if (lng.startsWith('te')) return 'te-IN';
+    if (lng.startsWith('hi')) return 'hi-IN';
+    if (lng.startsWith('ta')) return 'ta-IN';
+    if (lng.startsWith('ml')) return 'ml-IN';
+    if (lng.startsWith('kn')) return 'kn-IN';
+    return 'en-IN';
+  };
+
+  const getGreetingText = () => {
+    const h = new Date().getHours();
+    if (h < 12) return t('cd_greeting_morning');
+    if (h < 17) return t('cd_greeting_afternoon');
+    return t('cd_greeting_evening');
+  };
+
+  const formatRelTime = (ts) => {
+    if (!ts) return null;
+    const date = ts?.toDate ? ts.toDate() : ts?.seconds ? new Date(ts.seconds * 1000) : new Date(ts);
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 60) return t('cd_time_just_now');
+    if (diff < 3600) return t('cd_time_minutes_ago', { count: Math.floor(diff / 60) });
+    if (diff < 86400) return t('cd_time_hours_ago', { count: Math.floor(diff / 3600) });
+    if (diff < 604800) return t('cd_time_days_ago', { count: Math.floor(diff / 86400) });
+    return date.toLocaleDateString(getLocaleForDate(), { day: 'numeric', month: 'short' });
+  };
   const { products: firestoreProducts, loading } = useProducts({ realtime: true });
   const productsToUse = firestoreProducts;
   const { addToCart, getTotalItems } = useCart();
@@ -57,6 +76,7 @@ const ConsumerDashboard = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedProductForRequest, setSelectedProductForRequest] = useState(null);
   const [editingDemand, setEditingDemand] = useState(null);
+  const [activeTab, setActiveTab] = useState('available'); // 'available' or 'requested'
   const { myDemands, submitDemand, rejectOffer, acceptOffer, preponePickupDate, markReceived, submitReview, deleteDemand, updateDemand, cancelDeal } = useMarketDemands();
   const { success: toastSuccess, error: toastError } = useToast();
   const [complaintTarget, setComplaintTarget] = useState(null);
@@ -99,7 +119,7 @@ const ConsumerDashboard = () => {
     myDemands.forEach(d => {
       const prev = prevDemandsRef.current[d.id];
       if (prev && prev.status === 'open' && d.status === 'quoted') {
-        toastSuccess(`🎉 A farmer submitted an offer for your "${d.cropName}" request! Review it below.`);
+        toastSuccess(t('cd_toast_offer_submitted', { cropName: d.cropName }));
       }
       prevDemandsRef.current[d.id] = { status: d.status };
     });
@@ -114,7 +134,7 @@ const ConsumerDashboard = () => {
         doc(db, 'users', user.uid),
         (snap) => {
           const d = snap.data() || {};
-          setUserProfile({ name: d.name||user.displayName||user.email?.split('@')[0]||'there', photoURL: d.photoURL||user.photoURL||'', email: user.email||'', phone: d.phoneNumber||d.phone||'' });
+          setUserProfile({ name: d.name||user.displayName||user.email?.split('@')[0]||'', photoURL: d.photoURL||user.photoURL||'', email: user.email||'', phone: d.phoneNumber||d.phone||'' });
         },
         (err) => console.warn('ConsumerDashboard profile snapshot error:', err.message)
       );
@@ -139,12 +159,12 @@ const ConsumerDashboard = () => {
   }, []);
 
   const categories = [
-    { name:'All',             image:'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=400', id:'all' },
-    { name:'Fruits',          image:'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400', id:'fruits' },
-    { name:'Grains & Pulses', image:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', id:'grains-pulses' },
-    { name:'Leafy Greens',    image:'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400', id:'leafy-greens' },
-    { name:'Spices',          image:'https://images.unsplash.com/photo-1596040033229-a0b83fd2f6dd?w=400', id:'spices' },
-    { name:'Vegetables',      image:'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=400', id:'vegetables' },
+    { name: t('cd_category_all'),             image:'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=400', id:'all' },
+    { name: t('cd_category_fruits'),          image:'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400', id:'fruits' },
+    { name: t('cd_category_grains_pulses'),   image:'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', id:'grains-pulses' },
+    { name: t('cd_category_leafy_greens'),    image:'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=400', id:'leafy-greens' },
+    { name: t('cd_category_spices'),          image:'https://images.unsplash.com/photo-1596040033229-a0b83fd2f6dd?w=400', id:'spices' },
+    { name: t('cd_category_vegetables'),      image:'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=400', id:'vegetables' },
   ];
 
   const handleOpenEditProfile = () => {
@@ -156,8 +176,8 @@ const ConsumerDashboard = () => {
     const user = auth.currentUser;
     if (!user) return;
     const cleanPhone = editProfileData.phone.replace(/\D/g, '');
-    if (!editProfileData.name.trim()) { toastError('Name cannot be empty'); return; }
-    if (!cleanPhone || cleanPhone.length !== 10) { toastError('Enter a valid 10-digit phone number'); return; }
+    if (!editProfileData.name.trim()) { toastError(t('cd_err_name_empty')); return; }
+    if (!cleanPhone || cleanPhone.length !== 10) { toastError(t('cd_err_phone_invalid_10')); return; }
     setEditProfileSaving(true);
     try {
       await updateDoc(doc(db, 'users', user.uid), {
@@ -166,10 +186,10 @@ const ConsumerDashboard = () => {
         phone: cleanPhone,
         updatedAt: new Date().toISOString(),
       });
-      toastSuccess('Profile updated successfully!');
+      toastSuccess(t('cd_profile_updated_success'));
       setShowEditProfile(false);
     } catch (err) {
-      toastError('Failed to save profile: ' + err.message);
+      toastError(t('cd_failed_to_save_profile', { message: err.message }));
     } finally {
       setEditProfileSaving(false);
     }
@@ -178,15 +198,23 @@ const ConsumerDashboard = () => {
   const cartCount    = getTotalItems();
   const favCount     = favorites.length;
   const organicCount = productsToUse.filter(p => p.organic).length;
-  const firstName    = (userProfile.name||'').split(' ')[0] || 'there';
+  const firstName    = (userProfile.name||'').split(' ')[0] || t('cd_user_fallback_name');
   const activeDemandsCount = myDemands.filter(d => d.status === 'open' || d.status === 'quoted' || d.status === 'in_progress').length;
 
+  const handleBrowseCrops = () => {
+    setActiveTab('available');
+    // Let React paint the tab switch before scrolling.
+    setTimeout(() => {
+      document.querySelector('.cd-tabs-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
   const STATUS_CONFIG = {
-    open:        { label:'Waiting for Offer',     bg:'#eff6ff', color:'#1d4ed8', dot:'#3b82f6', icon:'', step:1 },
-    quoted:      { label:'Offer Received',        bg:'#fef3c7', color:'#b45309', dot:'#f59e0b', icon:'', step:2 },
-    deal_closed: { label:'Deal Accepted',         bg:'#d1fae5', color:'#065f46', dot:'#10b981', icon:'', step:3 },
-    in_progress: { label:'On the Way',            bg:'#ede9fe', color:'#6d28d9', dot:'#7c3aed', icon:'', step:4 },
-    completed:   { label:'Received & Completed',  bg:'#dcfce7', color:'#15803d', dot:'#16a34a', icon:'', step:5 },
+    open:        { label: t('cd_status_waiting_for_offer'),    bg:'#eff6ff', color:'#1d4ed8', dot:'#3b82f6', icon:'', step:1 },
+    quoted:      { label: t('cd_status_offer_received'),       bg:'#fef3c7', color:'#b45309', dot:'#f59e0b', icon:'', step:2 },
+    deal_closed: { label: t('cd_status_deal_accepted'),        bg:'#d1fae5', color:'#065f46', dot:'#10b981', icon:'', step:3 },
+    in_progress: { label: t('cd_status_on_the_way'),           bg:'#ede9fe', color:'#6d28d9', dot:'#7c3aed', icon:'', step:4 },
+    completed:   { label: t('cd_status_received_completed'),   bg:'#dcfce7', color:'#15803d', dot:'#16a34a', icon:'', step:5 },
   };
 
   return (
@@ -222,31 +250,31 @@ const ConsumerDashboard = () => {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setShowEditProfile(false)}>
           <div style={{ background:'white', borderRadius:16, padding:28, width:'100%', maxWidth:420, boxShadow:'0 20px 40px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
-              <h3 style={{ margin:0, fontSize:20, fontWeight:700, color:'#1f2937' }}>Edit Profile</h3>
+              <h3 style={{ margin:0, fontSize:20, fontWeight:700, color:'#1f2937' }}>{t('cd_edit_profile_title')}</h3>
               <button onClick={() => setShowEditProfile(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#6b7280', fontSize:18 }}><FaX /></button>
             </div>
             <div style={{ marginBottom:14 }}>
-              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>Email (read-only)</label>
+              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>{t('cd_email_read_only_label')}</label>
               <input type="email" value={userProfile.email} readOnly style={{ width:'100%', padding:'9px 12px', border:'1px solid #e5e7eb', borderRadius:8, fontSize:14, background:'#f9fafb', color:'#6b7280', boxSizing:'border-box' }} />
             </div>
             <div style={{ marginBottom:14 }}>
-              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>Full Name</label>
+              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>{t('cd_full_name_label')}</label>
               <input
                 type="text"
                 value={editProfileData.name}
                 onChange={e => setEditProfileData(p => ({ ...p, name: e.target.value }))}
                 style={{ width:'100%', padding:'9px 12px', border:'1px solid #d1d5db', borderRadius:8, fontSize:14, boxSizing:'border-box' }}
-                placeholder="Your full name"
+                placeholder={t('cd_full_name_placeholder')}
               />
             </div>
             <div style={{ marginBottom:22 }}>
-              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>Phone Number <span style={{color:'#dc2626'}}>*</span></label>
+              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>{t('cd_phone_number_label')} <span style={{color:'#dc2626'}}>*</span></label>
               <input
                 type="tel"
                 value={editProfileData.phone}
                 onChange={e => setEditProfileData(p => ({ ...p, phone: e.target.value }))}
                 style={{ width:'100%', padding:'9px 12px', border:'1px solid #d1d5db', borderRadius:8, fontSize:14, boxSizing:'border-box' }}
-                placeholder="10-digit mobile number"
+                placeholder={t('cd_phone_number_placeholder')}
                 maxLength={15}
               />
             </div>
@@ -256,9 +284,9 @@ const ConsumerDashboard = () => {
                 disabled={editProfileSaving}
                 style={{ flex:1, padding:'10px', background: editProfileSaving ? '#9ca3af' : '#16a34a', color:'white', border:'none', borderRadius:8, fontWeight:600, cursor: editProfileSaving ? 'not-allowed' : 'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
               >
-                <FaSave style={{ fontSize:13 }} /> {editProfileSaving ? 'Saving...' : 'Save Changes'}
+                <FaSave style={{ fontSize:13 }} /> {editProfileSaving ? t('cd_saving') : t('cd_save_changes')}
               </button>
-              <button onClick={() => setShowEditProfile(false)} style={{ padding:'10px 16px', background:'#f3f4f6', color:'#374151', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer', fontSize:14 }}>Cancel</button>
+              <button onClick={() => setShowEditProfile(false)} style={{ padding:'10px 16px', background:'#f3f4f6', color:'#374151', border:'none', borderRadius:8, fontWeight:600, cursor:'pointer', fontSize:14 }}>{t('cd_cancel')}</button>
             </div>
           </div>
         </div>
@@ -268,83 +296,101 @@ const ConsumerDashboard = () => {
       {/* HERO */}
       <section className="cd-hero">
         <div className="cd-hero-bg"></div>
-        <div className="cd-hero-overlay"></div>
+        <div
+          className="cd-hero-overlay"
+          style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/images/crops/wheat.jpg)` }}
+        ></div>
         <div className="cd-hero-content">
           <h1 className="cd-hero-title">
-            Fresh from the Farm,<br />
-            <span className="cd-hero-highlight">Straight to Your Door</span>
+            {t('cd_hero_title_line1')}<br />
+            <span className="cd-hero-highlight">{t('cd_hero_title_line2')}</span>
           </h1>
           <p className="cd-hero-sub">
-            {getGreeting()}, <strong>{firstName}</strong>! Discover locally-sourced produce from farmers near you -- no middlemen, pure freshness.
+            {getGreetingText()}, <strong>{firstName}</strong>! {t('cd_hero_sub_tail')}
           </p>
-          <div className="cd-hero-search">
-            <FaSearch className="cd-hs-icon" />
-            <input className="cd-hs-input" placeholder="Search rice, tomato, mango, wheat..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-          </div>
-          <div className="cd-hero-pills">
-            {['Tomato','Onion','Rice','Mango','Wheat'].map(q => (
-              <button key={q} className="cd-hero-pill" onClick={() => setSearchTerm(q)}>{q}</button>
-            ))}
+          <div className="cd-hero-actions">
+            <button type="button" className="cd-hero-cta" onClick={handleBrowseCrops}>
+              <FaBox /> {t('cd_browse_available_crops')}
+            </button>
           </div>
         </div>
         <div className="cd-hero-stats">
-          <div className="cd-hs-stat"><span className="cd-hs-num">{productsToUse.length}+</span><span className="cd-hs-lbl">Products</span></div>
+          <div className="cd-hs-stat"><span className="cd-hs-num">{productsToUse.length}+</span><span className="cd-hs-lbl">{t('cd_stat_products')}</span></div>
           <div className="cd-hs-divider"></div>
-          <div className="cd-hs-stat"><span className="cd-hs-num">{organicCount}</span><span className="cd-hs-lbl">Organic</span></div>
+          <div className="cd-hs-stat"><span className="cd-hs-num">{organicCount}</span><span className="cd-hs-lbl">{t('cd_stat_organic')}</span></div>
           <div className="cd-hs-divider"></div>
-          <div className="cd-hs-stat"><span className="cd-hs-num">{farmerCount !== null ? `${farmerCount}+` : '150+'}</span><span className="cd-hs-lbl">Farmers</span></div>
-          <div className="cd-hs-divider"></div>
-          <div className="cd-hs-stat"><span className="cd-hs-num">Rs.500+</span><span className="cd-hs-lbl">Free Delivery</span></div>
+          <div className="cd-hs-stat"><span className="cd-hs-num">{farmerCount !== null ? `${farmerCount}+` : '150+'}</span><span className="cd-hs-lbl">{t('cd_stat_farmers')}</span></div>
         </div>
       </section>
 
       {/* TRUST STRIP */}
       <div className="cd-trust">
         {[
-          {icon:<FaShieldAlt/>, label:'Safe & Hygienic',   color:'#16a34a'},
-          {icon:<FaLeaf/>,      label:'Farm Fresh Daily',  color:'#16a34a'},
-          {icon:<FaHandshake/>, label:'Support Farmers',   color:'#7c3aed'},
-          {icon:<FaStar/>,      label:'Quality Assured',   color:'#d97706'},
-        ].map((t,i) => (
+          {icon:<FaShieldAlt/>, label: t('cd_trust_safe_hygienic'),    color:'#16a34a'},
+          {icon:<FaLeaf/>,      label: t('cd_trust_farm_fresh_daily'), color:'#16a34a'},
+          {icon:<FaHandshake/>, label: t('cd_trust_support_farmers'),  color:'#7c3aed'},
+          {icon:<FaStar/>,      label: t('cd_trust_quality_assured'),  color:'#d97706'},
+        ].map((item,i) => (
           <div key={i} className="cd-trust-item">
-            <span className="cd-trust-icon" style={{color:t.color}}>{t.icon}</span>
-            <span className="cd-trust-label">{t.label}</span>
+            <span className="cd-trust-icon" style={{color:item.color}}>{item.icon}</span>
+            <span className="cd-trust-label">{item.label}</span>
           </div>
         ))}
+      </div>
+
+      {/* DASHBOARD PARTITION / TABS */}
+      <div className="cd-tabs-wrapper">
+        <div className="cd-tabs-container">
+          <button 
+            className={`cd-tab-btn ${activeTab === 'available' ? 'active' : ''}`}
+            onClick={() => setActiveTab('available')}
+          >
+            <FaBox /> <span>{t('cd_tab_available_crops')}</span>
+            {filteredProducts.length > 0 && <span className="cd-tab-count">{filteredProducts.length}</span>}
+          </button>
+          <button 
+            className={`cd-tab-btn ${activeTab === 'requested' ? 'active' : ''}`}
+            onClick={() => setActiveTab('requested')}
+          >
+            <FaHandshake /> <span>{t('cd_tab_my_requests')}</span>
+            {activeDemandsCount > 0 && <span className="cd-tab-count">{activeDemandsCount}</span>}
+          </button>
+        </div>
       </div>
 
       <div className="cd-container">
 
         {/* CROP REQUEST SECTION */}
-        <section className="cd-request-section">
-          <div className="cd-section-header">
+        {activeTab === 'requested' && (
+          <section className="cd-request-section">
+            <div className="cd-section-header">
             <div className="cd-section-title-wrap">
               <div>
-                <h2 className="cd-section-title">Request a Crop</h2>
-                <p className="cd-section-sub">Can't find what you need? Ask farmers directly</p>
+                <h2 className="cd-section-title">{t('cd_request_crop_title')}</h2>
+                <p className="cd-section-sub">{t('cd_request_crop_sub')}</p>
               </div>
             </div>
             <button className="cd-request-btn" onClick={() => setShowRequestModal(true)}>
-              <FaPlusCircle /> New Request
+              <FaPlusCircle /> {t('cd_new_request')}
             </button>
           </div>
 
           {myDemands.length === 0 ? (
             <div className="cd-empty-requests">
-              <h3>No requests yet</h3>
-              <p>Submit your first request -- farmers in your area will bid with their best price.</p>
+              <h3>{t('cd_no_requests_yet_title')}</h3>
+              <p>{t('cd_no_requests_yet_sub')}</p>
               <button className="cd-request-btn cd-request-btn--lg" onClick={() => setShowRequestModal(true)}>
-                <FaPlusCircle /> Request a Crop Now
+                <FaPlusCircle /> {t('cd_request_crop_now')}
               </button>
             </div>
           ) : (
             (() => {
               const PRIORITY = {3:0, 2:1, 1:2, 4:3, 5:4};
               const GROUP_LABELS = {
-                3: { label:'Deal Accepted', color:'#065f46', bg:'#d1fae5', border:'#6ee7b7' },
-                2: { label:'Offer Received', color:'#b45309', bg:'#fef3c7', border:'#fde68a' },
-                1: { label:'Waiting for Offer', color:'#1d4ed8', bg:'#eff6ff', border:'#bfdbfe' },
-                4: { label:'In Progress / Completed', color:'#6d28d9', bg:'#ede9fe', border:'#c4b5fd' },
+                3: { label: t('cd_group_deal_accepted'), color:'#065f46', bg:'#d1fae5', border:'#6ee7b7' },
+                2: { label: t('cd_group_offer_received'), color:'#b45309', bg:'#fef3c7', border:'#fde68a' },
+                1: { label: t('cd_group_waiting_for_offer'), color:'#1d4ed8', bg:'#eff6ff', border:'#bfdbfe' },
+                4: { label: t('cd_group_in_progress_completed'), color:'#6d28d9', bg:'#ede9fe', border:'#c4b5fd' },
               };
               const getStep = d => (STATUS_CONFIG[d.status] || {step:0}).step;
               const getGroup = d => { const s = getStep(d); return s >= 4 ? 4 : s; };
@@ -414,28 +460,28 @@ const ConsumerDashboard = () => {
                           {/* Row 3: edit + delete */}
                           <div style={{display:'flex', alignItems:'center', gap:6, paddingLeft:54}}>
                             <button
-                              title="Edit Request"
+                              title={t('cd_edit_request')}
                               onClick={() => setEditingDemand(demand)}
                               style={{display:'flex',alignItems:'center',gap:3,background:'#eff6ff',border:'1px solid #bfdbfe',color:'#2563eb',borderRadius:6,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}
                             >
-                              <FaEdit style={{fontSize:10}}/> Edit
+                              <FaEdit style={{fontSize:10}}/> {t('cd_edit')}
                             </button>
                             <button
-                              title="Delete Request"
+                              title={t('cd_delete_request')}
                               onClick={async () => {
                                 setConfirmDialog({
-                                  message: 'Delete this crop request? This cannot be undone.',
-                                  confirmLabel: 'Delete',
+                                  message: t('cd_delete_request_confirm'),
+                                  confirmLabel: t('cd_delete'),
                                   danger: true,
                                   onConfirm: async () => {
                                     const res = await deleteDemand(demand.id);
-                                    if (!res.success) toastError(res.error || 'Failed to delete');
+                                    if (!res.success) toastError(res.error || t('cd_failed_to_delete'));
                                   },
                                 });
                               }}
                               style={{display:'flex',alignItems:'center',gap:3,background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:6,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}
                             >
-                              <FaTrash style={{fontSize:10}}/> Delete
+                              <FaTrash style={{fontSize:10}}/> {t('cd_delete')}
                             </button>
                           </div>
                         </div>
@@ -471,7 +517,7 @@ const ConsumerDashboard = () => {
                     {demand.suggestedPriceMin && demand.suggestedPriceMax && (
                       <div className="cd-ai-badge">
                         <FaRobot className="cd-ai-icon" />
-                        <span>AI Fair Price: <strong>Rs.{demand.suggestedPriceMin}--Rs.{demand.suggestedPriceMax}/{getDemandUnit(demand)}</strong></span>
+                        <span>{t('cd_ai_fair_price_label')}: <strong>Rs.{demand.suggestedPriceMin}--Rs.{demand.suggestedPriceMax}/{getDemandUnit(demand)}</strong></span>
                         {demand.suggestedPriceNote && <span className="cd-ai-note"> · {demand.suggestedPriceNote}</span>}
                       </div>
                     )}
@@ -501,33 +547,33 @@ const ConsumerDashboard = () => {
                         {/* Row 2: farmer name (left) | phone (right) */}
                         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                            <span style={{ fontSize:14, fontWeight:700, color:'#0ea5e9' }}>{demand.committedFarmerName || 'A Farmer'}</span>
+                            <span style={{ fontSize:14, fontWeight:700, color:'#0ea5e9' }}>{demand.committedFarmerName || t('cd_a_farmer')}</span>
                             {(demand.farmerTotalDeals || 0) >= 5 && (
-                              <span className="cd-verified-badge">✓ Verified</span>
+                              <span className="cd-verified-badge">✓ {t('cd_verified')}</span>
                             )}
                           </div>
                           <span style={{ fontSize:11, fontWeight:600, color:'#9ca3af', display:'flex', alignItems:'center', gap:4, background:'#f3f4f6', padding:'3px 8px', borderRadius:6, border:'1px dashed #d1d5db' }}>
-                            🔒 Accept to reveal contact
+                            🔒 {t('cd_accept_to_reveal_contact')}
                           </span>
                         </div>
                         {/* Row 3: QTY | RATE | TOTAL */}
                         {demand.farmerAvailableUntil && (
                           <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color:'#7c3aed', background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:7, padding:'5px 9px', marginBottom:8 }}>
                             <FaCalendarAlt style={{ fontSize:10 }} />
-                            Farmer has crop until: <strong>{new Date(demand.farmerAvailableUntil + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</strong>
+                            {t('cd_farmer_has_crop_until')}: <strong>{new Date(demand.farmerAvailableUntil + 'T00:00:00').toLocaleDateString(getLocaleForDate(), { day:'numeric', month:'short', year:'numeric' })}</strong>
                           </div>
                         )}
                         <div style={{ display:'flex', gap:6, marginBottom:10 }}>
                           <div style={{ flex:1, background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
-                            <div style={{ fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2 }}>QTY</div>
+                            <div style={{ fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2 }}>{t('cd_qty')}</div>
                             <div style={{ fontSize:13, fontWeight:700, color:'#1d4ed8' }}>{demand.quantityKg}<span style={{ fontSize:10 }}> {getDemandUnit(demand)}</span></div>
                           </div>
                           <div style={{ flex:1, background:'#fefce8', border:'1px solid #fde68a', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
-                            <div style={{ fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2 }}>RATE</div>
+                            <div style={{ fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2 }}>{t('cd_rate')}</div>
                             <div style={{ fontSize:13, fontWeight:700, color:'#b45309' }}>₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}<span style={{ fontSize:10 }}>/{demand.farmerOfferUnit || getDemandUnit(demand)}</span></div>
                           </div>
                           <div style={{ flex:1, background:'#f0fdf4', border:'1px solid #86efac', borderRadius:8, padding:'6px 8px', textAlign:'center' }}>
-                            <div style={{ fontSize:10, color:'#166534', fontWeight:600, marginBottom:2 }}>TOTAL</div>
+                            <div style={{ fontSize:10, color:'#166534', fontWeight:600, marginBottom:2 }}>{t('cd_total')}</div>
                             <div style={{ fontSize:13, fontWeight:700, color:'#15803d' }}>₹{(demand.quantityKg * demand.farmerOfferPrice).toLocaleString()}</div>
                           </div>
                         </div>
@@ -540,14 +586,14 @@ const ConsumerDashboard = () => {
                             }}
                             style={{ flex:1, padding:'8px 4px', background:'#f0fdf4', color:'#15803d', border:'1.5px solid #86efac', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4 }}
                           >
-                            <FaCheckCircle style={{fontSize:11}}/> Accept
+                            <FaCheckCircle style={{fontSize:11}}/> {t('cd_accept')}
                           </button>
                           <button
                             className="chat-trigger-btn"
                             style={{ flex:1, justifyContent:'center', padding:'8px 4px', fontSize:12 }}
                             onClick={() => setActiveChatDemand(demand)}
                           >
-                            <FaComments style={{ fontSize:11, marginRight:3 }} /> Chat
+                            <FaComments style={{ fontSize:11, marginRight:3 }} /> {t('cd_chat')}
                           </button>
                         </div>
                       </div>
@@ -560,25 +606,25 @@ const ConsumerDashboard = () => {
                           <div style={{display:'flex', alignItems:'center', gap:6}}>
                             <div className="cd-contact-farmer" style={{margin:0, color:'#0ea5e9', fontWeight:700, fontSize:14}}>{demand.committedFarmerName}</div>
                             {(demand.farmerTotalDeals || 0) >= 5 && (
-                              <span className="cd-verified-badge">✓ Verified</span>
+                              <span className="cd-verified-badge">✓ {t('cd_verified')}</span>
                             )}
                           </div>
                           <a className="cd-contact-phone" href={`tel:${demand.farmerPhone}`} style={{margin:0, color:'#b45309', fontWeight:600, fontSize:12}}>
-                            <FaPhone style={{marginRight:6}}/>{demand.farmerPhone || 'Not provided'}
+                            <FaPhone style={{marginRight:6}}/>{demand.farmerPhone || t('cd_not_provided')}
                           </a>
                         </div>
                         {/* Agreed price partitions */}
                         <div style={{display:'flex', gap:6, marginBottom:8}}>
                           <div style={{flex:1, background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
-                            <div style={{fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2}}>QTY</div>
+                            <div style={{fontSize:10, color:'#1e40af', fontWeight:600, marginBottom:2}}>{t('cd_qty')}</div>
                             <div style={{fontSize:14, fontWeight:700, color:'#1d4ed8'}}>{demand.quantityKg}<span style={{fontSize:10, fontWeight:500}}> {getDemandUnit(demand)}</span></div>
                           </div>
                           <div style={{flex:1, background:'#fefce8', border:'1px solid #fde68a', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
-                            <div style={{fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2}}>RATE</div>
+                            <div style={{fontSize:10, color:'#92400e', fontWeight:600, marginBottom:2}}>{t('cd_rate')}</div>
                             <div style={{fontSize:14, fontWeight:700, color:'#b45309'}}>₹{demand.farmerOfferDisplay || demand.farmerOfferPrice}<span style={{fontSize:10, fontWeight:500, color:'#78350f'}}>/{demand.farmerOfferUnit || getDemandUnit(demand)}</span></div>
                           </div>
                           <div style={{flex:1, background:'#f0fdf4', border:'1px solid #86efac', borderRadius:8, padding:'6px 10px', textAlign:'center'}}>
-                            <div style={{fontSize:10, color:'#166534', fontWeight:600, marginBottom:2}}>TOTAL</div>
+                            <div style={{fontSize:10, color:'#166534', fontWeight:600, marginBottom:2}}>{t('cd_total')}</div>
                             <div style={{fontSize:14, fontWeight:700, color:'#15803d'}}>₹{((demand.quantityKg||0)*(demand.farmerOfferPrice||0)).toLocaleString()}</div>
                           </div>
                         </div>
@@ -587,11 +633,11 @@ const ConsumerDashboard = () => {
                           <div style={{background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:9, padding:'9px 12px', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap'}}>
                             <div style={{display:'flex', alignItems:'center', gap:6}}>
                               <FaCalendarAlt style={{color:'#15803d', fontSize:12}}/>
-                              <span style={{fontSize:12, fontWeight:600, color:'#166534'}}>Pickup Date:</span>
+                              <span style={{fontSize:12, fontWeight:600, color:'#166534'}}>{t('cd_pickup_date_label')}:</span>
                               <span style={{fontSize:13, fontWeight:700, color:'#15803d'}}>
                                 {demand.pickupDate
-                                  ? new Date(demand.pickupDate + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
-                                  : 'Not set'}
+                                  ? new Date(demand.pickupDate + 'T00:00:00').toLocaleDateString(getLocaleForDate(), { day:'numeric', month:'short', year:'numeric' })
+                                  : t('cd_not_set')}
                               </span>
                             </div>
                             {demand.status === 'deal_closed' && (
@@ -599,7 +645,7 @@ const ConsumerDashboard = () => {
                                 onClick={() => { setPreponeDealId(demand.id); setPreponeDate(''); }}
                                 style={{fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:7, border:'1.5px solid #0369a1', background:'#e0f2fe', color:'#0369a1', cursor:'pointer'}}
                               >
-                                ⏰ Prepone
+                                ⏰ {t('cd_prepone')}
                               </button>
                             )}
                           </div>
@@ -610,27 +656,27 @@ const ConsumerDashboard = () => {
                           <button
                             onClick={async () => {
                               const res = await markReceived(demand.id);
-                              if (res.success) toastSuccess('Order marked as received!');
-                              else toastError(res.error || 'Failed');
+                              if (res.success) toastSuccess(t('cd_order_marked_received_success'));
+                              else toastError(res.error || t('cd_failed_generic'));
                             }}
                             style={{flex:1, padding:'8px 4px', background:'#f0fdf4', color:'#15803d', border:'1.5px solid #86efac', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4}}
                           >
-                            <FaCheckCircle style={{fontSize:11}}/> Mark Received
+                            <FaCheckCircle style={{fontSize:11}}/> {t('cd_mark_received')}
                           </button>
                           {demand.status === 'deal_closed' && (
                             <button
                               onClick={async () => {
                                 const res = await cancelDeal(demand.id);
-                                if (res.success) toastSuccess('Deal cancelled. Request is open again.');
-                                else toastError(res.error || 'Failed to cancel deal');
+                                if (res.success) toastSuccess(t('cd_deal_cancelled_success'));
+                                else toastError(res.error || t('cd_failed_to_cancel_deal'));
                               }}
                               style={{flex:1, padding:'8px 4px', background:'#fef2f2', color:'#dc2626', border:'1.5px solid #fca5a5', borderRadius:8, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4}}
                             >
-                              <FaX style={{fontSize:11}}/> Cancel Deal
+                              <FaX style={{fontSize:11}}/> {t('cd_cancel_deal')}
                             </button>
                           )}
                           <button className="chat-trigger-btn" style={{flex:1, justifyContent:'center', padding:'8px 4px', fontSize:12}} onClick={() => setActiveChatDemand(demand)}>
-                            <FaComments style={{fontSize:11, marginRight:3}}/> Chat
+                            <FaComments style={{fontSize:11, marginRight:3}}/> {t('cd_chat')}
                           </button>
                         </div>
                         )}
@@ -642,7 +688,7 @@ const ConsumerDashboard = () => {
                       const rd = reviewData[demand.id] || {};
                       return (
                         <div className="cd-review-panel">
-                          <div className="cd-review-title">Rate Your Experience</div>
+                          <div className="cd-review-title">{t('cd_rate_your_experience')}</div>
                           <div className="cd-review-stars">
                             {[1,2,3,4,5].map(star => (
                               <button
@@ -656,7 +702,7 @@ const ConsumerDashboard = () => {
                           </div>
                           <textarea
                             className="cd-review-textarea"
-                            placeholder="How was the crop quality and farmer's service? (optional)"
+                            placeholder={t('cd_review_placeholder_optional')}
                             rows={3}
                             value={rd.comment || ''}
                             onChange={e => setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], comment: e.target.value } }))}
@@ -666,7 +712,7 @@ const ConsumerDashboard = () => {
                             className="cd-review-submit-btn"
                             disabled={rd.submitting}
                             onClick={async () => {
-                              if (!rd.rating) return setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], error: 'Please select a star rating.' } }));
+                              if (!rd.rating) return setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], error: t('cd_err_select_star_rating') } }));
                               setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], submitting: true, error: '' } }));
                               const res = await submitReview(
                                 demand.id,
@@ -676,10 +722,10 @@ const ConsumerDashboard = () => {
                                 rd.rating,
                                 rd.comment || ''
                               );
-                              setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], submitting: false, error: res.success ? '' : (res.error || 'Failed') } }));
+                              setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], submitting: false, error: res.success ? '' : (res.error || t('cd_failed_generic')) } }));
                             }}
                           >
-                            {rd.submitting ? <span className="cd-spinner"/> : <><FaStar style={{marginRight:6}}/> Submit Review</>}
+                            {rd.submitting ? <span className="cd-spinner"/> : <><FaStar style={{marginRight:6}}/> {t('cd_submit_review')}</>}
                           </button>
                         </div>
                       );
@@ -689,7 +735,7 @@ const ConsumerDashboard = () => {
                     {demand.status === 'completed' && demand.reviewed && (
                       <div className="cd-review-submitted">
                         <FaCheckCircle style={{marginRight:6, color:'#16a34a'}}/>
-                        Review submitted — {'\u2605'.repeat(demand.reviewRating)}
+                        {t('cd_review_submitted')} — {'\u2605'.repeat(demand.reviewRating)}
                         {demand.reviewComment && <div className="cd-review-submitted-comment">"{demand.reviewComment}"</div>}
                       </div>
                     )}
@@ -697,27 +743,27 @@ const ConsumerDashboard = () => {
                     {/* Footer meta */}
                     <div className="cd-demand-foot">
                       <FaRegClock style={{marginRight:5,fontSize:10}}/>
-                      {demand.createdAt?.seconds ? new Date(demand.createdAt.seconds*1000).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : 'Just now'}
+                      {demand.createdAt?.seconds ? new Date(demand.createdAt.seconds*1000).toLocaleDateString(getLocaleForDate(),{day:'numeric',month:'short'}) : t('cd_time_just_now')}
                       {formatRelTime(demand.updatedAt || demand.createdAt) && (
-                        <span className="cd-last-updated">· Updated {formatRelTime(demand.updatedAt || demand.createdAt)}</span>
+                        <span className="cd-last-updated">· {t('cd_updated')} {formatRelTime(demand.updatedAt || demand.createdAt)}</span>
                       )}
                       {demand.committedFarmerId && ['deal_closed', 'in_progress', 'completed'].includes(demand.status) && (
                         reportedDemandIds.has(demand.id)
                           ? <span style={{ marginLeft:'auto', fontSize:11, fontWeight:600, color:'#9ca3af', display:'flex', alignItems:'center', gap:4, padding:'3px 8px', background:'#f3f4f6', borderRadius:6, border:'1px solid #e5e7eb' }}>
-                              <FaFlag style={{ fontSize:10 }} /> Reported
+                              <FaFlag style={{ fontSize:10 }} /> {t('cd_reported')}
                             </span>
                           : <button
                               className="report-trigger-btn"
                               style={{ marginLeft: 'auto' }}
-                              title="Report this farmer"
+                              title={t('cd_report_this_farmer')}
                               onClick={() => setComplaintTarget({
                                 id: demand.committedFarmerId,
-                                name: demand.committedFarmerName || 'Farmer',
+                                name: demand.committedFarmerName || t('cd_farmer'),
                                 role: 'farmer',
                                 demandId: demand.id,
                               })}
                             >
-                              <FaFlag style={{ fontSize: 10 }} /> Report Farmer
+                              <FaFlag style={{ fontSize: 10 }} /> {t('cd_report_farmer')}
                             </button>
                       )}
                     </div>
@@ -730,28 +776,44 @@ const ConsumerDashboard = () => {
             })()
           )}
         </section>
+        )}
 
-        {/* PRODUCTS */}
-        <section className="cd-products-section">
-          <div className="cd-products-area">
-            {/* Products toolbar */}
-            <div className="cd-products-toolbar">
-              <div className="cd-pt-left">
-                <h3 className="cd-pt-title">
-                  {selectedCategory==='all' ? 'All Products' : (categories.find(c=>c.id===selectedCategory)?.name ?? 'Products')}
-                </h3>
-                <span className="cd-pt-count">{filteredProducts.length} items</span>
-                {organicOnly && <span className="cd-pt-tag cd-pt-tag--organic"><FaLeaf /> Organic Only</span>}
-              </div>
-              <div className="cd-pt-right">
-                <div className="cd-pt-search">
-                  <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Filter results..." />
+        {/* PRODUCTS SECTION */}
+        {activeTab === 'available' && (
+          <section className="cd-products-section">
+            <div className="cd-products-layout">
+              {/* PREMIUM SIDEBAR FILTER */}
+              <aside className="cd-sidebar">
+                <div className="sidebar-card">
+                  <div className="sidebar-title-row">
+                    <h3><FaSlidersH /> {t('cd_filters')}</h3>
+                    <button className="sidebar-reset" onClick={resetFilters}>{t('cd_reset')}</button>
+                  </div>
+                  
+                  {/* Search Section */}
+                  <div className="sidebar-section sidebar-search">
+                    <SearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+                  </div>
+
+                  {/* Filter Section */}
+                  <div className="sidebar-section sidebar-filters">
+                    <FilterSection 
+                      selectedCategory={selectedCategory} 
+                      onCategoryChange={setSelectedCategory}
+                      sortBy={sortBy}
+                      onSortChange={setSortBy}
+                      organicOnly={organicOnly}
+                      onOrganicToggle={setOrganicOnly}
+                      onResetFilters={resetFilters}
+                      layout="sidebar"
+                    />
+                  </div>
                 </div>
-                <div className="cd-view-btns">
-                  <button className="cd-view-btn active" title="Grid"><FaThLarge /></button>
-                </div>
-              </div>
-            </div>
+              </aside>
+
+              {/* Main Products Content */}
+              <div className="cd-products-main">
+                <div className="cd-products-area">
 
             {loading ? (
               <div className="products-grid-modern">
@@ -776,14 +838,17 @@ const ConsumerDashboard = () => {
               <div className="cd-no-products">
                 <div className="cd-no-products-art"><FaLeaf style={{fontSize:48,color:'#16a34a'}}/></div>
                 {productsToUse.length === 0 ? (
-                  <><h3>No Crops Listed Yet</h3><p>Farmers haven't added crops yet -- check back soon, or request one above!</p></>
+                  <><h3>{t('cd_no_crops_listed_title')}</h3><p>{t('cd_no_crops_listed_sub')}</p></>
                 ) : (
-                  <><h3>No Products Found</h3><p>Try adjusting your filters or search term.</p><button className="cd-reset-btn" onClick={resetFilters}>Reset Filters</button></>
+                  <><h3>{t('cd_no_products_found_title')}</h3><p>{t('cd_try_adjusting_filters_sub')}</p><button className="cd-reset-btn" onClick={resetFilters}>{t('cd_reset_filters')}</button></>
                 )}
               </div>
             )}
-          </div>
-        </section>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
 
 
@@ -798,53 +863,53 @@ const ConsumerDashboard = () => {
           {/* Brand */}
           <div className="cd-footer-brand">
             <div className="cd-footer-logo"><FaLeaf /><span>Farm2Home</span></div>
-            <p className="cd-footer-tagline">Connecting farmers and consumers for a healthier, sustainable India -- no middlemen, pure freshness.</p>
+            <p className="cd-footer-tagline">{t('cd_footer_tagline')}</p>
 
             <div className="cd-footer-contact">
               <div className="cd-fc-row"><FaPhone className="cd-fc-icon"/><span>+91 98765 43210</span></div>
-              <div className="cd-fc-row"><FaMapMarkerAlt className="cd-fc-icon"/><span>Hyderabad, Telangana, India</span></div>
+              <div className="cd-fc-row"><FaMapMarkerAlt className="cd-fc-icon"/><span>{t('cd_footer_location')}</span></div>
             </div>
 
             <div className="cd-footer-badges">
-              <div className="cd-fb-badge"><FaShieldAlt className="cd-fb-icon"/><span>100% Secure</span></div>
-              <div className="cd-fb-badge"><FaStar className="cd-fb-icon cd-fb-star"/><span>Rated 4.8/5</span></div>
-              <div className="cd-fb-badge"><FaUsers className="cd-fb-icon"/><span>10k+ Users</span></div>
+              <div className="cd-fb-badge"><FaShieldAlt className="cd-fb-icon"/><span>{t('cd_footer_badge_secure')}</span></div>
+              <div className="cd-fb-badge"><FaStar className="cd-fb-icon cd-fb-star"/><span>{t('cd_footer_badge_rating')}</span></div>
+              <div className="cd-fb-badge"><FaUsers className="cd-fb-icon"/><span>{t('cd_footer_badge_users')}</span></div>
             </div>
           </div>
 
           {/* Shop */}
           <div className="cd-footer-col">
-            <h4><FaLeaf className="cd-fcol-icon"/> Shop</h4>
+            <h4><FaLeaf className="cd-fcol-icon"/> {t('cd_footer_shop')}</h4>
             <ul>
-              <li><a href="#vegetables"><FaChevronRight className="cd-flink-arr"/>Vegetables</a></li>
-              <li><a href="#fruits"><FaChevronRight className="cd-flink-arr"/>Fruits</a></li>
-              <li><a href="#grains"><FaChevronRight className="cd-flink-arr"/>Grains &amp; Pulses</a></li>
-              <li><a href="#spices"><FaChevronRight className="cd-flink-arr"/>Spices</a></li>
-              <li><a href="#organic"><FaChevronRight className="cd-flink-arr"/>Organic</a></li>
+              <li><a href="#vegetables"><FaChevronRight className="cd-flink-arr"/>{t('cd_category_vegetables')}</a></li>
+              <li><a href="#fruits"><FaChevronRight className="cd-flink-arr"/>{t('cd_category_fruits')}</a></li>
+              <li><a href="#grains"><FaChevronRight className="cd-flink-arr"/>{t('cd_category_grains_pulses')}</a></li>
+              <li><a href="#spices"><FaChevronRight className="cd-flink-arr"/>{t('cd_category_spices')}</a></li>
+              <li><a href="#organic"><FaChevronRight className="cd-flink-arr"/>{t('cd_stat_organic')}</a></li>
             </ul>
           </div>
 
           {/* Company */}
           <div className="cd-footer-col">
-            <h4><FaHandshake className="cd-fcol-icon"/> Company</h4>
+            <h4><FaHandshake className="cd-fcol-icon"/> {t('cd_footer_company')}</h4>
             <ul>
-              <li><a href="#about"><FaChevronRight className="cd-flink-arr"/>About Us</a></li>
-              <li><a href="#farmers"><FaChevronRight className="cd-flink-arr"/>Our Farmers</a></li>
-              <li><a href="#careers"><FaChevronRight className="cd-flink-arr"/>Careers</a></li>
-              <li><a href="#blog"><FaChevronRight className="cd-flink-arr"/>Blog</a></li>
-              <li><a href="#contact"><FaChevronRight className="cd-flink-arr"/>Contact</a></li>
+              <li><a href="#about"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_about_us')}</a></li>
+              <li><a href="#farmers"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_our_farmers')}</a></li>
+              <li><a href="#careers"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_careers')}</a></li>
+              <li><a href="#blog"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_blog')}</a></li>
+              <li><a href="#contact"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_contact')}</a></li>
             </ul>
           </div>
 
           {/* Support */}
           <div className="cd-footer-col">
-            <h4><FaShieldAlt className="cd-fcol-icon"/> Support</h4>
+            <h4><FaShieldAlt className="cd-fcol-icon"/> {t('cd_footer_support')}</h4>
             <ul>
-              <li><a href="#faq"><FaChevronRight className="cd-flink-arr"/>FAQ</a></li>
-              <li><a href="#shipping"><FaChevronRight className="cd-flink-arr"/>Shipping Policy</a></li>
-              <li><a href="#returns"><FaChevronRight className="cd-flink-arr"/>Returns</a></li>
-              <li><a href="#privacy"><FaChevronRight className="cd-flink-arr"/>Privacy Policy</a></li>
-              <li><a href="#terms"><FaChevronRight className="cd-flink-arr"/>Terms of Service</a></li>
+              <li><a href="#faq"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_faq')}</a></li>
+              <li><a href="#shipping"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_shipping_policy')}</a></li>
+              <li><a href="#returns"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_returns')}</a></li>
+              <li><a href="#privacy"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_privacy_policy')}</a></li>
+              <li><a href="#terms"><FaChevronRight className="cd-flink-arr"/>{t('cd_footer_terms_of_service')}</a></li>
             </ul>
           </div>
 
@@ -852,13 +917,13 @@ const ConsumerDashboard = () => {
 
         {/* Bottom bar */}
         <div className="cd-footer-bottom">
-          <p className="cd-fb-copy">&copy; 2026 Farm2Home. All rights reserved.</p>
+          <p className="cd-fb-copy">{t('cd_footer_copy')}</p>
           <div className="cd-fb-links">
-            <a href="#privacy">Privacy</a>
+            <a href="#privacy">{t('cd_footer_privacy')}</a>
             <span className="cd-fb-dot"></span>
-            <a href="#terms">Terms</a>
+            <a href="#terms">{t('cd_footer_terms')}</a>
             <span className="cd-fb-dot"></span>
-            <a href="#sitemap">Sitemap</a>
+            <a href="#sitemap">{t('cd_footer_sitemap')}</a>
           </div>
         </div>
 
@@ -869,9 +934,9 @@ const ConsumerDashboard = () => {
         <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.55)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
           <div style={{ background:'#fff', borderRadius:18, padding:24, width:340, maxWidth:'96vw', boxShadow:'0 10px 40px rgba(0,0,0,0.25)' }}>
             <div style={{ fontSize:22, marginBottom:6 }}>📅</div>
-            <h3 style={{ fontSize:17, fontWeight:800, color:'#15803d', marginBottom:4 }}>Select Pickup Date</h3>
+            <h3 style={{ fontSize:17, fontWeight:800, color:'#15803d', marginBottom:4 }}>{t('cd_select_pickup_date')}</h3>
             <p style={{ fontSize:13, color:'#6b7280', marginBottom:16, lineHeight:1.5 }}>
-              When are you planning to visit / collect your order? The farmer will be notified.
+              {t('cd_select_pickup_date_sub')}
             </p>
             <input
               type="date"
@@ -884,21 +949,21 @@ const ConsumerDashboard = () => {
               <button
                 onClick={() => { setAcceptDateModal(null); setPickupDateInput(''); }}
                 style={{ flex:1, padding:'10px', borderRadius:9, border:'1.5px solid #d1d5db', background:'#f9fafb', color:'#374151', fontWeight:600, cursor:'pointer', fontSize:13 }}
-              >Cancel</button>
+              >{t('cd_cancel')}</button>
               <button
                 onClick={async () => {
-                  if (!pickupDateInput) { toastError('Please select a pickup date'); return; }
+                  if (!pickupDateInput) { toastError(t('cd_err_select_pickup_date')); return; }
                   const res = await acceptOffer(acceptDateModal, pickupDateInput);
                   if (res.success) {
-                    toastSuccess('Offer accepted! Farmer has been notified.');
+                    toastSuccess(t('cd_offer_accepted_success'));
                     setAcceptDateModal(null);
                     setPickupDateInput('');
                   } else {
-                    toastError(res.error || 'Failed to accept offer');
+                    toastError(res.error || t('cd_failed_to_accept_offer'));
                   }
                 }}
                 style={{ flex:2, padding:'10px', borderRadius:9, border:'none', background:'linear-gradient(135deg,#16a34a,#15803d)', color:'#fff', fontWeight:800, cursor:'pointer', fontSize:13 }}
-              >✓ Confirm &amp; Accept</button>
+              >✓ {t('cd_confirm_and_accept')}</button>
             </div>
           </div>
         </div>
@@ -911,12 +976,12 @@ const ConsumerDashboard = () => {
           <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.55)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
             <div style={{ background:'#fff', borderRadius:18, padding:24, width:340, maxWidth:'96vw', boxShadow:'0 10px 40px rgba(0,0,0,0.25)' }}>
               <div style={{ fontSize:22, marginBottom:6 }}>⏰</div>
-              <h3 style={{ fontSize:17, fontWeight:800, color:'#0369a1', marginBottom:4 }}>Prepone Pickup Date</h3>
+              <h3 style={{ fontSize:17, fontWeight:800, color:'#0369a1', marginBottom:4 }}>{t('cd_prepone_pickup_date')}</h3>
               <p style={{ fontSize:13, color:'#6b7280', marginBottom:6, lineHeight:1.5 }}>
-                You can only <strong>prepone</strong> (select an earlier date than current). The farmer will be notified.
+                {t('cd_prepone_pickup_date_sub_1')} <strong>{t('cd_prepone_pickup_date_sub_prepone')}</strong> {t('cd_prepone_pickup_date_sub_2')}
               </p>
               <div style={{ fontSize:12, color:'#0369a1', background:'#e0f2fe', borderRadius:8, padding:'6px 10px', marginBottom:14 }}>
-                Current pickup date: <strong>{deal?.pickupDate ? new Date(deal.pickupDate + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : 'Not set'}</strong>
+                {t('cd_current_pickup_date')}: <strong>{deal?.pickupDate ? new Date(deal.pickupDate + 'T00:00:00').toLocaleDateString(getLocaleForDate(), { day:'numeric', month:'short', year:'numeric' }) : t('cd_not_set')}</strong>
               </div>
               <input
                 type="date"
@@ -930,21 +995,21 @@ const ConsumerDashboard = () => {
                 <button
                   onClick={() => { setPreponeDealId(null); setPreponeDate(''); }}
                   style={{ flex:1, padding:'10px', borderRadius:9, border:'1.5px solid #d1d5db', background:'#f9fafb', color:'#374151', fontWeight:600, cursor:'pointer', fontSize:13 }}
-                >Cancel</button>
+                >{t('cd_cancel')}</button>
                 <button
                   onClick={async () => {
-                    if (!preponeDate) { toastError('Please select a date'); return; }
+                    if (!preponeDate) { toastError(t('cd_err_select_date')); return; }
                     const res = await preponePickupDate(preponeDealId, deal?.pickupDate, preponeDate);
                     if (res.success) {
-                      toastSuccess('Pickup date preponed!');
+                      toastSuccess(t('cd_pickup_date_preponed_success'));
                       setPreponeDealId(null);
                       setPreponeDate('');
                     } else {
-                      toastError(res.error || 'Failed to update date');
+                      toastError(res.error || t('cd_failed_to_update_date'));
                     }
                   }}
                   style={{ flex:2, padding:'10px', borderRadius:9, border:'none', background:'linear-gradient(135deg,#0284c7,#0369a1)', color:'#fff', fontWeight:800, cursor:'pointer', fontSize:13 }}
-                >⏰ Confirm Prepone</button>
+                >⏰ {t('cd_confirm_prepone')}</button>
               </div>
             </div>
           </div>

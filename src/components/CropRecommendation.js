@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaLeaf, FaThermometerHalf, FaCalendarAlt, FaChartLine, FaSeedling, FaWater, FaMapMarkerAlt, FaMoneyBillWave, FaStar, FaDownload, FaBookmark, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 const CropRecommendation = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     soilType: '',
@@ -24,6 +24,27 @@ const CropRecommendation = () => {
   const [selectedCrop, setSelectedCrop] = useState(null);
   const [savedRecommendations, setSavedRecommendations] = useState([]);
   const [showSaved, setShowSaved] = useState(false);
+
+  const formatBilingualLabel = (label) => {
+    const raw = String(label || '').trim();
+    const match = raw.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+    if (!match) return raw;
+
+    const left = (match[1] || '').trim();
+    const right = (match[2] || '').trim();
+    if (!left || !right) return raw;
+
+    const lang = String(i18n?.language || '').toLowerCase();
+    return lang.startsWith('en') ? left : right;
+  };
+
+  const getCropDisplayName = (crop) => {
+    if (!crop) return '';
+    const nameKey = crop.nameKey;
+    const translated = nameKey ? t(nameKey, { defaultValue: '' }) : '';
+    const base = translated || crop.key || crop.name || nameKey || '';
+    return formatBilingualLabel(base);
+  };
 
   // Enhanced soil types with more details
   const soilTypes = [
@@ -350,7 +371,7 @@ const CropRecommendation = () => {
   ${t('crop_recommendation_report') || 'Crop Recommendation Report'}
   =========================
 
-  ${t('crop_label') || 'Crop'}: ${t(crop.nameKey) || crop.key}
+  ${t('crop_label') || 'Crop'}: ${getCropDisplayName(crop)}
   ${t('scientific_name') || 'Scientific Name'}: ${crop.scientificName}
   ${t('suitability_score') || 'Suitability Score'}: ${crop.score}/100
   ${t('match_percentage') || 'Match Percentage'}: ${crop.matchPercentage}%
@@ -427,7 +448,7 @@ const CropRecommendation = () => {
             <div style={savedGrid}>
               {savedRecommendations.map((crop, index) => (
                 <div key={index} style={savedCard}>
-                  <h3>{t(crop.nameKey) || crop.key}</h3>
+                  <h3>{getCropDisplayName(crop)}</h3>
                   <p>{t('score') || 'Score'}: {crop.score}/100</p>
                   <p>{t('saved_on') || 'Saved'}: {new Date(crop.savedAt).toLocaleDateString()}</p>
                   <button onClick={() => setSelectedCrop(crop)} style={viewButton}>
@@ -654,7 +675,7 @@ const CropRecommendation = () => {
                 {recommendations.map((crop, index) => (
                   <div key={crop.key} style={cropCard}>
                     <div style={cardHeader}>
-                      <h3 style={cropName}>{t(crop.nameKey) || crop.key}</h3>
+                      <h3 style={cropName}>{getCropDisplayName(crop)}</h3>
                       <div style={scoreBadge(crop.suitability)}>
                         {crop.score}/100
                       </div>
@@ -712,24 +733,6 @@ const CropRecommendation = () => {
                   </div>
                 ))}
               </div>
-
-              <div style={insightsSection}>
-                <h3>{t('ai_insights') || 'AI Insights'}</h3>
-                <div style={insightsGrid}>
-                  <div style={insightCard}>
-                    <h4>{t('market_trends') || 'Market Trends'}</h4>
-                    <p>{t('market_insight') || 'Current market prices are favorable for pulses and oilseeds. Consider diversifying your crop portfolio.'}</p>
-                  </div>
-                  <div style={insightCard}>
-                    <h4>{t('crop_rotation') || 'Crop Rotation'}</h4>
-                    <p>{t('rotation_insight') || 'Implementing crop rotation can improve soil health and reduce pest pressure. Consider alternating between different crop families.'}</p>
-                  </div>
-                  <div style={insightCard}>
-                    <h4>{t('soil_health') || 'Soil Health'}</h4>
-                    <p>{t('soil_insight') || 'Your soil type is suitable for multiple crops. Consider crop rotation to maintain soil fertility.'}</p>
-                  </div>
-                </div>
-              </div>
             </>
           )}
         </div>
@@ -740,7 +743,7 @@ const CropRecommendation = () => {
         <div style={modalOverlay} onClick={() => setSelectedCrop(null)}>
           <div style={modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={modalHeader}>
-              <h2>{t(selectedCrop.nameKey) || selectedCrop.key}</h2>
+              <h2>{getCropDisplayName(selectedCrop)}</h2>
               <button onClick={() => setSelectedCrop(null)} style={closeModalButton}>×</button>
             </div>
             <div style={modalBody}>
@@ -1123,27 +1126,6 @@ const downloadButton = {
   display: 'flex',
   alignItems: 'center',
   fontSize: '14px'
-};
-
-const insightsSection = {
-  marginTop: '40px',
-  padding: '20px',
-  background: '#f8f9fa',
-  borderRadius: '8px'
-};
-
-const insightsGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-  gap: '20px',
-  marginTop: '20px'
-};
-
-const insightCard = {
-  background: '#fff',
-  padding: '15px',
-  borderRadius: '8px',
-  border: '1px solid #e0e0e0'
 };
 
 const savedContainer = {

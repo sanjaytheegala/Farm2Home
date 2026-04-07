@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../../../firebase';
 import { useToast } from '../../../context/ToastContext';
@@ -14,11 +15,13 @@ import {
   updateDoc,
   orderBy 
 } from 'firebase/firestore';
+import { cleanupStaleProducts } from '../../../services/productsService';
 import { FaSeedling, FaRupeeSign, FaEdit, FaTrash, FaCheckCircle, FaClock, FaTimes } from 'react-icons/fa';
 
 const FarmerCropsList = () => {
   const { success: toastSuccess, error: toastError } = useToast();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [crops, setCrops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,7 +32,9 @@ const FarmerCropsList = () => {
   // Fetch farmer's crops
   const fetchCrops = async () => {
     if (!auth.currentUser) {
-      setError('You must be logged in to view crops');
+      setError(
+        t('fcl_error_not_logged_in', { defaultValue: 'You must be logged in to view crops' })
+      );
       setLoading(false);
       return;
     }
@@ -50,12 +55,17 @@ const FarmerCropsList = () => {
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Perform auto-deletion of items expired > 5 days (keep UI fresh)
+      const freshCrops = await cleanupStaleProducts(cropsData);
 
-      setCrops(cropsData);
-      logger.log('✅ Fetched', cropsData.length, 'crops');
+      setCrops(freshCrops);
+      logger.log('✅ Fetched', freshCrops.length, 'fresh crops');
     } catch (err) {
       console.error('Error fetching crops:', err);
-      setError('Failed to load crops. Please try again.');
+      setError(
+        t('fcl_error_load_failed', { defaultValue: 'Failed to load crops. Please try again.' })
+      );
     } finally {
       setLoading(false);
     }
@@ -203,12 +213,15 @@ const FarmerCropsList = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center">
             <FaSeedling className="text-green-600 mr-3" />
-            My Crops
+            {t('fcl_title_my_crops', { defaultValue: 'My Crops' })}
           </h1>
           <p className="text-gray-600">
             {crops.length === 0 
-              ? 'You haven\'t added any crops yet' 
-              : `You have ${crops.length} crop${crops.length !== 1 ? 's' : ''} listed`
+              ? t('fcl_summary_no_crops', { defaultValue: "You haven't added any crops yet" })
+              : t('fcl_summary_crops_listed', {
+                  count: crops.length,
+                  defaultValue: `You have ${crops.length} crops listed`,
+                })
             }
           </p>
         </div>
@@ -219,13 +232,17 @@ const FarmerCropsList = () => {
             <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <FaSeedling className="text-green-600 text-4xl" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">No Crops Yet</h2>
-            <p className="text-gray-600 mb-6">Start by adding your first crop to reach consumers</p>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+              {t('fcl_empty_title', { defaultValue: 'No Crops Yet' })}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {t('fcl_empty_sub', { defaultValue: 'Start by adding your first crop to reach consumers' })}
+            </p>
             <button 
               onClick={() => navigate('/farmer-dashboard')}
               style={{ padding: '12px 24px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}
             >
-              Add Your First Crop
+              {t('fcl_empty_cta', { defaultValue: 'Add Your First Crop' })}
             </button>
           </div>
         ) : (

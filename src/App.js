@@ -27,6 +27,7 @@ const ResourceSharePage = React.lazy(() => import('./pages/ResourceSharePage'));
 const CropRecommendationPage = React.lazy(() => import('./pages/CropRecommendationPage'));
 const OrderCheckout = React.lazy(() => import('./pages/OrderCheckout'))
 const AdminDashboard = React.lazy(() => import('./features/admin/pages/AdminDashboard'));
+const VerifyEmailLinkPage = React.lazy(() => import('./features/auth/pages/VerifyEmailLinkPage'));
 
 // Splash screen shown while Firebase resolves auth state
 const AuthSplash = () => (
@@ -67,13 +68,55 @@ const PageLoader = () => (
  * Not logged in → render the public page normally
  */
 const PublicOnlyRoute = ({ children }) => {
-  const { currentUser, userData, loading } = useAuth();
+  const { currentUser, userData, loading, signOut } = useAuth();
+  const [staleSession, setStaleSession] = useState(false)
+
+  // When signup creates a Firebase Auth session briefly (before we sign out to force email verification),
+  // avoid redirecting away from the landing page. This prevents a 1-second dashboard flash.
+  const suppressRedirect = (() => {
+    try { return sessionStorage.getItem('suppressPublicRedirect') === '1' } catch { return false }
+  })();
+
+  const roleFromStorage = (() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('currentUser') || '{}')
+      return (stored?.role || '').toString().trim().toLowerCase()
+    } catch {
+      return ''
+    }
+  })();
+
+  const rawRole = (userData?.role || roleFromStorage || '').toString().trim().toLowerCase();
+  const needsResolution = !!currentUser && !suppressRedirect && (!userData || !rawRole)
+
+  useEffect(() => {
+    if (!needsResolution) {
+      setStaleSession(false)
+      return
+    }
+
+    const t = setTimeout(() => setStaleSession(true), 2500)
+    return () => clearTimeout(t)
+  }, [needsResolution])
+
+  useEffect(() => {
+    if (!staleSession) return
+    if (!needsResolution) return
+    Promise.resolve(signOut?.()).finally(() => {})
+  }, [staleSession, needsResolution, signOut])
 
   if (loading) return <AuthSplash />;
 
   if (currentUser) {
-    if (!userData) return <AuthSplash />;
-    const rawRole = (userData?.role || '').toString().toLowerCase();
+    if (suppressRedirect) return children;
+
+    // UNVERIFIED: stay on public landing page so the verify UI can be shown.
+    if (!currentUser.emailVerified) return children;
+
+    if (!userData || !rawRole) {
+      return staleSession ? children : <AuthSplash />
+    }
+
     const dest = rawRole === 'farmer' ? '/farmer-dashboard'
                : rawRole === 'admin'  ? '/admin'
                : '/consumer';
@@ -222,6 +265,14 @@ const AppContent = () => {
               </ErrorBoundary>
             }
           />
+          <Route
+            path="/verify-email"
+            element={
+              <ErrorBoundary>
+                <VerifyEmailLinkPage />
+              </ErrorBoundary>
+            }
+          />
           <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
           {/* /login, /signup, /auth redirect to "/" which PublicOnlyRoute guards */}
           <Route path="/auth" element={<Navigate to="/" replace />} />
@@ -312,6 +363,16 @@ const AppContent = () => {
           />
           <Route
             path="/consumer"
+            element={
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={['consumer']}>
+                  <ConsumerDashboard />
+                </ProtectedRoute>
+              </ErrorBoundary>
+            }
+          />
+          <Route
+            path="/consumer-dashboard"
             element={
               <ErrorBoundary>
                 <ProtectedRoute allowedRoles={['consumer']}>

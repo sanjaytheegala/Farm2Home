@@ -303,3 +303,72 @@
     font-size: 18px;
   }
 }
+
+/* ==========================================
+   OUT OF STOCK & EXPIRATION STYLES
+   ========================================== */
+.product-card.expired {
+  border-color: #fca5a5;
+  background: #fffcfc;
+  opacity: 0.95;
+  cursor: default;
+}
+
+.product-card.expired:hover {
+  transform: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.expired-image {
+  filter: grayscale(0.8) opacity(0.6);
+  transition: none !important;
+}
+
+.out-of-stock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.out-of-stock-overlay span {
+  background: #dc2626;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+  transform: rotate(-8deg);
+  border: 2px solid rgba(255,255,255,0.25);
+  animation: outOfStockPulse 2s infinite;
+}
+
+@keyframes outOfStockPulse {
+  0%, 100% { transform: rotate(-8deg) scale(1); }
+  50% { transform: rotate(-8deg) scale(1.05); }
+}
+
+.add-to-cart-btn:disabled,
+.request-now-btn:disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.8;
+}
+
+.request-now-btn.disabled-btn {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+}
+

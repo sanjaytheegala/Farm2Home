@@ -96,14 +96,14 @@ const Navbar = React.memo(({
                 onClick={() => onTabChange('profile')}
               >
                 <FaUserCircle className="nav-icon" />
-                <span className="nav-text">Profile</span>
+                <span className="nav-text">{t('profile', { defaultValue: 'Profile' })}</span>
               </button>
               <button 
                 className={`nav-item ${activeTab === 'cart' ? 'active' : ''}`}
                 onClick={() => onTabChange('cart')}
               >
                 <FaShoppingCart className="nav-icon" />
-                <span className="nav-text">Cart</span>
+                <span className="nav-text">{t('cart', { defaultValue: 'Cart' })}</span>
                 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
               </button>
               <button 
@@ -111,7 +111,7 @@ const Navbar = React.memo(({
                 onClick={() => onTabChange('orders')}
               >
                 <FaHistory className="nav-icon" />
-                <span className="nav-text">Orders</span>
+                <span className="nav-text">{t('orders', { defaultValue: 'Orders' })}</span>
               </button>
             </>
           )}
@@ -121,11 +121,11 @@ const Navbar = React.memo(({
             <>
               <button className="nav-item" onClick={handleCropRecommendations}>
                 <FaLeaf className="nav-icon" />
-                <span className="nav-text">Crop Recommendations</span>
+                <span className="nav-text">{t('nav_crop_recommendations', { defaultValue: 'Crop Recommendations' })}</span>
               </button>
               <button className="nav-item" onClick={handleResourceShareClick}>
                 <FaTools className="nav-icon" />
-                <span className="nav-text">Resource Share</span>
+                <span className="nav-text">{t('nav_resource_sharing', { defaultValue: 'Resource Sharing' })}</span>
               </button>
             </>
           )}
@@ -168,7 +168,7 @@ const Navbar = React.memo(({
                   ))
                 ) : (
                   <div className="notification-item">
-                    <p>No new notifications.</p>
+                    <p>{t('nav_no_new_notifications', { defaultValue: 'No new notifications.' })}</p>
                   </div>
                 )}
               </div>

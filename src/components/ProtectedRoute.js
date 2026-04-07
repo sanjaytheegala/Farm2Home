@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,6 +16,19 @@ const RouteLoader = () => (
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </div>
 );
+
+const RoleResolutionTimeout = ({ role }) => {
+  const [timedOut, setTimedOut] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 2500)
+    return () => clearTimeout(t)
+  }, [])
+
+  if (!timedOut) return <RouteLoader />
+
+  return <Navigate to="/" state={{ openModal: true, role: role || 'consumer' }} replace />
+}
 
 /**
  * ProtectedRoute — guards routes that require authentication + specific role.
@@ -47,15 +60,25 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   // ③ Waiting for user data profile
-  if (!userData) return <RouteLoader />;
+  if (!userData) return <RoleResolutionTimeout role={allowedRoles?.[0] || 'consumer'} />;
 
   // ③ Authenticated but wrong role (e.g. consumer typing /farmer-dashboard in URL bar)
   if (allowedRoles) {
+    const roleFromStorage = (() => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('currentUser') || '{}')
+        return (stored?.role || '').toString().trim().toLowerCase()
+      } catch {
+        return ''
+      }
+    })();
+
     // Some legacy users may not have a `role` field yet.
-    // Defaulting to 'consumer' preserves access to non-admin routes and avoids
-    // redirect loops like /consumer -> /consumer.
-    const role = (userData?.role || 'consumer').toString().toLowerCase();
+    // Do NOT default to consumer here; wait briefly for AuthContext/localStorage to resolve.
+    const role = (userData?.role || roleFromStorage || '').toString().trim().toLowerCase();
     const normalizedAllowed = allowedRoles.map(r => r.toString().toLowerCase());
+
+    if (!role) return <RoleResolutionTimeout role={allowedRoles?.[0] || 'consumer'} />;
 
     if (!normalizedAllowed.includes(role)) {
       let dest = role === 'farmer' ? '/farmer-dashboard'

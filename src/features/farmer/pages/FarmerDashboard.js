@@ -1538,8 +1538,8 @@ const FarmerDashboard = () => {
           {savedCrops.length === 0 && !showAddForm && (
             <div className="fd-empty">
               <div className="fd-empty-icon">🌾</div>
-              <h3 className="fd-empty-title">No crops listed yet</h3>
-              <p className="fd-empty-sub">Click "Add New Crop" to start listing your produce and reach buyers directly.</p>
+              <h3 className="fd-empty-title">{safeT('fd_no_crops_title', 'No crops listed yet')}</h3>
+              <p className="fd-empty-sub">{safeT('fd_no_crops_sub', 'Click "Add New Crop" to start listing your produce and reach buyers directly.')}</p>
             </div>
           )}
 
@@ -2224,7 +2224,7 @@ const FarmerDashboard = () => {
           {farmerNotifications.length === 0 ? (
             <div className="fd-empty">
               <div className="fd-empty-icon">🔔</div>
-              <h3 className="fd-empty-title">{safeT('nav_all_caught_up', 'All caught up!')}</h3>
+              <h3 className="fd-empty-title">{safeT('fd_no_new_notifications_title', 'All caught up!')}</h3>
               <p className="fd-empty-sub">{safeT('fd_no_new_notifications_sub', "You have no new notifications. We'll alert you when customers are interested in your crops.")}</p>
             </div>
           ) : (

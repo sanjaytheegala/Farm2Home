@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllProducts, subscribeToProducts, getProductsByCategory, getProductsByState } from '../../../services/productsService';
+import { getAllProducts, subscribeToProducts, getProductsByCategory, getProductsByState, cleanupStaleProducts } from '../../../services/productsService';
 import { getSmartCropImage } from '../../../utils/smartImageMapper';
 import { getCropCategory } from '../../../data/cropData';
 
@@ -78,8 +78,10 @@ export const useProducts = (options = {}) => {
         }
 
         if (result.success) {
+          // Perform auto-deletion of items expired > 5 days
+          const freshProducts = await cleanupStaleProducts(result.products);
           // Process products with smart image mapping
-          const processedProducts = processProductsWithSmartImages(result.products);
+          const processedProducts = processProductsWithSmartImages(freshProducts);
           setProducts(processedProducts);
         } else {
           setError(result.error);
@@ -93,9 +95,11 @@ export const useProducts = (options = {}) => {
 
     // Real-time updates if enabled
     if (realtime && !category && !state) {
-      unsubscribe = subscribeToProducts((productsData) => {
+      unsubscribe = subscribeToProducts(async (productsData) => {
+        // Perform auto-deletion check
+        const freshProducts = await cleanupStaleProducts(productsData);
         // Process products with smart image mapping
-        const processedProducts = processProductsWithSmartImages(productsData);
+        const processedProducts = processProductsWithSmartImages(freshProducts);
         setProducts(processedProducts);
         setLoading(false);
       });

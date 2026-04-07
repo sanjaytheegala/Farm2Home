@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FaHeart, FaStar, FaShoppingCart, FaLeaf, FaTruck, FaShieldAlt, FaMapMarkerAlt, FaRupeeSign, FaCalendarAlt } from 'react-icons/fa';
 import './ProductCard.css';
 
@@ -11,8 +12,25 @@ const ProductCard = ({
   onRequestNow,
   isAlreadyRequested = false,
 }) => {
+  const { t, i18n } = useTranslation();
   const [imageError, setImageError] = useState(false);
   const defaultImage = '/images/default_crop.jpg';
+
+  const dateLocale = useMemo(() => {
+    const lang = (i18n.language || 'en').split('-')[0];
+    const localeMap = {
+      en: 'en-IN',
+      te: 'te-IN',
+      hi: 'hi-IN',
+      ta: 'ta-IN',
+      kn: 'kn-IN',
+      ml: 'ml-IN',
+    };
+    return localeMap[lang] || 'en-IN';
+  }, [i18n.language]);
+  
+  const today = new Date().toISOString().split('T')[0];
+  const isExpired = product.availableUntil && product.availableUntil < today;
   
   const handleAddToCart = (e) => {
     e.stopPropagation();
@@ -21,7 +39,7 @@ const ProductCard = ({
 
   const handleRequestNow = (e) => {
     e.stopPropagation();
-    if (!isAlreadyRequested) {
+    if (!isAlreadyRequested && !isExpired) {
       onRequestNow && onRequestNow(product);
     }
   };
@@ -54,14 +72,14 @@ const ProductCard = ({
         <div className="product-badges">
           {product.organic && (
             <span className="badge badge-organic">
-              Organic
+              {t('organic')}
             </span>
           )}
           {product.featured && (
-            <span className="badge badge-featured">Featured</span>
+            <span className="badge badge-featured">{t('featured')}</span>
           )}
           {product.trending && (
-            <span className="badge badge-trending">Trending</span>
+            <span className="badge badge-trending">{t('trending')}</span>
           )}
         </div>
 
@@ -69,7 +87,7 @@ const ProductCard = ({
         <button 
           className={`favorite-btn ${isFavorite ? 'active' : ''}`}
           onClick={handleToggleFavorite}
-          aria-label="Add to favorites"
+          aria-label={t('add_to_favorites')}
         >
           <FaHeart />
         </button>
@@ -77,7 +95,7 @@ const ProductCard = ({
         {/* Discount Badge */}
         {product.discount > 0 && (
           <div className="discount-badge">
-            {product.discount}% OFF
+            {t('percent_off', { percent: product.discount })}
           </div>
         )}
       </div>
@@ -90,7 +108,7 @@ const ProductCard = ({
         <div className="product-rating">
           <FaStar className="star-icon" />
           <span>{product.rating}</span>
-          <span className="sales-count">({product.totalSales} sales)</span>
+          <span className="sales-count">({t('sales_count', { count: product.totalSales })})</span>
         </div>
 
         {/* Location */}
@@ -106,7 +124,7 @@ const ProductCard = ({
           return (
             <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color: isExpired ? '#dc2626' : '#059669', marginTop:4 }}>
               <FaCalendarAlt style={{ fontSize:10 }} />
-              {isExpired ? 'Expired' : 'Available till'}: {new Date(product.availableUntil + 'T00:00:00').toLocaleDateString('en-IN', { day:'numeric', month:'short' })}
+              {isExpired ? t('expired') : t('available_till')}: {new Date(product.availableUntil + 'T00:00:00').toLocaleDateString(dateLocale, { day:'numeric', month:'short' })}
             </div>
           );
         })()}
@@ -130,12 +148,12 @@ const ProductCard = ({
         <div className="product-features">
           {product.fastDelivery && (
             <span className="feature">
-              <FaTruck /> Fast Delivery
+              <FaTruck /> {t('fast_delivery')}
             </span>
           )}
           {product.certifications && product.certifications.length > 0 && (
             <span className="feature">
-              <FaShieldAlt /> Certified
+              <FaShieldAlt /> {t('certified')}
             </span>
           )}
         </div>
@@ -145,17 +163,18 @@ const ProductCard = ({
           <button
             className="add-to-cart-btn"
             onClick={handleAddToCart}
+            disabled={isExpired}
           >
             <FaShoppingCart />
-            Add to Cart
+            {t('add_to_cart')}
           </button>
           <button
-            className="request-now-btn"
+            className={`request-now-btn ${isExpired ? 'disabled-btn' : ''}`}
             onClick={handleRequestNow}
-            disabled={isAlreadyRequested}
-            title={isAlreadyRequested ? 'You already requested this crop' : 'Request this crop'}
+            disabled={isAlreadyRequested || isExpired}
+            title={isExpired ? t('crop_out_of_stock_tooltip') : isAlreadyRequested ? t('already_requested_tooltip') : t('request_this_crop_tooltip')}
           >
-            {isAlreadyRequested ? 'Already Requested' : 'Request Now'}
+            {isExpired ? t('out_of_stock') : isAlreadyRequested ? t('already_requested') : t('request_now')}
           </button>
         </div>
       </div>

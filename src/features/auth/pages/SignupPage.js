@@ -2,17 +2,18 @@ import { useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
-import { auth, db } from '../../../firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth } from '../../../firebase';
+import { sendSignInLinkToEmail } from 'firebase/auth';
 import { GMAIL_SUFFIX, isGmailComplete, keepCaretInLocalPart, moveCaretToLocalEnd, normalizeGmailInput } from '../../../utils/gmailInput';
 import { COUNTRY_CODE_PREFIX, normalizePhoneForLookup, isPhoneComplete } from '../../../utils/phoneInput';
+
+const EMAIL_LINK_EMAIL_KEY = 'farm2home_emailForSignIn';
+const EMAIL_LINK_ROLE_KEY = 'farm2home_roleForSignIn';
+const EMAIL_LINK_PHONE_KEY = 'farm2home_phoneForSignIn';
 
 const SignupPage = () => {
   const [userType, setUserType] = useState('consumer'); // 'consumer' or 'farmer'
   const [email, setEmail] = useState(GMAIL_SUFFIX);
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState(COUNTRY_CODE_PREFIX);
   const [error, setError] = useState('');
@@ -40,16 +41,6 @@ const SignupPage = () => {
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError(t('passwords_do_not_match'));
-      return;
-    }
-
-    if (password.length < 6) {
-      setError(t('password_min_length'));
-      return;
-    }
-
     const trimmedName = name.trim();
     const nameRegex = /^[a-zA-Z\s'\-]+$/;
     if (!trimmedName || trimmedName.length < 2) {
@@ -74,39 +65,29 @@ const SignupPage = () => {
     setLoading(true);
 
     try {
-      // Create Firebase Auth account
-      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      const user = userCredential.user;
+      // Link-first: do NOT create Firebase Auth user here.
+      // Only send the sign-in link; account is created when link is clicked.
 
-      // Save user profile to Firestore
-      const userData = {
-        uid: user.uid,
-        email: email.trim(),
-        name: name || 'User',
-        phoneNumber: cleanPhone,
-        phone: cleanPhone,
-        role: userType,
-        status: 'active',
-        emailVerified: false,
-        createdAt: serverTimestamp(),
+      try {
+        localStorage.setItem(EMAIL_LINK_EMAIL_KEY, email.trim());
+        localStorage.setItem(EMAIL_LINK_ROLE_KEY, userType);
+        localStorage.setItem(EMAIL_LINK_PHONE_KEY, cleanPhone);
+      } catch {}
+
+      const actionCodeSettings = {
+        url: (typeof window !== 'undefined' && window.location?.origin)
+          ? `${window.location.origin}/verify-email`
+          : 'http://localhost:3000/verify-email',
+        handleCodeInApp: true,
       };
 
-      await setDoc(doc(db, 'users', user.uid), userData);
-
-      // Send email verification — user must verify before logging in
-      await sendEmailVerification(user);
+      await sendSignInLinkToEmail(auth, email.trim(), actionCodeSettings);
       setVerificationSent(true);
 
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') {
-        setError(t('account_exists_login_instead'));
-      } else if (err.code === 'auth/invalid-email') {
-        setError(t('invalid_email'));
-      } else if (err.code === 'auth/weak-password') {
-        setError(t('password_min_length'));
-      } else {
-        setError(err.message || t('create_account_failed'));
-      }
+      if (err.code === 'auth/invalid-email') setError(t('invalid_email'));
+      else if (err.code === 'auth/too-many-requests') setError(t('too_many_requests'));
+      else setError(err.message || t('create_account_failed'));
     } finally {
       setLoading(false);
     }
@@ -117,12 +98,12 @@ const SignupPage = () => {
       <div style={{ padding: '20px', backgroundColor: '#181818', minHeight: '100vh', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <div style={{ background: '#2a2a2a', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', width: '420px', textAlign: 'center' }}>
           <div style={{ fontSize: '60px', marginBottom: '20px' }}>📧</div>
-          <h2 style={{ color: '#28a745', marginBottom: '16px' }}>Verify Your Email</h2>
+          <h2 style={{ color: '#28a745', marginBottom: '16px' }}>Check Your Email</h2>
           <p style={{ color: '#ccc', marginBottom: '12px', lineHeight: '1.6' }}>
-            A verification link has been sent to <strong style={{ color: '#28a745' }}>{email}</strong>.
+            A sign-in link has been sent to <strong style={{ color: '#28a745' }}>{email}</strong>.
           </p>
           <p style={{ color: '#999', marginBottom: '28px', fontSize: '0.9rem' }}>
-            Please check your inbox and click the link to activate your account. Once verified, you can log in.
+            Please check your inbox and click the link to create your account and sign in.
           </p>
           <button
             onClick={() => navigate('/')}
@@ -213,26 +194,6 @@ const SignupPage = () => {
               style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
             />
           </div>
-          <div style={{ marginBottom: '15px' }}>
-            <input
-              type="password"
-              placeholder={t('password_min_6')}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
-            />
-          </div>
-          <div style={{ marginBottom: '20px' }}>
-            <input
-              type="password"
-              placeholder={t('confirm_password_placeholder')}
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              required
-              style={{ width: '100%', padding: '10px', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '5px' }}
-            />
-          </div>
           
           {error && <p style={{ color: 'red', textAlign: 'center', marginBottom: '15px' }}>{error}</p>}
           
@@ -250,7 +211,7 @@ const SignupPage = () => {
               fontSize: '16px' 
             }}
           >
-            {loading ? t('creating_account') : (userType === 'farmer' ? t('sign_up_as_farmer') : t('sign_up_as_consumer'))}
+            {loading ? t('sending_status') : 'Send sign-in link'}
           </button>
         </form>
         

@@ -25,6 +25,8 @@ const originalAttrsByElement = new WeakMap();
 const INDIC_SCRIPT_REGEX = /[\u0900-\u097F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F]/;
 const hasIndicScript = (value) => INDIC_SCRIPT_REGEX.test(String(value || ''));
 
+const isEnglishLang = (lang) => String(lang || '').toLowerCase().startsWith('en');
+
 const toMaps = (langCode) => {
   const en = enTranslations?.translation || {};
   const targetResource = {
@@ -96,10 +98,21 @@ const translateString = (value, dictionary) => {
 
   if (phraseApplied) return output;
 
+  let tokenCount = 0;
+  let translatedCount = 0;
   output = output.replace(/\b[\p{L}\p{N}_]+\b/gu, (token) => {
+    tokenCount += 1;
     const translated = dictionary.wordMap.get(token.toLowerCase());
-    return translated || token;
+    if (!translated || translated === token) return token;
+    translatedCount += 1;
+    return translated;
   });
+
+  // Avoid low-quality partial translations like: "No பயிர் listed yet".
+  // If we can't translate most tokens, keep the original English string.
+  if (tokenCount > 0 && translatedCount / tokenCount < 0.6) {
+    return value;
+  }
 
   return output;
 };
@@ -107,6 +120,7 @@ const translateString = (value, dictionary) => {
 const translateAttributes = (root, dictionary, lang = 'en') => {
   const attrs = ['placeholder', 'title', 'aria-label'];
   const elements = root.querySelectorAll('*');
+  const english = isEnglishLang(lang);
 
   elements.forEach((el) => {
     if (shouldSkipElement(el)) return;
@@ -120,16 +134,29 @@ const translateAttributes = (root, dictionary, lang = 'en') => {
       const current = el.getAttribute(attr);
       if (!current) return;
 
+      // We only have a reliable dictionary for translating from English.
+      // So: keep an English canonical source, restore it when switching back
+      // to English, and translate from it for all non-English languages.
       if (!attrStore.has(attr)) {
-        attrStore.set(attr, current);
-      } else if (lang !== 'en' && hasIndicScript(current)) {
-        // If React/i18n already rendered localized text, treat it as the new source
-        // so we don't keep translating stale English originals.
+        if (!english && hasIndicScript(current)) return;
         attrStore.set(attr, current);
       }
 
       const source = attrStore.get(attr);
       if (!source || EMAIL_REGEX.test(source)) return;
+
+      if (english) {
+        // If this attribute is currently localized (e.g., via auto-translation),
+        // restore the canonical English source.
+        if (hasIndicScript(current) && !hasIndicScript(source)) {
+          el.setAttribute(attr, source);
+        } else if (!hasIndicScript(current)) {
+          // In English mode, treat current as the canonical source so dynamic
+          // text updates don't get overwritten by stale cached values.
+          attrStore.set(attr, current);
+        }
+        return;
+      }
 
       const translated = translateString(source, dictionary);
       if (translated && translated !== current) {
@@ -142,6 +169,7 @@ const translateAttributes = (root, dictionary, lang = 'en') => {
 const translateTextNodes = (root, dictionary, lang = 'en') => {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes = [];
+  const english = isEnglishLang(lang);
 
   while (walker.nextNode()) nodes.push(walker.currentNode);
 
@@ -152,15 +180,26 @@ const translateTextNodes = (root, dictionary, lang = 'en') => {
     if (shouldSkipElement(parent)) return;
 
     if (!originalTextByNode.has(textNode)) {
-      originalTextByNode.set(textNode, value);
-    } else if (lang !== 'en' && hasIndicScript(value)) {
-      // React/i18n has updated the node to localized script; stop using stale English source
+      // Only cache English-ish source when in non-English mode;
+      // caching already-localized scripts makes later language switches impossible.
+      if (!english && hasIndicScript(value)) return;
       originalTextByNode.set(textNode, value);
     }
 
     const source = originalTextByNode.get(textNode);
     const trimmed = normalize(source);
     if (!trimmed || EMAIL_REGEX.test(trimmed)) return;
+
+    if (english) {
+      // Restore English canonical text if currently localized.
+      if (hasIndicScript(value) && !hasIndicScript(source)) {
+        textNode.nodeValue = source;
+      } else if (!hasIndicScript(value)) {
+        // In English mode, keep the canonical source synced with dynamic content.
+        originalTextByNode.set(textNode, value);
+      }
+      return;
+    }
 
     const translated = translateString(source, dictionary);
     if (translated && translated !== value) {
@@ -179,23 +218,54 @@ const GlobalAutoTranslator = () => {
 
   useEffect(() => {
     const lang = (i18n.language || 'en').split('-')[0];
-    const run = () => {
-      translateAttributes(document.body, dictionary, lang);
-      translateTextNodes(document.body, dictionary, lang);
-    };
+    if (typeof document === 'undefined' || !document.body) return;
 
-    run();
-
-    const observer = new MutationObserver(() => run());
-    observer.observe(document.body, {
+    const observeOptions = {
       childList: true,
       subtree: true,
       characterData: true,
       attributes: true,
       attributeFilter: ['placeholder', 'title', 'aria-label'],
+    };
+
+    let scheduled = false;
+    let applying = false;
+    let timeoutId = null;
+
+    const observer = new MutationObserver(() => {
+      // Debounce to avoid thrashing on large renders / language switch.
+      if (scheduled) return;
+      scheduled = true;
+      timeoutId = setTimeout(() => {
+        scheduled = false;
+        run();
+      }, 50);
     });
 
-    return () => observer.disconnect();
+    const run = () => {
+      if (applying) return;
+      applying = true;
+      try {
+        // Prevent our own DOM edits from triggering the observer again.
+        observer.disconnect();
+        translateAttributes(document.body, dictionary, lang);
+        translateTextNodes(document.body, dictionary, lang);
+      } finally {
+        try { observer.observe(document.body, observeOptions); } catch {}
+        applying = false;
+      }
+    };
+
+    // Initial pass on mount / language change
+    run();
+    observer.observe(document.body, observeOptions);
+
+    return () => {
+      try { observer.disconnect(); } catch {}
+      if (timeoutId) {
+        try { clearTimeout(timeoutId); } catch {}
+      }
+    };
   }, [dictionary, i18n.language]);
 
   return null;

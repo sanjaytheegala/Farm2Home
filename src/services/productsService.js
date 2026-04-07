@@ -106,6 +106,34 @@ export const searchProducts = async (searchTerm) => {
   }
 };
 
+// Cleanup stale crops (expired > 5 days)
+export const cleanupStaleProducts = async (products) => {
+  if (!products || products.length === 0) return [];
+  
+  const today = new Date();
+  const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+  
+  const staleItems = products.filter(p => {
+    if (!p.availableUntil) return false;
+    // Assume format YYYY-MM-DD
+    const expiryDate = new Date(p.availableUntil + 'T00:00:00');
+    return (today - expiryDate) > fiveDaysInMs;
+  });
+
+  if (staleItems.length > 0) {
+    console.log(`🧹 Auto-deleting ${staleItems.length} crops expired for > 5 days...`);
+    const deletePromises = staleItems.map(p => deleteDoc(doc(db, 'crops', p.id)));
+    await Promise.allSettled(deletePromises);
+  }
+
+  // Return only non-stale products for immediate UI update
+  return products.filter(p => {
+    if (!p.availableUntil) return true;
+    const expiryDate = new Date(p.availableUntil + 'T00:00:00');
+    return (today - expiryDate) <= fiveDaysInMs;
+  });
+};
+
 // Get featured products
 export const getFeaturedProducts = async () => {
   try {

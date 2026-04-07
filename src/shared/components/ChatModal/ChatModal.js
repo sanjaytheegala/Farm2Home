@@ -3,136 +3,22 @@ import { db, auth } from '../../../firebase'
 import {
   collection, addDoc, onSnapshot, serverTimestamp, Timestamp
 } from 'firebase/firestore'
-import { FaTimes, FaLeaf, FaUser, FaChevronLeft } from 'react-icons/fa'
+import { FaTimes, FaLeaf, FaUser } from 'react-icons/fa'
 import './ChatModal.css'
 
 /**
- * ChatModal — structured menu-driven chat (no free text).
+ * ChatModal — free-text chat (users type their own messages).
  * Subcollection: market_demands/{demandId}/messages
  */
-
-/* ── Menu tree definitions ── */
-const buildMenuTree = (role, cropName, qty) => {
-  const crop = cropName || 'crop'
-  const qtyLabel = qty ? `${qty} kg` : ''
-
-  if (role === 'consumer') {
-    return [
-      {
-        id: 'price', icon: '💰', label: 'Price Enquiry',
-        subs: [
-          { id: 'p1', text: `${crop} per kg rate entha?` },
-          { id: 'p2', text: `Rate negotiate avutunda?` },
-          { id: 'p3', text: `Payment method — cash or UPI?` },
-        ],
-      },
-      {
-        id: 'qty', icon: '📦', label: 'Quantity',
-        subs: [
-          { id: 'q1', text: `Minimum order quantity entha?` },
-          { id: 'q2', text: `${qtyLabel ? qtyLabel + ' supply cheyyagalara?' : 'Required quantity supply cheyyagalara?'}` },
-        ],
-      },
-      {
-        id: 'quality', icon: '🌿', label: 'Quality',
-        subs: [
-          { id: 'ql1', text: `${crop} chemical free / organic na?` },
-          { id: 'ql2', text: `Eppudu harvest chesaru?` },
-          { id: 'ql3', text: `Variety / grade edhana?` },
-        ],
-      },
-      {
-        id: 'pickup', icon: '🚚', label: 'Pickup & Delivery',
-        subs: [
-          { id: 'pk1', text: `Mee exact farm location cheppandi.` },
-          { id: 'pk2', text: `Delivery possible na?` },
-          { id: 'pk3', text: `Delivery charge entha avutundi?` },
-        ],
-      },
-      {
-        id: 'timeline', icon: '📅', label: 'Timeline',
-        subs: [
-          { id: 't1', text: `${crop} eppatiki ready ga untundi?` },
-          { id: 't2', text: `Stock entha varaku untundi?` },
-        ],
-      },
-      {
-        id: 'deal', icon: '🤝', label: 'Finalize Deal',
-        subs: [
-          { id: 'd1', text: `Mee price ki agree ayanu — deal confirm cheyyali.` },
-          { id: 'd2', text: `Deal confirm — pickup ki ready ga unna.` },
-        ],
-      },
-    ]
-  }
-
-  // Farmer menu
-  return [
-    {
-      id: 'stock', icon: '📦', label: 'Stock Info',
-      subs: [
-        { id: 's1', text: `Total ${qtyLabel || '__'} kg stock available undi.` },
-        { id: 's2', text: `Stock ippudu ready ga undi — fresh harvest.` },
-        { id: 's3', text: `Stock limited ga undi — early confirm cheyyandi.` },
-      ],
-    },
-    {
-      id: 'price', icon: '💰', label: 'Price',
-      subs: [
-        { id: 'p1', text: `Naa rate: ₹__ per kg. Confirm cheyyandi.` },
-        { id: 'p2', text: `Bulk order ki better rate ivvagalanu.` },
-        { id: 'p3', text: `Rate fix — negotiate cheyyanu.` },
-      ],
-    },
-    {
-      id: 'quality', icon: '🌿', label: 'Quality Info',
-      subs: [
-        { id: 'ql1', text: `Organic / natural ga penchamu — chemicals levu.` },
-        { id: 'ql2', text: `Grade A quality — fresh gaa undi.` },
-        { id: 'ql3', text: `Ippudu harvest chesamu — very fresh.` },
-      ],
-    },
-    {
-      id: 'pickup', icon: '🚚', label: 'Pickup / Delivery',
-      subs: [
-        { id: 'pk1', text: `Farm address pampistanu — self pickup cheyyandi.` },
-        { id: 'pk2', text: `Mee address pampandi — deliver chestanu.` },
-        { id: 'pk3', text: `Pickup time: Morning 7am – 12pm.` },
-      ],
-    },
-    {
-      id: 'payment', icon: '💳', label: 'Payment',
-      subs: [
-        { id: 'py1', text: `Cash only accept chestanu.` },
-        { id: 'py2', text: `UPI / online payment accepted.` },
-        { id: 'py3', text: `50% advance ippudu — balance on delivery.` },
-      ],
-    },
-    {
-      id: 'deal', icon: '🤝', label: 'Close Deal',
-      subs: [
-        { id: 'd1', text: `Deal confirm — pickup date confirm cheyyandi.` },
-        { id: 'd2', text: `Address confirm chesaka dispatch chestanu.` },
-      ],
-    },
-  ]
-}
 
 /* ── Component ── */
 const ChatModal = ({ demand, currentRole, onClose }) => {
   const [messages, setMessages] = useState([])
   const [sending, setSending]   = useState(false)
-  const [activeCategory, setActiveCategory] = useState(null)
-  const [pendingSub, setPendingSub]         = useState(null)  // sub with __ needing fill-in
-  const [fillValue, setFillValue]           = useState('')    // user typed value
+  const [draft, setDraft] = useState('')
   const bottomRef    = useRef(null)
-  const fillInputRef = useRef(null)
+  const inputRef     = useRef(null)
   const user = auth.currentUser
-
-  const cropName = demand?.cropName || 'crop'
-  const qty      = demand?.quantityKg || ''
-
-  const menuTree = buildMenuTree(currentRole, cropName, qty)
 
   const otherName =
     currentRole === 'farmer'
@@ -182,9 +68,7 @@ const ChatModal = ({ demand, currentRole, onClose }) => {
     if (!trimmed || !user || sending) return
 
     setSending(true)
-    setActiveCategory(null)
-    setPendingSub(null)
-    setFillValue('')
+    setDraft('')
     try {
       const expiresAt = Timestamp.fromMillis(Date.now() + 10 * 24 * 60 * 60 * 1000)
       await addDoc(collection(db, 'market_demands', demand.id, 'messages'), {
@@ -202,24 +86,6 @@ const ChatModal = ({ demand, currentRole, onClose }) => {
       setSending(false)
     }
   }, [user, sending, demand?.id, currentRole])
-
-  /* ── Handle sub-option click: if has __ show fill-in, else send directly ── */
-  const handleSubClick = (sub) => {
-    if (sub.text.includes('__')) {
-      setPendingSub(sub)
-      setFillValue('')
-      setTimeout(() => fillInputRef.current?.focus(), 80)
-    } else {
-      sendMessage(sub.text)
-    }
-  }
-
-  /* ── Send the fill-in message after substituting __ ── */
-  const handleFillSend = () => {
-    if (!pendingSub || !fillValue.trim()) return
-    const finalText = pendingSub.text.replace(/__/g, fillValue.trim())
-    sendMessage(finalText)
-  }
 
   /* ── Format timestamp ── */
   const formatTime = (ts) => {
@@ -240,8 +106,6 @@ const ChatModal = ({ demand, currentRole, onClose }) => {
     if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
     return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
   }
-
-  const activeCat = menuTree.find(c => c.id === activeCategory)
 
   return (
     <div className="chat-overlay" onClick={onClose}>
@@ -282,9 +146,7 @@ const ChatModal = ({ demand, currentRole, onClose }) => {
             <div className="chat-empty">
               <span className="chat-empty-icon">💬</span>
               <div>No messages yet.</div>
-              <div style={{ marginTop: 4, fontSize: 12 }}>
-                Use the topic menu below to start the conversation.
-              </div>
+              <div style={{ marginTop: 4, fontSize: 12 }}>Start by typing a message below.</div>
             </div>
           )}
 
@@ -319,88 +181,29 @@ const ChatModal = ({ demand, currentRole, onClose }) => {
           <div ref={bottomRef} />
         </div>
 
-        {/* ── Menu Panel ── */}
-        <div className="chat-menu-panel">
-
-          {/* Sub-options view */}
-          {activeCat ? (
-            <div className="chat-sub-panel">
-              <button
-                className="chat-back-btn"
-                onClick={() => { setActiveCategory(null); setPendingSub(null); setFillValue('') }}
-              >
-                <FaChevronLeft style={{ fontSize: 11 }} />
-                <span>{activeCat.icon} {activeCat.label}</span>
-              </button>
-
-              {/* Fill-in panel — shown when a __ option is selected */}
-              {pendingSub ? (
-                <div className="chat-fillin-panel">
-                  <div className="chat-fillin-preview">
-                    {pendingSub.text.replace(/__/g, `[${fillValue || '...'}]`)}
-                  </div>
-                  <div className="chat-fillin-row">
-                    <input
-                      ref={fillInputRef}
-                      className="chat-fillin-input"
-                      type="text"
-                      placeholder="Type value here..."
-                      value={fillValue}
-                      onChange={e => setFillValue(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleFillSend() }}
-                    />
-                    <button
-                      className="chat-fillin-send"
-                      onClick={handleFillSend}
-                      disabled={!fillValue.trim() || sending}
-                    >
-                      Send ✓
-                    </button>
-                  </div>
-                  <button
-                    className="chat-fillin-cancel"
-                    onClick={() => { setPendingSub(null); setFillValue('') }}
-                  >
-                    ← Back to options
-                  </button>
-                </div>
-              ) : (
-                <div className="chat-sub-list">
-                  {activeCat.subs.map(sub => (
-                    <button
-                      key={sub.id}
-                      className={`chat-sub-btn${sub.text.includes('__') ? ' chat-sub-btn--fill' : ''}`}
-                      onClick={() => handleSubClick(sub)}
-                      disabled={sending}
-                    >
-                      {sub.text.includes('__')
-                        ? sub.text.replace(/__/g, '✏️ __')
-                        : sub.text}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Main category grid */
-            <div className="chat-main-menu">
-              <div className="chat-menu-title">Choose a topic to send</div>
-              <div className="chat-cat-grid">
-                {menuTree.map(cat => (
-                  <button
-                    key={cat.id}
-                    className="chat-cat-btn"
-                    onClick={() => setActiveCategory(cat.id)}
-                    disabled={sending}
-                  >
-                    <span className="chat-cat-icon">{cat.icon}</span>
-                    <span className="chat-cat-label">{cat.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
+        {/* ── Input Panel ── */}
+        <div className="chat-input-panel">
+          <div className="chat-input-row">
+            <input
+              ref={inputRef}
+              className="chat-input"
+              type="text"
+              placeholder="Type a message…"
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') sendMessage(draft)
+              }}
+              disabled={sending}
+            />
+            <button
+              className="chat-send-btn"
+              onClick={() => sendMessage(draft)}
+              disabled={!draft.trim() || sending}
+            >
+              Send
+            </button>
+          </div>
         </div>
 
       </div>

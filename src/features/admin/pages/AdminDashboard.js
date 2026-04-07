@@ -1,5 +1,6 @@
 // AdminDashboard.js — Gemini Profit Guard + Reverse Marketplace Monitor
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../../../firebase'
 import {
@@ -62,6 +63,7 @@ const STATUS_CHIP = {
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const { currentUser, userData, logout } = useAuth()
+  const { t } = useTranslation()
 
   // Guard — only admins
   useEffect(() => {
@@ -415,7 +417,12 @@ In 3-4 sentences:
               <div className="adm-alert-box">
                 <FaFire className="adm-alert-icon" />
                 <div>
-                  <strong>{staleCrops.length} crop listing{staleCrops.length > 1 ? 's' : ''} unsold for 3+ days</strong>
+                  <strong>
+                    {t('ad_stale_crops_unsold', {
+                      count: staleCrops.length,
+                      defaultValue: `${staleCrops.length} crop listings unsold for 3+ days`,
+                    })}
+                  </strong>
                   <span> — visit Wastage Guard tab for AI-powered flash discount suggestions.</span>
                 </div>
                 <button className="adm-alert-cta" onClick={() => setActiveTab('wastage')}>
@@ -594,8 +601,10 @@ In 3-4 sentences:
             ) : (
               <>
                 <p className="adm-wastage-sub">
-                  {staleCrops.length} crop listing{staleCrops.length > 1 ? 's' : ''} have been
-                  unsold for 3+ days. Use AI to generate flash-discount suggestions.
+                  {t('ad_wastage_stale_listings_desc', {
+                    count: staleCrops.length,
+                    defaultValue: `${staleCrops.length} crop listings have been unsold for 3+ days. Use AI to generate flash-discount suggestions.`,
+                  })}
                 </p>
                 <div className="adm-demands-grid">
                   {staleCrops.map(crop => {
@@ -608,7 +617,10 @@ In 3-4 sentences:
                             <div className="adm-dcard-crop">{crop.name}</div>
                             <div className="adm-dcard-consumer" style={{ color: '#b91c1c' }}>
                               <FaClock style={{ marginRight: 4 }} />
-                              Listed {age} day{age !== 1 ? 's' : ''} ago — no buyer
+                              {t('ad_wastage_listed_days_ago_no_buyer', {
+                                count: age,
+                                defaultValue: `Listed ${age} days ago — no buyer`,
+                              })}
                             </div>
                           </div>
                           <span className="adm-chip" style={{ background: '#fef2f2', color: '#b91c1c' }}>
@@ -735,7 +747,12 @@ In 3-4 sentences:
               <div className="adm-alert-box" style={{ borderColor: '#dc2626', background: '#fef2f2' }}>
                 <FaBan className="adm-alert-icon" style={{ color: '#dc2626' }} />
                 <div>
-                  <strong>{highRiskCount} High-Risk user{highRiskCount > 1 ? 's' : ''} detected</strong>
+                  <strong>
+                    {t('ad_high_risk_users_detected', {
+                      count: highRiskCount,
+                      defaultValue: `${highRiskCount} High-Risk users detected`,
+                    })}
+                  </strong>
                   <span> — {highRiskCount === 1 ? 'This user has' : 'These users have'} received 3 or more complaints. Gemini recommends review.</span>
                 </div>
               </div>
@@ -770,7 +787,11 @@ In 3-4 sentences:
                           </div>
                           <div className="adm-dcard-consumer" style={{ textTransform: 'capitalize' }}>
                             <FaUsers style={{ marginRight: 4, fontSize: 11 }} />
-                            {group.reportedRole} · {group.items.length} complaint{group.items.length > 1 ? 's' : ''}
+                            {group.reportedRole} · {' '}
+                            {t('ad_complaints_count', {
+                              count: group.items.length,
+                              defaultValue: `${group.items.length} complaints`,
+                            })}
                           </div>
                         </div>
                         <span

@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { FaTimes, FaLeaf, FaRulerCombined, FaMapMarkerAlt, FaPaperPlane, FaStickyNote, FaSearch, FaChevronDown, FaCheckCircle } from 'react-icons/fa'
+import { FaTimes, FaLeaf, FaRulerCombined, FaMapMarkerAlt, FaPaperPlane, FaStickyNote, FaSearch, FaChevronDown, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa'
+import { useTranslation } from 'react-i18next'
 import { geoData } from '../../../../locale/geoData'
 import { resolveCanonicalCropName } from '../../../../utils/cropValidation'
+import { findCropByKeyword } from '../../../../data/cropData'
 import './RequestCropModal.css'
 
 const STATES    = geoData.en.states
@@ -14,6 +16,7 @@ const INITIAL = { cropName: '', quantityKg: '', quantityUnit: 'kg', location: ''
 
 /* -- Searchable two-level location picker */
 function LocationPicker({ onChange }) {
+  const { t } = useTranslation()
   const [stateKey,       setStateKey]       = useState('')
   const [districtKey,    setDistrictKey]    = useState('')
   const [stateSearch,    setStateSearch]    = useState('')
@@ -71,7 +74,7 @@ function LocationPicker({ onChange }) {
         >
           <FaMapMarkerAlt className="rcm-loc-pin" />
           <span className={stateKey ? 'rcm-loc-val' : 'rcm-loc-ph'}>
-            {stateKey ? STATES[stateKey] : 'Select State'}
+            {stateKey ? STATES[stateKey] : t('rcm_select_state')}
           </span>
           <FaChevronDown className={`rcm-loc-caret ${showStateDrop ? 'rcm-loc-caret--up' : ''}`} />
         </button>
@@ -83,7 +86,7 @@ function LocationPicker({ onChange }) {
               <input
                 autoFocus
                 className="rcm-loc-s-input"
-                placeholder="Search state..."
+                placeholder={t('rcm_search_state_placeholder')}
                 value={stateSearch}
                 onChange={e => setStateSearch(e.target.value)}
                 onClick={e => e.stopPropagation()}
@@ -91,7 +94,7 @@ function LocationPicker({ onChange }) {
             </div>
             <ul className="rcm-loc-list">
               {filteredStates.length === 0
-                ? <li className="rcm-loc-empty">No states found</li>
+                ? <li className="rcm-loc-empty">{t('rcm_no_states_found')}</li>
                 : filteredStates.map(([sk, sName]) => (
                   <li
                     key={sk}
@@ -119,7 +122,7 @@ function LocationPicker({ onChange }) {
           <span className={districtKey ? 'rcm-loc-val' : 'rcm-loc-ph'}>
             {districtKey
               ? districtMap[districtKey]
-              : stateKey ? 'Select District' : 'Select state first'}
+              : stateKey ? t('rcm_select_district') : t('rcm_select_state_first')}
           </span>
           <FaChevronDown className={`rcm-loc-caret ${showDistDrop ? 'rcm-loc-caret--up' : ''}`} />
         </button>
@@ -131,7 +134,7 @@ function LocationPicker({ onChange }) {
               <input
                 autoFocus
                 className="rcm-loc-s-input"
-                placeholder="Search district..."
+                placeholder={t('rcm_search_district_placeholder')}
                 value={districtSearch}
                 onChange={e => setDistrictSearch(e.target.value)}
                 onClick={e => e.stopPropagation()}
@@ -139,7 +142,7 @@ function LocationPicker({ onChange }) {
             </div>
             <ul className="rcm-loc-list">
               {filteredDists.length === 0
-                ? <li className="rcm-loc-empty">No districts found</li>
+                ? <li className="rcm-loc-empty">{t('rcm_no_districts_found')}</li>
                 : filteredDists.map(([dk, dName]) => (
                   <li
                     key={dk}
@@ -161,12 +164,17 @@ function LocationPicker({ onChange }) {
 
 /* -- Modal */
 const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduct = null, editMode = false }) => {
+  const { t } = useTranslation()
   const isRequestNowMode = !!initialProduct
   const cropName = initialProduct?.name || initialProduct?.cropName || initialData?.cropName || ''
   const prefilledQuantityRaw = initialProduct?.quantity || initialProduct?.availableQuantity || initialProduct?.quantityKg || '1'
   const prefilledQuantity = String(Math.min(Math.max(parseFloat(prefilledQuantityRaw) || 1, 1), 50))
   const prefilledUnit = initialProduct?.unit || initialProduct?.quantityUnit || 'kg'
   
+  // Look up crop image for preview
+  const cropInfo = findCropByKeyword(cropName)
+  const cropImg = initialProduct?.image || cropInfo?.image || 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&q=80&w=200'
+
   const [form, setForm]       = useState(initialData ? {
     cropName:   initialData.cropName   || '',
     quantityKg: initialData.quantityKg || '',
@@ -209,24 +217,22 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
     e.preventDefault()
     let submissionForm = form
     
-    // If it's a product request (Request Now), crop name is pre-filled
-    // If it's a new request, validate crop name
     if (!isRequestNowMode) {
       const canonicalCropName = resolveCanonicalCropName(form.cropName)
       if (!canonicalCropName) {
-        return setError('Not a valid crop name. Please enter the correct crop name.')
+        return setError(t('rcm_error_invalid_crop_name'))
       }
       submissionForm = { ...form, cropName: canonicalCropName }
     }
     
     if (!form.quantityKg || isNaN(form.quantityKg) || +form.quantityKg <= 0)
-      return setError('Enter a valid quantity.')
+      return setError(t('rcm_error_invalid_quantity'))
     if (+form.quantityKg > 50)
-      return setError('Quantity must be 50 kg or less.')
+      return setError(t('rcm_error_quantity_max_50'))
     if (!form.quantityUnit)
-      return setError('Please select a unit.')
+      return setError(t('rcm_error_select_unit'))
     if (!form.location.trim())
-      return setError('Please select your state and district.')
+      return setError(t('rcm_error_select_location'))
 
     setSub(true)
     const result = await onSubmit(submissionForm)
@@ -235,7 +241,7 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
       setSuccess(true)
       setTimeout(onClose, 1800)
     } else {
-      setError(result.error || 'Failed to submit. Please try again.')
+      setError(result.error || t('rcm_error_submit_failed'))
     }
   }
 
@@ -247,57 +253,67 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
           <div className="rcm-header-icon"><FaLeaf /></div>
           <div>
             <h2 className="rcm-title">
-              {editMode ? 'Edit Request' : isRequestNowMode ? 'Request This Crop' : 'New Crop Request'}
+              {editMode
+                ? t('rcm_title_edit_request')
+                : isRequestNowMode
+                  ? t('rcm_title_request_this_crop')
+                  : t('rcm_title_new_crop_request')}
             </h2>
             <p className="rcm-subtitle">
-              {editMode ? 'Update your crop request details' : isRequestNowMode ? 'Crop details are auto-filled from farmer listing. Select your location.' : 'Tell farmers exactly what you need'}
+              {editMode
+                ? t('rcm_subtitle_edit_request')
+                : isRequestNowMode
+                  ? t('rcm_subtitle_request_now')
+                  : t('rcm_subtitle_new_request')}
             </p>
           </div>
-          <button className="rcm-close" onClick={onClose}><FaTimes /></button>
+          <button className="rcm-close" onClick={onClose} aria-label={t('rcm_close_modal_aria')}><FaTimes /></button>
         </div>
 
         {success ? (
           <div className="rcm-success">
-            <div className="rcm-success-icon">&#10003;</div>
-            <h3>Request Submitted!</h3>
-            <p>{editMode ? 'Request updated successfully!' : 'Your request has been sent to farmers in your area. They will send you their best offers!'}</p>
+            <div className="rcm-success-icon"><FaCheckCircle /></div>
+            <h3>{t('rcm_success_title')}</h3>
+            <p>{editMode ? t('rcm_success_updated') : t('rcm_success_sent')}</p>
           </div>
         ) : (
           <form className="rcm-form" onSubmit={submit}>
-            {error && <div className="rcm-error">{error}</div>}
+            {error && (
+              <div className="rcm-error">
+                <FaExclamationCircle /> {error}
+              </div>
+            )}
             
             {isRequestNowMode ? (
-              // REQUEST NOW MODE - Show pre-filled crop name
-              <div className="rcm-field" style={{ background: '#f0fdf4', padding: '14px 16px', borderRadius: '12px', border: '1px solid #86efac' }}>
-                <label className="rcm-label"><FaLeaf className="rcm-ico" /> Crop</label>
-                <div style={{ fontSize: '16px', fontWeight: '500', color: '#059669', marginTop: '6px' }}>
-                  {cropName}
-                </div>
-                {typeof initialProduct?.organic === 'boolean' && (
-                  <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: initialProduct.organic ? '#166534' : '#6b7280' }}>
-                    {initialProduct.organic ? 'Organic Crop' : 'Non-Organic Crop'}
+              <div className="rcm-field">
+                <label className="rcm-label"><FaLeaf className="rcm-ico" /> {t('rcm_label_selection')}</label>
+                <div className="rcm-preview-card">
+                  <img src={cropImg} alt={cropName} className="rcm-preview-img" />
+                  <div className="rcm-preview-info">
+                    <div className="rcm-preview-name">{cropName}</div>
+                    <div className={`rcm-preview-tag ${initialProduct?.organic ? 'rcm-preview-tag--organic' : 'rcm-preview-tag--regular'}`}>
+                      {initialProduct?.organic ? t('organic') : t('standard')}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             ) : !editMode ? (
-              // NEW REQUEST MODE - Editable crop name field
               <div className="rcm-field">
-                <label className="rcm-label"><FaLeaf className="rcm-ico" /> Crop Name</label>
+                <label className="rcm-label"><FaLeaf className="rcm-ico" /> {t('rcm_label_crop_name')}</label>
                 <input
                   name="cropName" value={form.cropName} onChange={handle}
-                  className="rcm-input" placeholder="e.g. Tomato, Rice, Mango..."
+                  className="rcm-input" placeholder={t('rcm_crop_name_placeholder')}
                   autoComplete="off" required
                 />
               </div>
             ) : null}
 
             <div className="rcm-field">
-              <label className="rcm-label"><FaRulerCombined className="rcm-ico" /> Quantity</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <label className="rcm-label"><FaRulerCombined className="rcm-ico" /> {t('rcm_label_quantity_need')}</label>
+              <div className="rcm-row">
                 <input
                   name="quantityKg" value={form.quantityKg} onChange={handle}
-                  className="rcm-input" type="number" min="1" max="50" placeholder="e.g. 50" required
-                  style={{ flex: 1 }}
+                  className="rcm-input" type="number" min="1" max="50" placeholder={t('rcm_quantity_placeholder')} required
                   readOnly={isRequestNowMode}
                 />
                 <select
@@ -305,7 +321,6 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
                   value={form.quantityUnit}
                   onChange={handle}
                   className="rcm-input"
-                  style={{ maxWidth: 160 }}
                   required
                   disabled={isRequestNowMode}
                 >
@@ -317,24 +332,24 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
             </div>
 
             <div className="rcm-field">
-              <label className="rcm-label"><FaMapMarkerAlt className="rcm-ico" /> Your Location</label>
+              <label className="rcm-label"><FaMapMarkerAlt className="rcm-ico" /> {t('rcm_label_target_location')}</label>
               <LocationPicker
                 onChange={(loc) => { setForm(f => ({ ...f, location: loc })); setError('') }}
               />
               {form.location && (
                 <div className="rcm-loc-chosen">
-                  <FaMapMarkerAlt className="rcm-loc-chosen-pin" /> {form.location}
+                  <FaCheckCircle /> {form.location}
                 </div>
               )}
             </div>
 
             {!isRequestNowMode && !editMode && (
               <div className="rcm-field">
-                <label className="rcm-label"><FaStickyNote className="rcm-ico" /> Notes <span className="rcm-optional">(optional)</span></label>
+                <label className="rcm-label"><FaStickyNote className="rcm-ico" /> {t('rcm_label_additional_notes')} <span className="rcm-optional">({t('rcm_optional')})</span></label>
                 <textarea
                   name="notes" value={form.notes} onChange={handle}
                   className="rcm-input rcm-textarea"
-                  placeholder="Quality preferences, delivery window, etc." rows={3}
+                  placeholder={t('rcm_notes_placeholder')} rows={3}
                 />
               </div>
             )}
@@ -342,8 +357,9 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
             <button type="submit" className="rcm-submit" disabled={submitting}>
               {submitting
                 ? <span className="rcm-spinner" />
-                : <>{editMode ? 'Save Changes' : isRequestNowMode ? 'Send Request' : 'Submit Request'}</>
+                : <>{editMode ? t('rcm_btn_save_changes') : isRequestNowMode ? t('rcm_btn_send_request') : t('rcm_btn_submit_request')}</>
               }
+              {!submitting && <FaPaperPlane style={{ fontSize: 14 }} />}
             </button>
           </form>
         )}
