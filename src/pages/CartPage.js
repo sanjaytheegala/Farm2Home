@@ -103,21 +103,21 @@ const CartPage = () => {
       await Promise.all(
         cartItems.map(item => {
           const price = item.pricePerKg || item.price || 0
-          const qty   = parseInt(item.quantity) || 1
+          const qty = parseInt(item.quantity) || 1
           return addDoc(collection(db, 'orders'), {
-            customerId:      user.uid,
-            farmerId:        item.farmerId || '',
-            cropName:        item.name || item.cropName || item.crop || 'Product',
-            quantity:        qty,
-            pricePerKg:      price,
-            totalPrice:      price * qty,
-            totalAmount:     price * qty,
-            unit:            item.unit || 'kg',
+            customerId: user.uid,
+            farmerId: item.farmerId || '',
+            cropName: item.name || item.cropName || item.crop || 'Product',
+            quantity: qty,
+            pricePerKg: price,
+            totalPrice: price * qty,
+            totalAmount: price * qty,
+            unit: item.unit || 'kg',
             shippingAddress: deliveryAddress,
-            paymentMethod:   'direct',
-            status:          'pending',
-            batchOrderId:    sharedBatchId,
-            createdAt:       serverTimestamp(),
+            paymentMethod: 'direct',
+            status: 'pending',
+            batchOrderId: sharedBatchId,
+            createdAt: serverTimestamp(),
           })
         })
       )
@@ -151,32 +151,32 @@ const CartPage = () => {
       ) : (
         <div style={cartContent}>
           <div style={itemsSection}>
-                  {cartItems.map((item, index) => {
-                    const itemId = item.id || item.firestoreId || index
-                    return (
-                    <div key={itemId} style={cartItem}>
-                <div style={itemDetails}>
-                  <h3 style={itemName}>{item.name || item.cropName || item.crop}</h3>
-                  <p style={itemPrice}>₹{item.pricePerKg || item.price} / {item.unit || 'kg'}</p>
-                </div>
-                <div style={quantityControls}>
-                      <button onClick={() => updateQuantity(item, -1)} style={qtyBtn} disabled={loading}>
-                    <FaMinus />
-                  </button>
-                      <span style={qtyDisplay}>{item.quantity || 1} {item.unit || 'kg'}</span>
-                      <button onClick={() => updateQuantity(item, 1)} style={qtyBtn} disabled={loading}>
-                    <FaPlus />
-                  </button>
-                </div>
-                <div style={itemTotal}>
-                  <p style={totalPrice}>₹{(parseFloat(item.pricePerKg || item.price) * (parseInt(item.quantity) || 1)).toFixed(2)}</p>
-                      <button onClick={() => removeItem(item)} style={removeBtn} disabled={loading}>
-                    <FaTrash /> {t('remove') || 'Remove'}
-                  </button>
-                </div>
+            {cartItems.map((item, index) => {
+              const itemId = item.id || item.firestoreId || index
+              return (
+                <div key={itemId} style={cartItem}>
+                  <div style={itemDetails}>
+                    <h3 style={itemName}>{item.name || item.cropName || item.crop}</h3>
+                    <p style={itemPrice}>₹{item.pricePerKg || item.price} / {item.unit || 'kg'}</p>
                   </div>
-                    )
-                  })}
+                  <div style={quantityControls}>
+                    <button onClick={() => updateQuantity(item, -1)} style={qtyBtn} disabled={loading}>
+                      <FaMinus />
+                    </button>
+                    <span style={qtyDisplay}>{item.quantity || 1} {item.unit || 'kg'}</span>
+                    <button onClick={() => updateQuantity(item, 1)} style={qtyBtn} disabled={loading}>
+                      <FaPlus />
+                    </button>
+                  </div>
+                  <div style={itemTotal}>
+                    <p style={totalPrice}>₹{(parseFloat(item.pricePerKg || item.price) * (parseInt(item.quantity) || 1)).toFixed(2)}</p>
+                    <button onClick={() => removeItem(item)} style={removeBtn} disabled={loading}>
+                      <FaTrash /> {t('remove') || 'Remove'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
           <div style={summarySection}>
@@ -218,14 +218,14 @@ const CartPage = () => {
             type="text"
             placeholder={t('full_name') || 'Full Name'}
             value={deliveryAddress.fullName}
-            onChange={(e) => setDeliveryAddress({...deliveryAddress, fullName: e.target.value})}
+            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, fullName: e.target.value })}
             style={input}
           />
           <input
             type="tel"
             placeholder={t('phone') || 'Phone Number'}
             value={deliveryAddress.phone}
-            onChange={(e) => setDeliveryAddress({...deliveryAddress, phone: e.target.value})}
+            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, phone: e.target.value })}
             style={input}
             maxLength="10"
           />
@@ -234,7 +234,7 @@ const CartPage = () => {
           type="text"
           placeholder={t('address_line') || 'Address Line (House No., Street)'}
           value={deliveryAddress.addressLine}
-          onChange={(e) => setDeliveryAddress({...deliveryAddress, addressLine: e.target.value})}
+          onChange={(e) => setDeliveryAddress({ ...deliveryAddress, addressLine: e.target.value })}
           style={inputFull}
         />
         <div style={formRow}>
@@ -242,14 +242,14 @@ const CartPage = () => {
             type="text"
             placeholder={t('city') || 'City'}
             value={deliveryAddress.city}
-            onChange={(e) => setDeliveryAddress({...deliveryAddress, city: e.target.value})}
+            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, city: e.target.value })}
             style={input}
           />
           <input
             type="text"
             placeholder={t('state') || 'State'}
             value={deliveryAddress.state}
-            onChange={(e) => setDeliveryAddress({...deliveryAddress, state: e.target.value})}
+            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, state: e.target.value })}
             style={input}
           />
         </div>
@@ -257,7 +257,7 @@ const CartPage = () => {
           type="text"
           placeholder={t('pincode') || 'Pincode'}
           value={deliveryAddress.pincode}
-          onChange={(e) => setDeliveryAddress({...deliveryAddress, pincode: e.target.value})}
+          onChange={(e) => setDeliveryAddress({ ...deliveryAddress, pincode: e.target.value })}
           style={input}
           maxLength="6"
         />

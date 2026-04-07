@@ -34,11 +34,15 @@ i18n
     interpolation: {
       escapeValue: false,
     },
-    parseMissingKeyHandler: (key) =>
-      key
+    parseMissingKeyHandler: (key) => {
+      // Clean up common system prefixes for dynamic location labels
+      const cleanKey = key.replace(/^(state_|dist_)/, '');
+
+      return cleanKey
         .split('_')
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' '),
+        .join(' ');
+    },
     react: {
       useSuspense: false,
     },

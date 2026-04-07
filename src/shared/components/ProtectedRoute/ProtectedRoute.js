@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const ProtectedRoute = ({ children, allowedRoles }) => {
   // TEMP: Auth bypass switch (disable login/register UI and allow direct navigation)
   // Set to false to restore normal authentication gating.
-  const TEMP_BYPASS_AUTH = true;
+  const TEMP_BYPASS_AUTH = false;
 
   const { currentUser, userData } = useAuth();
 

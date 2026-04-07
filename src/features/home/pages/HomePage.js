@@ -31,7 +31,7 @@ const EMAIL_LINK_PHONE_KEY = 'farm2home_phoneForSignIn'
 const HomePage = () => {
   // TEMP: Disable login/register cards and allow direct navigation via buttons.
   // Set to false to restore normal auth UI.
-  const TEMP_DISABLE_AUTH_CARDS = true
+  const TEMP_DISABLE_AUTH_CARDS = false
 
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -757,7 +757,7 @@ const HomePage = () => {
             <div style={ctaButtons} className="cta-buttons">
               <button 
                 onClick={() => {
-                  navigate('/farmer-dashboard')
+                  openLoginCard('farmer')
                 }}
                 style={secondaryBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
@@ -772,7 +772,7 @@ const HomePage = () => {
               </div>
               <button 
                 onClick={() => {
-                  navigate('/consumer')
+                  openLoginCard('consumer')
                 }}
                 style={shopFreshBtn}
                 onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}

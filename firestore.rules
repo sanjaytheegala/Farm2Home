@@ -25,10 +25,7 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.uid == request.auth.uid;
       allow update: if (isOwner(userId) || isAdmin())
-        && request.resource.data.uid == resource.data.uid
-        // Prevent self-escalation and self-unbanning: only admin can change these.
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.status == resource.data.status;
+        && request.resource.data.uid == resource.data.uid;
       allow delete: if isAdmin();
 
       // Cart Persistence
@@ -95,13 +92,6 @@ service cloud.firestore {
       // Only consumers can create their own demand
       allow create: if isSignedIn()
         && request.resource.data.consumerId == request.auth.uid
-        && request.resource.data.status == 'open'
-        && request.resource.data.committedFarmerId == null
-        && request.resource.data.committedFarmerName == null
-        && request.resource.data.farmerOfferPrice == null
-        && request.resource.data.farmerOfferDisplay == null
-        && request.resource.data.farmerOfferUnit == null
-        && request.resource.data.farmerPhone == null
         && request.resource.data.quantityKg is number
         && request.resource.data.quantityKg > 0
         && request.resource.data.quantityKg <= 50;
@@ -114,35 +104,6 @@ service cloud.firestore {
           && request.resource.data.consumerId == resource.data.consumerId
           // Consumer cannot change committedFarmerId once a farmer is attached
           && request.resource.data.committedFarmerId == resource.data.committedFarmerId
-          // Consumer status transitions are restricted to the expected workflow.
-          && (
-            // Regular edits: keep status unchanged
-            request.resource.data.status == resource.data.status
-            // Reject/cancel: quoted/deal_closed -> open (clears commitment + offer fields)
-            || (
-              (resource.data.status == 'quoted' || resource.data.status == 'deal_closed')
-              && request.resource.data.status == 'open'
-              && request.resource.data.committedFarmerId == null
-              && request.resource.data.committedFarmerName == null
-              && request.resource.data.farmerOfferPrice == null
-              && request.resource.data.farmerOfferDisplay == null
-              && request.resource.data.farmerOfferUnit == null
-              && request.resource.data.farmerPhone == null
-            )
-            // Accept a quote: quoted -> deal_closed (keeps committed farmer)
-            || (
-              resource.data.status == 'quoted'
-              && request.resource.data.status == 'deal_closed'
-              && request.resource.data.committedFarmerId == resource.data.committedFarmerId
-              && request.resource.data.committedFarmerId != null
-            )
-            // Mark received: deal_closed/in_progress -> completed
-            || (
-              (resource.data.status == 'deal_closed' || resource.data.status == 'in_progress')
-              && request.resource.data.status == 'completed'
-              && request.resource.data.committedFarmerId == resource.data.committedFarmerId
-            )
-          )
         )
         // ── Farmer submits a NEW offer on an open demand ──
         || (
@@ -223,7 +184,8 @@ service cloud.firestore {
 
     match /roles_admin/{uid} {
       allow read: if (isSignedIn() && request.auth.uid == uid) || isAdmin();
-      allow write: if false;
+      // Only existing admins can grant/revoke admin access
+      allow write: if isAdmin();
     }
 
     // Profile Photos
@@ -258,69 +220,12 @@ service cloud.firestore {
 
     // 10. Rental Requests (used by ResourceSharePage / FarmerDashboard / App notifications)
     match /rental_requests/{requestId} {
-      // Only participants (requester/tool owner) or admins can see rental requests.
-      allow read: if isSignedIn() && (
-        isAdmin()
-        || resource.data.requesterId == request.auth.uid
-        || resource.data.toolOwnerId == request.auth.uid
-      );
-
-      allow create: if isSignedIn()
-        && request.resource.data.requesterId == request.auth.uid
-        // Initial status only
-        && request.resource.data.status == 'Requested'
-        // Aadhaar storage path (optional at create, can be set once later by requester)
-        && (!request.resource.data.keys().hasAny(['aadhaarStoragePath']) || request.resource.data.aadhaarStoragePath == null);
-
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.requesterId == request.auth.uid;
       allow update: if isAdmin()
-        || (
-          // Requester updates: can cancel, add Aadhaar path once, and submit review
-          isSignedIn()
-          && resource.data.requesterId == request.auth.uid
-          // Immutable identity fields
-          && request.resource.data.requesterId == resource.data.requesterId
-          && request.resource.data.toolOwnerId == resource.data.toolOwnerId
-          && request.resource.data.toolId == resource.data.toolId
-          && request.resource.data.createdAt == resource.data.createdAt
-          // Aadhaar path can be written only once (null -> string), never changed after
-          && (
-            request.resource.data.aadhaarStoragePath == resource.data.aadhaarStoragePath
-            || (resource.data.aadhaarStoragePath == null && request.resource.data.aadhaarStoragePath is string)
-          )
-          // Status: unchanged OR cancel from Requested/Accepted
-          && (
-            request.resource.data.status == resource.data.status
-            || (
-              (resource.data.status == 'Requested' || resource.data.status == 'Accepted')
-              && request.resource.data.status == 'Cancelled'
-              && request.resource.data.cancelledBy == request.auth.uid
-            )
-          )
-        )
-        || (
-          // Tool owner updates: can advance status forward; cannot change identity fields
-          isSignedIn()
-          && resource.data.toolOwnerId == request.auth.uid
-          && request.resource.data.requesterId == resource.data.requesterId
-          && request.resource.data.toolOwnerId == resource.data.toolOwnerId
-          && request.resource.data.toolId == resource.data.toolId
-          && request.resource.data.createdAt == resource.data.createdAt
-          // Tool owner cannot change Aadhaar path
-          && request.resource.data.aadhaarStoragePath == resource.data.aadhaarStoragePath
-          // Allowed status transitions
-          && (
-            // Requested -> Accepted/Rejected
-            (resource.data.status == 'Requested' && (request.resource.data.status == 'Accepted' || request.resource.data.status == 'Rejected'))
-            // Accepted -> In Progress
-            || (resource.data.status == 'Accepted' && request.resource.data.status == 'In Progress')
-            // In Progress -> Completed
-            || (resource.data.status == 'In Progress' && request.resource.data.status == 'Completed')
-            // Allow no-op updates (e.g., notes) without changing status
-            || request.resource.data.status == resource.data.status
-          )
-        );
-
-      allow delete: if isAdmin();
+        || (isSignedIn() && resource.data.requesterId == request.auth.uid)
+        || (isSignedIn() && resource.data.toolOwnerId == request.auth.uid);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.requesterId == request.auth.uid);
     }
 
     // 11. Resource Reports (complaints for rental flows)

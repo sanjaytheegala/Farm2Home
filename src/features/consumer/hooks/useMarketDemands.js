@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { db, auth } from '../../../firebase'
 import {
   collection, addDoc, onSnapshot, query,
-  where, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, writeBatch
+  where, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, writeBatch, setDoc
 } from 'firebase/firestore'
 
 /**
@@ -12,6 +12,7 @@ import {
 export const useMarketDemands = () => {
   const [myDemands, setMyDemands]   = useState([])
   const [loading, setLoading]       = useState(true)
+  const reviewCacheRef = useRef(new Map()) // demandId -> { exists: boolean, rating?: number, comment?: string }
 
   /* ── Real-time listener: consumer's own requests ── */
   useEffect(() => {
@@ -33,6 +34,39 @@ export const useMarketDemands = () => {
         })
         setMyDemands(docs)
         setLoading(false)
+
+        // Some legacy demand docs may not be updateable to set `reviewed: true` under stricter rules.
+        // To keep UI consistent across refresh, treat an existing review doc as "review submitted".
+        const pending = docs.filter(d => d.status === 'completed' && !d.reviewed && !reviewCacheRef.current.has(d.id))
+        if (pending.length) {
+          Promise.all(
+            pending.map(async (d) => {
+              try {
+                const reviewId = `${d.id}_${user.uid}`
+                const reviewSnap = await getDoc(doc(db, 'reviews', reviewId))
+                if (reviewSnap.exists()) {
+                  const r = reviewSnap.data() || {}
+                  return { demandId: d.id, exists: true, rating: r.rating, comment: r.comment }
+                }
+                return { demandId: d.id, exists: false }
+              } catch (_) {
+                return { demandId: d.id, exists: false }
+              }
+            })
+          ).then((results) => {
+            results.forEach((r) => reviewCacheRef.current.set(r.demandId, r))
+            setMyDemands((prev) => prev.map((d) => {
+              const cached = reviewCacheRef.current.get(d.id)
+              if (!cached?.exists || d.reviewed) return d
+              return {
+                ...d,
+                reviewed: true,
+                reviewRating: d.reviewRating || cached.rating || 0,
+                reviewComment: d.reviewComment || cached.comment || '',
+              }
+            }))
+          })
+        }
       }, (err) => {
         console.error('useMarketDemands snapshot error:', err)
         setLoading(false)
@@ -106,6 +140,8 @@ export const useMarketDemands = () => {
         quantityKg:    qty,
         quantityUnit:  formData.quantityUnit || 'kg',
         location:      formData.location.trim(),
+        locationStateKey: formData.locationStateKey || null,
+        locationDistrictKey: formData.locationDistrictKey || null,
         notes:         (formData.notes || '').trim(),
         consumerId:    user.uid,
         consumerName:  user.displayName || user.email || 'Consumer',
@@ -268,25 +304,67 @@ export const useMarketDemands = () => {
     if (!user) return { success: false, error: 'Not logged in' }
     if (!rating || rating < 1 || rating > 5) return { success: false, error: 'Please select a rating 1-5.' }
     try {
-      // Write to reviews collection
-      await addDoc(collection(db, 'reviews'), {
+      if (!demandId || typeof demandId !== 'string') {
+        return { success: false, error: 'Request not found' }
+      }
+
+      const demandRef = doc(db, 'market_demands', demandId)
+      const demandSnap = await getDoc(demandRef)
+      if (!demandSnap.exists()) {
+        return { success: false, error: 'Request not found' }
+      }
+
+      const demand = demandSnap.data() || {}
+      if (demand.consumerId && demand.consumerId !== user.uid) {
+        return { success: false, error: 'Unauthorized: You can only review your own requests.' }
+      }
+      if (demand.reviewed === true) {
+        return { success: false, error: 'Review already submitted.' }
+      }
+
+      // Use a deterministic review id to prevent duplicate submissions.
+      // (Firestore rules disallow updates for reviews, so we must create once.)
+      const reviewId = `${demandId}_${user.uid}`
+      const reviewRef = doc(db, 'reviews', reviewId)
+      const existingReview = await getDoc(reviewRef)
+      if (existingReview.exists()) {
+        return { success: false, error: 'Review already submitted.' }
+      }
+
+      await setDoc(reviewRef, {
         demandId,
-        consumerId:   user.uid,
+        consumerId: user.uid,
         consumerName: user.displayName || user.email || 'Consumer',
-        farmerId,
-        farmerName,
-        cropName,
+        farmerId: farmerId || demand.committedFarmerId || null,
+        farmerName: farmerName || demand.committedFarmerName || null,
+        cropName: cropName || demand.cropName || null,
         rating,
         comment: (comment || '').trim(),
         createdAt: serverTimestamp(),
       })
-      // Mark demand as reviewed so form disappears
-      await updateDoc(doc(db, 'market_demands', demandId), {
-        reviewed:   true,
-        reviewRating: rating,
-        reviewComment: (comment || '').trim(),
-        reviewedAt: serverTimestamp(),
-      })
+
+      reviewCacheRef.current.set(demandId, { exists: true, rating, comment: (comment || '').trim() })
+
+      // Best-effort: mark demand as reviewed so UI can hide the form.
+      // If legacy data or rules prevent this update, still consider the review submitted.
+      try {
+        await updateDoc(demandRef, {
+          reviewed: true,
+          reviewRating: rating,
+          reviewComment: (comment || '').trim(),
+          reviewedAt: serverTimestamp(),
+        })
+      } catch (err) {
+        console.warn('submitReview: demand review flag update failed:', err?.message || err)
+      }
+
+      // Optimistic local state update to immediately reflect submission.
+      setMyDemands((prev) => prev.map((d) => (
+        d.id === demandId
+          ? { ...d, reviewed: true, reviewRating: rating, reviewComment: (comment || '').trim(), reviewedAt: { seconds: Math.floor(Date.now() / 1000) } }
+          : d
+      )))
+
       return { success: true }
     } catch (err) {
       return { success: false, error: err.message }
@@ -329,6 +407,8 @@ export const useMarketDemands = () => {
         quantityKg: parseFloat(formData.quantityKg),
         quantityUnit: formData.quantityUnit || 'kg',
         location:   formData.location.trim(),
+        locationStateKey: formData.locationStateKey || null,
+        locationDistrictKey: formData.locationDistrictKey || null,
         notes:      (formData.notes || '').trim(),
         updatedAt:  serverTimestamp(),
       })

@@ -13,6 +13,11 @@
     "farmer_dashboard": "ರೈತ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     "consumer_dashboard": "ಗ್ರಾಹಕ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     "crop": "ಬೆಳೆ",
+    "crop_dragonfruit": "ಡ್ರಾಗನ್ ಫ್ರೂಟ್",
+    "crop_brinjal": "ಬದನೆಕಾಯಿ",
+    "crop_figs": "ಅಂಜೂರ",
+    "crop_tomato": "ಟೊಮೇಟೊ",
+    "crop_potato": "ಆಲೂಗಡ್ಡೆ",
     "quantity": "ಪ್ರಮಾಣ",
     "price": "ಬೆಲೆ",
     "save": "ಉಳಿಸಿ",
@@ -82,7 +87,6 @@
     "already_requested_tooltip": "ನೀವು ಈ ಬೆಳೆಗೆ ಈಗಾಗಲೇ ವಿನಂತಿಸಿದ್ದೀರಿ",
     "request_this_crop_tooltip": "ಈ ಬೆಳೆಗೆ ವಿನಂತಿಸಿ",
     "standard": "ಸಾಮಾನ್ಯ",
-
     "rcm_select_state": "ರಾಜ್ಯ ಆಯ್ಕೆಮಾಡಿ",
     "rcm_search_state_placeholder": "ರಾಜ್ಯ ಹುಡುಕಿ...",
     "rcm_no_states_found": "ಯಾವುದೇ ರಾಜ್ಯಗಳು ಕಂಡುಬಂದಿಲ್ಲ",
@@ -183,14 +187,12 @@
     "requests": "ವಿನಂತಿಗಳು",
     "crop_recommendations": "ಬೆಳೆ ಶಿಫಾರಸುಗಳು",
     "crop_requests": "ಬೆಳೆ ವಿನಂತಿಗಳು",
-
     "soil_type": "ಮಣ್ಣಿನ ಪ್ರಕಾರ",
     "climate": "ಹವಾಮಾನ",
     "season": "ಋತು",
     "water_availability": "ನೀರಿನ ಲಭ್ಯತೆ",
     "farming_experience": "ಕೃಷಿ ಅನುಭವ",
     "market_preference": "ಮಾರುಕಟ್ಟೆ ಆದ್ಯತೆ",
-
     "back": "ಹಿಂದೆ",
     "forward": "ಮುಂದೆ",
     "new_analysis": "ಹೊಸ ವಿಶ್ಲೇಷಣೆ",
@@ -198,7 +200,6 @@
     "no_saved_recommendations": "ಇನ್ನೂ ಸೇವ್ ಮಾಡಿದ ಶಿಫಾರಸುಗಳು ಇಲ್ಲ.",
     "score": "ಅಂಕ",
     "saved_on": "ಸೇವ್ ಮಾಡಿದ ದಿನಾಂಕ",
-    "view_details": "ವಿವರಗಳನ್ನು ನೋಡಿ",
     "characteristics": "ಲಕ್ಷಣಗಳು",
     "get_crop_recommendations": "ಬೆಳೆ ಶಿಫಾರಸುಗಳನ್ನು ಪಡೆಯಿರಿ",
     "select_soil_type": "ಮಣ್ಣಿನ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ",
@@ -252,7 +253,6 @@
     "level_medium": "ಮಧ್ಯಮ",
     "level_high": "ಹೆಚ್ಚು",
     "level_very_high": "ಬಹಳ ಹೆಚ್ಚು",
-
     "soil_clay": "ಕಳೆಮಣ್ಣು",
     "soil_clay_desc": "ಭಾರವಾದ ಮಣ್ಣು, ನೀರನ್ನು ಹಿಡಿದುಕೊಳ್ಳುತ್ತದೆ, ಅಕ್ಕಿ ಮತ್ತು ಗೋಧಿಗೆ ಉತ್ತಮ",
     "soil_clay_char1": "ಉಚ್ಚ ಜಲಧರಣ ಸಾಮರ್ಥ್ಯ",
@@ -283,7 +283,6 @@
     "soil_black_char1": "ಉಚ್ಚ ಸಾರತೆ",
     "soil_black_char2": "ಖನಿಜಗಳು ಸಮೃದ್ಧ",
     "soil_black_char3": "ನಗದು ಬೆಳೆಗಳಿಗೆ ಅತ್ಯುತ್ತಮ",
-
     "climate_tropical": "ಉಷ್ಣವಲಯ",
     "climate_tropical_desc": "ಬಿಸಿ ಮತ್ತು ತೇವ, ವರ್ಷಪೂರ್ತಿ ಕೃಷಿ",
     "climate_tropical_char1": "ಉಚ್ಚ ತಾಪಮಾನ",
@@ -309,7 +308,6 @@
     "climate_semi_arid_char1": "ಮಧ್ಯಮ ಮಳೆ",
     "climate_semi_arid_char2": "ಒಣತನ ತಾಳುವ",
     "climate_semi_arid_char3": "ಮಿಶ್ರ ಕೃಷಿ",
-
     "season_kharif": "ಖರೀಫ್ (ಮೋನ್ಸೂನ್)",
     "season_kharif_desc": "ಜೂನ್-ಅಕ್ಟೋಬರ್, ಅಕ್ಕಿ, ಮೆಕ್ಕೆಜೋಳ, ಹತ್ತಿ",
     "season_kharif_char1": "ಮೋನ್ಸೂನ್ ಋತು",
@@ -325,7 +323,6 @@
     "season_zaid_char1": "ಬೆಸಿಗೆ ಋತು",
     "season_zaid_char2": "ಸಿಂಚನ ಅಗತ್ಯ",
     "season_zaid_char3": "ತರಕಾರಿಗಳು, ಹಣ್ಣುಗಳು",
-
     "water_high": "ಹೆಚ್ಚು (ಸಿಂಚನ ಲಭ್ಯ)",
     "water_high_desc": "ನೀರು ಹೆಚ್ಚು ಬೇಕಾದ ಬೆಳೆಗಳನ್ನು ಬೆಳೆಯಬಹುದು",
     "water_high_char1": "ಪೂರ್ಣ ಸಿಂಚನ",
@@ -341,7 +338,6 @@
     "water_low_char1": "ಮಳೆ ಆಧಾರಿತ ಕೃಷಿ",
     "water_low_char2": "ಒಣತನ ತಾಳುವ",
     "water_low_char3": "ಕಡಿಮೆ ನೀರಿನ ಬಳಕೆ",
-
     "exp_beginner": "ಆರಂಭಿಕ (0-2 ವರ್ಷ)",
     "exp_beginner_desc": "ಬೆಳೆಯಲು ಸುಲಭವಾದ ಬೆಳೆಗಳು",
     "exp_beginner_char1": "ಸರಳ ವಿಧಾನಗಳು",
@@ -357,7 +353,6 @@
     "exp_expert_char1": "ಮುನ್ನಡೆದ ವಿಧಾನಗಳು",
     "exp_expert_char2": "ಹೆಚ್ಚು ರಿಸ್ಕ್",
     "exp_expert_char3": "ವಿಶೇಷ ಜ್ಞಾನ",
-
     "market_local": "ಸ್ಥಳೀಯ ಮಾರುಕಟ್ಟೆ",
     "market_local_desc": "ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆಗಳಿಗೆ ತಾಜಾ ಉತ್ಪನ್ನ",
     "market_local_char1": "ಹತ್ತಿರದ ಮಾರುಕಟ್ಟೆ",
@@ -378,7 +373,6 @@
     "market_organic_char1": "ಪ್ರಮಾಣೀಕೃತ ಆರ್ಗ್ಯಾನಿಕ್",
     "market_organic_char2": "ಪ್ರೀಮಿಯಂ ಬೆಲೆ",
     "market_organic_char3": "ಸ್ವಾಭಾವಿಕ ವಿಧಾನಗಳು",
-
     "crop_duration_rice": "120-150 ದಿನ",
     "crop_duration_wheat": "110-130 ದಿನ",
     "crop_duration_maize": "90-110 ದಿನ",
@@ -387,7 +381,6 @@
     "crop_duration_tomato": "90-120 ದಿನ",
     "crop_duration_mango": "3-5 ವರ್ಷ (ಮೊದಲ ಕೊಯ್ಲು)",
     "crop_duration_cotton": "150-180 ದಿನ",
-
     "crop_investment_rice": "₹15,000-25,000 ಪ್ರತಿ ಏಕರ್",
     "crop_investment_wheat": "₹12,000-20,000 ಪ್ರತಿ ಏಕರ್",
     "crop_investment_maize": "₹10,000-18,000 ಪ್ರತಿ ಏಕರ್",
@@ -396,7 +389,6 @@
     "crop_investment_tomato": "₹25,000-40,000 ಪ್ರತಿ ಏಕರ್",
     "crop_investment_mango": "₹50,000-80,000 ಪ್ರತಿ ಏಕರ್",
     "crop_investment_cotton": "₹15,000-25,000 ಪ್ರತಿ ಏಕರ್",
-
     "crop_yield_rice": "2-3 ಟನ್/ಏಕರ್",
     "crop_yield_wheat": "2-2.5 ಟನ್/ಏಕರ್",
     "crop_yield_maize": "2.5-3.5 ಟನ್/ಏಕರ್",
@@ -405,7 +397,6 @@
     "crop_yield_tomato": "15-25 ಟನ್/ಏಕರ್",
     "crop_yield_mango": "8-12 ಟನ್/ಏಕರ್ (ಪೂರ್ಣ ಬೆಳೆ ಮರ)",
     "crop_yield_cotton": "2-3 ಕ್ವಿಂಟಲ್/ಏಕರ್",
-
     "crop_market_trends_rice": "ಸ್ಥಿರ ಬೇಡಿಕೆ, ಉತ್ತಮ ರಫ್ತು ಸಾಧ್ಯತೆ",
     "crop_market_trends_wheat": "ಸ್ಥಿರ ದೇಶೀಯ ಬೇಡಿಕೆ",
     "crop_market_trends_maize": "ಪ್ರಕ್ರಿಯೆ ಉತ್ಪನ್ನಗಳಿಗೆ ಹೆಚ್ಚುತ್ತಿರುವ ಬೇಡಿಕೆ",
@@ -414,7 +405,6 @@
     "crop_market_trends_tomato": "ವರ್ಷಪೂರ್ತಿ ಬೇಡಿಕೆ",
     "crop_market_trends_mango": "ಉಚ್ಚ ರಫ್ತು ಅವಕಾಶಗಳು",
     "crop_market_trends_cotton": "ವಸ್ತ್ರ ಉದ್ಯಮಕ್ಕೆ ಸ್ಥಿರ ಬೇಡಿಕೆ",
-
     "crop_sustainability_rice": "ಉಚ್ಚ - ಆಹಾರ ಭದ್ರತೆಗೆ ಬೆಂಬಲ",
     "crop_sustainability_wheat": "ಉಚ್ಚ - ಪ್ರಮುಖ ಆಹಾರ ಬೆಳೆ",
     "crop_sustainability_maize": "ಮಧ್ಯಮ - ಬಹುಉಪಯೋಗಿ ಬೆಳೆ",
@@ -423,7 +413,6 @@
     "crop_sustainability_tomato": "ಮಧ್ಯಮ - ಹೆಚ್ಚು ಇನ್‌ಪುಟ್ ಬೇಕು",
     "crop_sustainability_mango": "ಉಚ್ಚ - ಬಹುವರ್ಷ ಬೆಳೆ",
     "crop_sustainability_cotton": "ಮಧ್ಯಮ - ನಗದು ಬೆಳೆ",
-
     "bp_proper_water_management": "ಸರಿಯಾದ ನೀರಿನ ನಿರ್ವಹಣೆ",
     "bp_timely_transplantation": "ಸಮಯಕ್ಕೆ ಸರಿಯಾದ ನಾಟಿ",
     "bp_balanced_fertilization": "ಸಮತೂಲಿತ ಗೊಬ್ಬರ ಬಳಕೆ",
@@ -441,7 +430,6 @@
     "bp_quality_maintenance": "ಗುಣಮಟ್ಟ ನಿರ್ವಹಣೆ",
     "bp_pest_management": "ಕೀಟ ನಿರ್ವಹಣೆ",
     "bp_quality_picking": "ಗುಣಮಟ್ಟದ ಕೊಯ್ಲು",
-
     "ch_water_requirement": "ನೀರಿನ ಅಗತ್ಯ",
     "ch_pest_management": "ಕೀಟ ನಿರ್ವಹಣೆ",
     "ch_labor_intensive": "ಕಾರ್ಮಿಕ ಅಗತ್ಯ ಹೆಚ್ಚು",
@@ -465,7 +453,6 @@
     "share": "ಹಂಚಿಕೆ",
     "favorite": "ಇಷ್ಟ",
     "favorites": "ಇಷ್ಟಪಟ್ಟವು",
-    "add_to_favorites": "ಇಷ್ಟಗಳಲ್ಲಿ ಸೇರಿಸಿ",
     "remove_from_favorites": "ಇಷ್ಟಗಳಿಂದ ತೆಗೆದುಹಾಕಿ",
     "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     "error": "ದೋಷ",
@@ -524,8 +511,8 @@
     "step_2_desc": "ಉತ್ಪನ್ನಗಳನ್ನು ನೋಡಿ ಅಥವಾ ನಿಮ್ಮ ಕೊಯ್ಲನ್ನು ಪಟ್ಟಿ ಮಾಡಿ",
     "step_3_title": "ವ್ಯಾಪಾರ ಮಾಡಿ",
     "step_3_desc": "ಸುರಕ್ಷಿತ ವಹಿವಾಟುಗಳು ಮತ್ತು ವಿಶ್ವಾಸಾರ್ಹ ವಿತರಣೆ",
-    "what_users_say": "ಬಳಕೆದಾರರು ಏನು ಹೇಳುತ್ತಾರೆ"
-    ,"hero_subtitle": "ರೈತರನ್ನು ನೇರವಾಗಿ ಗ್ರಾಹಕರೊಂದಿಗೆ ಸಂಪರ್ಕಿಸುವುದು",
+    "what_users_say": "ಬಳಕೆದಾರರು ಏನು ಹೇಳುತ್ತಾರೆ",
+    "hero_subtitle": "ರೈತರನ್ನು ನೇರವಾಗಿ ಗ್ರಾಹಕರೊಂದಿಗೆ ಸಂಪರ್ಕಿಸುವುದು",
     "go_to_dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಹೋಗಿ",
     "reset_password": "ಪಾಸ್‌ವರ್ಡ್ ಮರುಹೊಂದಿಸಿ",
     "reset_link_prompt": "ನಿಮ್ಮ ಇಮೇಲ್ ನಮೂದಿಸಿ, ನಾವು ನಿಮಗೆ ಮರುಹೊಂದಿಸುವ ಲಿಂಕ್ ಅನ್ನು ಕಳುಹಿಸುತ್ತೇವೆ.",
@@ -600,13 +587,11 @@
     "enter_email_password": "ದಯವಿಟ್ಟು ಇಮೇಲ್ ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ",
     "login_failed": "ಲಾಗಿನ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ. ನಿಮ್ಮ ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
     "signup_failed": "ಖಾತೆ ರಚಿಸಲು ವಿಫಲವಾಗಿದೆ.",
-
     "nav_crop_recommendations": "ಬೆಳೆ ಶಿಫಾರಸುಗಳು",
     "nav_resource_sharing": "ಸಂಪನ್ಮೂಲ ಹಂಚಿಕೆ",
     "nav_resource_sharing_notifications": "ಸಂಪನ್ಮೂಲ ಹಂಚಿಕೆ ಸೂಚನೆಗಳು",
     "nav_all_caught_up": "ಹೊಸ ಸೂಚನೆಗಳು ಇಲ್ಲ",
     "nav_no_new_notifications": "ಹೊಸ ಅಧಿಸೂಚನೆಗಳು ಇಲ್ಲ.",
-
     "fd_tab_manage_crops": "ಬೆಳೆ ನಿರ್ವಹಣೆ",
     "fd_tab_crop_requests": "ಬೆಳೆ ವಿನಂತಿಗಳು",
     "fd_tab_analytics": "ವಿಶ್ಲೇಷಣೆ",
@@ -617,13 +602,11 @@
     "fd_no_crops_title": "ಇನ್ನೂ ಯಾವುದೇ ಬೆಳೆಗಳನ್ನು ಪಟ್ಟಿ ಮಾಡಿಲ್ಲ",
     "fd_no_crops_sub": "\"ಹೊಸ ಬೆಳೆ ಸೇರಿಸಿ\" ಕ್ಲಿಕ್ ಮಾಡಿ ನಿಮ್ಮ ಉತ್ಪನ್ನಗಳನ್ನು ಪಟ್ಟಿ ಮಾಡಿ ಮತ್ತು ಖರೀದಿದಾರರಿಗೆ ನೇರವಾಗಿ ತಲುಪಿರಿ.",
     "fd_cancel": "ರದ್ದುಮಾಡಿ",
-
     "cd_no_crops_listed_title": "ಇನ್ನೂ ಯಾವುದೇ ಬೆಳೆಗಳನ್ನು ಪಟ್ಟಿ ಮಾಡಿಲ್ಲ",
     "cd_no_crops_listed_sub": "ರೈತರು ಇನ್ನೂ ಬೆಳೆಗಳನ್ನು ಸೇರಿಸಿಲ್ಲ — ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮರುಪರಿಶೀಲಿಸಿ, ಅಥವಾ ಮೇಲೆಯಿಂದ ವಿನಂತಿಸಿ!",
     "cd_no_products_found_title": "ಯಾವುದೇ ಉತ್ಪನ್ನಗಳು ಕಂಡುಬಂದಿಲ್ಲ",
     "cd_try_adjusting_filters_sub": "ನಿಮ್ಮ ಫಿಲ್ಟರ್‌ಗಳು ಅಥವಾ ಹುಡುಕಾಟ ಪದವನ್ನು ಬದಲಿಸಿ ಪ್ರಯತ್ನಿಸಿ.",
     "cd_reset_filters": "ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಮರುಹೊಂದಿಸಿ",
-
     "cd_greeting_morning": "ಶುಭೋದಯ",
     "cd_greeting_afternoon": "ಶುಭ ಮಧ್ಯಾಹ್ನ",
     "cd_greeting_evening": "ಶುಭ ಸಂಜೆ",
@@ -736,7 +719,6 @@
     "cd_category_leafy_greens": "ಸೊಪ್ಪುಗಳು",
     "cd_category_spices": "ಮಸಾಲೆಗಳು",
     "cd_category_vegetables": "ತರಕಾರಿಗಳು",
-
     "cd_footer_tagline": "ಆರೋಗ್ಯಕರ, ಸ್ಥಿರ ಭಾರತಕ್ಕಾಗಿ ರೈತರನ್ನು ಮತ್ತು ಗ್ರಾಹಕರನ್ನು ಸಂಪರ್ಕಿಸುತ್ತದೆ — ಮಧ್ಯವರ್ತಿಗಳು ಇಲ್ಲ, ಶುದ್ಧ ತಾಜಾತನ.",
     "cd_footer_location": "ಹೈದರಾಬಾದ್, ತೆಲಂಗಾಣ, ಭಾರತ",
     "cd_footer_badge_secure": "100% ಸುರಕ್ಷಿತ",
@@ -759,11 +741,9 @@
     "cd_footer_privacy": "ಗೌಪ್ಯತೆ",
     "cd_footer_terms": "ಷರತ್ತುಗಳು",
     "cd_footer_sitemap": "ಸೈಟ್‌ಮ್ಯಾಪ್",
-
     "rs_no_tools_listed_title": "ಇನ್ನೂ ಯಾವುದೇ ಸಾಧನಗಳನ್ನು ಪಟ್ಟಿ ಮಾಡಿಲ್ಲ",
     "rs_no_tools_listed_sub": "ನಿಮ್ಮ ಕೃಷಿ ಸಾಧನಗಳನ್ನು ಪಟ್ಟಿ ಮಾಡಿ ಮತ್ತು ಬಾಡಿಗೆ ವಿನಂತಿಗಳನ್ನು ಪಡೆಯಲು ಪ್ರಾರಂಭಿಸಿ.",
     "rs_add_your_first_tool": "ನಿಮ್ಮ ಮೊದಲ ಸಾಧನವನ್ನು ಸೇರಿಸಿ",
-
     "rs_browse_tools": "ಸಾಧನಗಳನ್ನು ವೀಕ್ಷಿಸಿ",
     "rs_my_requests": "ನನ್ನ ವಿನಂತಿಗಳು",
     "rs_my_tools": "ನನ್ನ ಸಾಧನಗಳು",
@@ -863,7 +843,6 @@
     "rs_aadhaar_photo_hint": "ಕಾರ್ಡ್‌ನ ಮುಂಭಾಗ ಅಥವಾ ಹಿಂಭಾಗದ ಚಿತ್ರ",
     "rs_aadhaar_selected": "✅ ಆಧಾರ್ ಚಿತ್ರ ಆಯ್ಕೆಯಾಗಿದೆ.",
     "rs_aadhaar_required_upload_for_verification": "⚠️ ಅಗತ್ಯ: ಪರಿಶೀಲನೆಗಾಗಿ ದಯವಿಟ್ಟು ನಿಮ್ಮ ಆಧಾರ್ ಕಾರ್ಡ್ ಚಿತ್ರದನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.",
-
     "rs_tool_1_name": "5 ಪೀಸ್ ಸ್ಪ್ರಿಂಕ್ಲರ್‌ಗಳು",
     "rs_tool_1_desc": "ಕಾರ್ಯಕ್ಷಮ ನೀರಿನ ವಿತರಣೆಗಾಗಿ ಸಂಪೂರ್ಣ 5-ಪೀಸ್ ಸ್ಪ್ರಿಂಕ್ಲರ್ ನೀರಾವರಿ ಸೆಟ್. ದೊಡ್ಡ ಪ್ರದೇಶವನ್ನು ಸಮಾನವಾಗಿ ಕವರ್ ಮಾಡುತ್ತದೆ.",
     "rs_tool_2_name": "7.5 ಹೆಚ್‌ಪಿ ವಾಟರ್ ಪಂಪ್",
@@ -930,7 +909,6 @@
     "rs_tool_32_desc": "ಎಲ್ಲಾ ತರಹದ ಫಾರ್ಮ್ ಕೆಲಸಗಳಿಗೆ ಸ್ವರಾಜ್ ಟ್ರಾಕ್ಟರ್. ನಿರ್ವಹಣೆ ಸುಲಭ ಮತ್ತು ಉತ್ತಮ ಮರುಮಾರಾಟ ಮೌಲ್ಯಕ್ಕೆ ಪ್ರಸಿದ್ಧ.",
     "rs_tool_33_name": "ಟ್ರಾಕ್ಟರ್",
     "rs_tool_33_desc": "ಉಳುಮೆ ಮತ್ತು ಕೃಷಿಗೆ ಸೂಕ್ತ ಹೈ-ಪರ್ಫಾರ್ಮೆನ್ಸ್ ಟ್ರಾಕ್ಟರ್. ಇತ್ತೀಚಿನ ವೈಶಿಷ್ಟ್ಯಗಳೊಂದಿಗೆ ಚೆನ್ನಾಗಿ ನಿರ್ವಹಿಸಲಾಗಿದೆ.",
-
     "fcl_error_not_logged_in": "ಬೆಳೆಗಳನ್ನು ನೋಡಲು ನೀವು ಲಾಗಿನ್ ಆಗಿರಬೇಕು",
     "fcl_error_load_failed": "ಬೆಳೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     "fcl_title_my_crops": "ನನ್ನ ಬೆಳೆಗಳು",
@@ -950,11 +928,9 @@
     "ad_high_risk_users_detected_other": "{{count}} ಹೆಚ್ಚಿನ ಅಪಾಯದ ಬಳಕೆದಾರರು ಪತ್ತೆಯಾಯಿತು",
     "ad_complaints_count_one": "{{count}} ದೂರು",
     "ad_complaints_count_other": "{{count}} ದೂರುಗಳು",
-
     "fd_choose_a_crop": "ಬೆಳೆ ಆಯ್ಕೆಮಾಡಿ",
     "fd_search_hint": "ಹುಡುಕಿ: ಅಕ್ಕಿ, ಟೊಮೇಟೊ…",
     "fd_tap_crop_hint": "ಕೆಳಗಿನ ಯಾವುದಾದರೂ ಬೆಳೆಯನ್ನು ಟ್ಯಾಪ್ ಮಾಡಿ, ಅಥವಾ ಹೆಸರು/ಸ್ಥಳೀಯ ಹೆಸರಿನಿಂದ ಹುಡುಕಿ",
-
     "fd_kg": "ಕೆಜಿ",
     "fd_quintal": "ಕ್ವಿಂಟಲ್",
     "fd_ton": "ಟನ್",
@@ -963,7 +939,6 @@
     "fd_per_ton_1000kg": "ಟನ್‌ಗೆ (1000 ಕಿಲೋ)",
     "fd_per_unit": "{{unit}}ಗೆ",
     "fd_amount_per_unit": "{{unit}}ಗೆ ಮೊತ್ತ",
-
     "fd_no_notifs": "ಸೂಚನೆಗಳು ಇಲ್ಲ",
     "fd_crop_request_notif": "ಬೆಳೆ ವಿನಂತಿ: {{crop}}",
     "fd_new_order_notif": "ಹೊಸ ಆರ್ಡರ್: {{crop}}",
@@ -972,7 +947,6 @@
     "fd_no_new_notifications_title": "ಎಲ್ಲವೂ ನೋಡಿ ಮುಗಿತೆ!",
     "fd_no_new_notifications_sub": "ಹೊಸ ಸೂಚನೆಗಳು ಇಲ್ಲ. ಗ್ರಾಹಕರು ನಿಮ್ಮ ಬೆಳೆಗಳಲ್ಲಿ ಆಸಕ್ತಿ ತೋರಿಸಿದಾಗ ನಾವು ನಿಮಗೆ ತಿಳಿಸುತ್ತೇವೆ.",
     "fd_recently": "ಇತ್ತೀಚೆಗೆ",
-
     "fd_market_subtitle": "ಗ್ರಾಹಕರು ಈ ಬೆಳೆಗಳನ್ನು ಕೇಳುತ್ತಿದ್ದಾರೆ — ನಿಮ್ಮ ಉತ್ತಮ ಬೆಲೆ ಆಫರ್ ಸಲ್ಲಿಸಿ ಮತ್ತು ಡೀಲ್ ಗೆಲ್ಲಿರಿ!",
     "fd_filters": "ಫಿಲ್ಟರ್‌ಗಳು",
     "fd_clear_all": "ಕ್ಲಿಯರ್",
@@ -993,7 +967,6 @@
     "fd_max": "ಗರಿಷ್ಠ",
     "fd_no_open_requests_title": "ಈಗ ತೆರೆದ ವಿನಂತಿಗಳು ಇಲ್ಲ",
     "fd_no_open_requests_sub": "ಗ್ರಾಹಕರು ಬೆಳೆಗಳನ್ನು ವಿನಂತಿಸಿದಾಗ, ಅವು ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತವೆ.",
-
     "fd_near_you": "ನಿಮ್ಮ ಹತ್ತಿರ",
     "fd_other_requests": "ಇತರೆ ವಿನಂತಿಗಳು",
     "fd_send_price": "ಬೆಲೆ ಕಳುಹಿಸಿ",
@@ -1025,17 +998,14 @@
     "fd_dry_fruits": "ಒಣಹಣ್ಣುಗಳು",
     "fd_select_state": "ರಾಜ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
     "fd_select_district": "ಜಿಲ್ಲೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
-
     "fd_state": "ರಾಜ್ಯ",
     "fd_district": "ಜಿಲ್ಲೆ",
-
     "state_telangana": "ತೆಲಂಗಾಣ",
     "state_andhra_pradesh": "ಆಂಧ್ರ ಪ್ರದೇಶ",
     "state_tamil_nadu": "ತಮಿಳುನಾಡು",
     "state_kerala": "ಕೇರಳ",
     "state_karnataka": "ಕರ್ನಾಟಕ",
     "state_goa": "ಗೋವಾ",
-
     "dist_adilabad": "ಆದಿಲಾಬಾದ್",
     "dist_bhadradri_kothagudem": "ಭದ್ರಾದ್ರಿ ಕೊಠಗುದೇಮ್",
     "dist_hanumakonda": "ಹನುಮಕೊಂಡ",
@@ -1069,7 +1039,6 @@
     "dist_wanaparthy": "ವಾನಪರ್ಥಿ",
     "dist_warangal": "ವಾರಂಗಲ್",
     "dist_yadadri_bhuvanagiri": "ಯಾದಾದ್ರಿ ಭುವನಗಿರಿ",
-
     "dist_srikakulam": "ಶ್ರೀಕಾಕುಳಂ",
     "dist_parvathipuram_manyam": "ಪಾರ್ವತೀಪುರಂ ಮನ್ಯಂ",
     "dist_vizianagaram": "ವಿಜಯನಗರಂ",
@@ -1098,7 +1067,6 @@
     "dist_annamayya": "ಅನ್ನಮಯ್ಯ",
     "dist_tirupati": "ತಿರುಪತಿ",
     "dist_chittoor": "ಚಿತ್ತೂರು",
-
     "dist_ariyalur": "ಅರಿಯಲೂರು",
     "dist_chengalpattu": "ಚೆಂಗಲ್ಪಟ್ಟು",
     "dist_chennai": "ಚೆನ್ನೈ",
@@ -1137,7 +1105,6 @@
     "dist_vellore": "ವೆಲ್ಲೂರು",
     "dist_viluppuram": "ವಿಳ್ಳುಪುರಂ",
     "dist_virudhunagar": "ವಿರುಧುನಗರ್",
-
     "dist_thiruvananthapuram": "ತಿರುವನಂತಪುರಂ",
     "dist_kollam": "ಕೊಲ್ಲಂ",
     "dist_pathanamthitta": "ಪಥನಂಥಿಟ್ಟಾ",
@@ -1152,11 +1119,9 @@
     "dist_wayanad": "ವಯನಾಡ್",
     "dist_kannur": "ಕಣ್ಣೂರು",
     "dist_kasaragod": "ಕಾಸರಗೋಡ್",
-
     "dist_north_goa": "ಉತ್ತರ ಗೋವಾ",
     "dist_south_goa": "ದಕ್ಷಿಣ ಗೋವಾ",
     "dist_kushavati": "ಕುಶಾವತಿ",
-
     "dist_bagalkot": "ಬಾಗಲಕೋಟೆ",
     "dist_ballari": "ಬಳ್ಳಾರಿ",
     "dist_belagavi": "ಬೆಳಗಾವಿ",
@@ -1188,7 +1153,6 @@
     "dist_vijayapura": "ವಿಜಯಪುರ",
     "dist_yadgir": "ಯಾದಗಿರಿ",
     "dist_vijayanagara": "ವಿಜಯನಗರ",
-
     "crop_rice": "ಅಕ್ಕಿ",
     "crop_wheat": "ಗೋಧಿ",
     "crop_maize": "ಮೆಕ್ಕೆಜೋಳ",
@@ -1204,11 +1168,7 @@
     "crop_pumpkin_seeds": "Pumpkin Seeds (ಕುಂಬಳಕಾಯಿ ಬೀಜಗಳು)",
     "crop_flax_seeds": "Flax Seeds (ಅಗಸೆ ಬೀಜಗಳು)",
     "crop_sunflower_seeds": "Sunflower Seeds (ಸೂರ್ಯಕಾಂತಿ ಬೀಜಗಳು)",
-
-    "crop_tomato": "ಟೊಮೇಟೋ",
     "crop_onion": "Onion (ಈರುಳ್ಳಿ)",
-    "crop_potato": "Potato (ಆಲೂಗಡ್ಡೆ)",
-    "crop_brinjal": "Brinjal (ಬದನೆಕಾಯಿ)",
     "crop_okra": "Okra (ಬೆಂಡೆಕಾಯಿ)",
     "crop_capsicum": "Capsicum (ಕ್ಯಾಪ್ಸಿಕಂ)",
     "crop_bottle_gourd": "Bottle Gourd (ಸೊರೆಕಾಯಿ)",
@@ -1225,7 +1185,6 @@
     "crop_beetroot": "Beetroot (ಬೀಟ್ರೂಟ್)",
     "crop_mushroom": "Mushroom (ಅಣಬೆ)",
     "crop_white_onion": "White Onion (ಬಿಳಿ ಈರುಳ್ಳಿ)",
-
     "crop_mango": "ಮಾವು",
     "crop_banana": "Banana (ಬಾಳೆಹಣ್ಣು)",
     "crop_coconut": "Coconut (ತೆಂಗಿನಕಾಯಿ)",
@@ -1255,12 +1214,10 @@
     "crop_peach": "Peach (ಪೀಚ್)",
     "crop_pear": "Pear (ಪೇರ್)",
     "crop_cherry": "Cherry (ಚೆರಿ)",
-    "crop_figs": "Figs (ಅಂಜೂರ)",
     "crop_star_fruit": "Star Fruit (ಸ್ಟಾರ್ ಫ್ರೂಟ್)",
     "crop_raspberries": "Raspberries (ರಾಸ್ಪ್ಬೆರಿ)",
     "crop_blueberry": "Blueberry (ಬ್ಲೂಬೆರಿ)",
     "crop_blackberries": "Blackberries (ಬ್ಲ್ಯಾಕ್‌ಬೆರಿ)",
-
     "crop_chilli": "Chilli (ಮೆಣಸಿನಕಾಯಿ)",
     "crop_turmeric": "Turmeric (ಅರಿಶಿನ)",
     "crop_garlic": "Garlic (ಬೆಳ್ಳುಳ್ಳಿ)",
@@ -1271,13 +1228,11 @@
     "crop_cinnamon": "Cinnamon (ದಾಲ್ಚಿನ್ನಿ)",
     "crop_saffron": "Saffron (ಕೇಸರಿ)",
     "crop_red_chilli": "Red Chilli (ಕೆಂಪು ಮೆಣಸಿನಕಾಯಿ)",
-
     "crop_methi": "Methi (ಮೆಂತ್ಯೆ)",
     "crop_spinach": "Spinach (ಪಾಲಕ್)",
     "crop_gongura": "Gongura (ಗೋಂಗುರ)",
     "crop_amaranthus": "Amaranthus (ದಂಟಿನ ಸೊಪ್ಪು)",
     "crop_spring_onion": "Spring Onion (ಸ್ಪ್ರಿಂಗ್ ಈರುಳ್ಳಿ)",
-
     "crop_almonds": "Almonds (ಬಾದಾಮಿ)",
     "crop_cashews": "Cashews (ಗೋಡಂಬಿ)",
     "crop_dates": "Dates (ಖರ್ಜೂರ)",
@@ -1285,7 +1240,6 @@
     "crop_pistachios": "Pistachios (ಪಿಸ್ತಾ)",
     "crop_raisins": "Raisins (ಒಣದ್ರಾಕ್ಷಿ)",
     "crop_walnuts": "Walnuts (ಅಕ್ರೋಟ್)",
-
     "crop_cotton": "ಹತ್ತಿ",
     "crop_groundnut": "ಕಡಲೆಕಾಯಿ",
     "crop_sugarcane": "Sugarcane (ಕಬ್ಬು)"

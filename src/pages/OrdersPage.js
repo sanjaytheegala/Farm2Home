@@ -132,24 +132,24 @@ const OrdersPage = () => {
 
     const STEPS = [
       {
-        key:   'pending',
+        key: 'pending',
         label: t('order_placed'),
-        icon:  <FaClock />,
+        icon: <FaClock />,
         pulseColor: 'rgba(255,191,0,0.7)',
         activeColor: '#f59e0b',
-        doneColor:   '#16a34a',
+        doneColor: '#16a34a',
         pillStyle: { color: '#92400e', background: '#fef3c7' },
         // Pending step always has the real order creation timestamp
         subtitle: `${formatDate(order.createdAtMs)} ${t('at')} ${formatTime(order.createdAtMs)}`,
         futureSubtitle: t('awaiting_order'),
       },
       {
-        key:   'confirmed',
+        key: 'confirmed',
         label: t('admin_confirmed'),
-        icon:  <FaCheckCircle />,
+        icon: <FaCheckCircle />,
         pulseColor: 'rgba(22,163,74,0.6)',
         activeColor: '#16a34a',
-        doneColor:   '#16a34a',
+        doneColor: '#16a34a',
         pillStyle: { color: '#166534', background: '#dcfce7' },
         // confirmedAt timestamp if available, else a status note
         subtitle: order.confirmedAt
@@ -158,12 +158,12 @@ const OrdersPage = () => {
         futureSubtitle: t('awaiting_confirmation'),
       },
       {
-        key:   'shipped',
+        key: 'shipped',
         label: t('shipped'),
-        icon:  <FaTruck />,
+        icon: <FaTruck />,
         pulseColor: 'rgba(8,145,178,0.6)',
         activeColor: '#0891b2',
-        doneColor:   '#16a34a',
+        doneColor: '#16a34a',
         pillStyle: { color: '#155e75', background: '#cffafe' },
         subtitle: order.shippedAt
           ? `${formatDate(order.shippedAt?.toMillis?.() || order.shippedAt)} ${t('at')} ${formatTime(order.shippedAt?.toMillis?.() || order.shippedAt)}`
@@ -171,12 +171,12 @@ const OrdersPage = () => {
         futureSubtitle: t('not_yet_shipped'),
       },
       {
-        key:   'delivered',
+        key: 'delivered',
         label: t('delivered'),
-        icon:  <FaCheckCircle />,
+        icon: <FaCheckCircle />,
         pulseColor: 'rgba(22,163,74,0.6)',
         activeColor: '#16a34a',
-        doneColor:   '#16a34a',
+        doneColor: '#16a34a',
         pillStyle: { color: '#166534', background: '#dcfce7' },
         subtitle: order.deliveredAt
           ? `${formatDate(order.deliveredAt?.toMillis?.() || order.deliveredAt)} ${t('at')} ${formatTime(order.deliveredAt?.toMillis?.() || order.deliveredAt)}`
@@ -228,14 +228,14 @@ const OrdersPage = () => {
             <div style={{ position: 'relative' }}>
               {STEPS.map((step, idx) => {
                 const stepStatusIndex = STATUS_ORDER.indexOf(step.key);
-                const isDone    = stepStatusIndex < currentIndex;   // completed past step
+                const isDone = stepStatusIndex < currentIndex;   // completed past step
                 const isCurrent = stepStatusIndex === currentIndex;  // active now
-                const isFuture  = stepStatusIndex > currentIndex;    // not yet reached
+                const isFuture = stepStatusIndex > currentIndex;    // not yet reached
 
                 // Circle color: amber if current, green if done, grey if future
                 const circleColor = isCurrent ? step.activeColor
-                                  : isDone    ? step.doneColor
-                                  :             '#d1d5db';
+                  : isDone ? step.doneColor
+                    : '#d1d5db';
 
                 // Connector line color: green if this step is already done, grey if future
                 const lineColor = isDone ? '#16a34a' : '#e5e7eb';
@@ -243,9 +243,9 @@ const OrdersPage = () => {
 
                 // Pulse animation name per step color
                 const pulseAnimation =
-                  step.key === 'pending'  ? 'pulse 1.8s ease-in-out infinite' :
-                  step.key === 'shipped'  ? 'pulse-cyan 1.8s ease-in-out infinite' :
-                                            'pulse-green 1.8s ease-in-out infinite';
+                  step.key === 'pending' ? 'pulse 1.8s ease-in-out infinite' :
+                    step.key === 'shipped' ? 'pulse-cyan 1.8s ease-in-out infinite' :
+                      'pulse-green 1.8s ease-in-out infinite';
 
                 return (
                   <div key={step.key} style={{ display: 'flex', gap: 0, opacity: isFuture ? 0.5 : 1, transition: 'opacity 0.3s' }}>
@@ -374,7 +374,7 @@ const OrdersPage = () => {
         <h2 style={heading}>
           <FaBox /> {t('my_orders')}
         </h2>
-        
+
         {loading ? (
           <div style={loadingBox}>
             <div style={{ width: 40, height: 40, border: '4px solid #d1fae5', borderTop: '4px solid #16a34a', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />

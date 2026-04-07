@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../firebase';
 import { findCropByKeyword } from '../../../data/cropData';
+import { geoData } from '../../../locale/geoData';
 import { doc, onSnapshot, updateDoc, collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 import {
   FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
@@ -35,6 +36,85 @@ const getDemandUnit = (demand) => demand?.quantityUnit || 'kg';
 const ConsumerDashboard = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+
+  const normalizeGeoLabel = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+
+  const geoIndexes = React.useMemo(() => {
+    const langs = ['en', 'te', 'hi', 'ta', 'ml', 'kn'];
+    const stateLabelToKey = new Map();
+    const districtLabelToKeyByState = new Map();
+
+    langs.forEach((lng) => {
+      const states = geoData?.[lng]?.states || {};
+      Object.entries(states).forEach(([stateKey, label]) => {
+        const normalized = normalizeGeoLabel(label);
+        if (normalized) stateLabelToKey.set(normalized, stateKey);
+      });
+    });
+
+    const stateKeys = Object.keys(geoData?.en?.districts || {});
+    stateKeys.forEach((stateKey) => {
+      const districtMap = new Map();
+      langs.forEach((lng) => {
+        const dists = geoData?.[lng]?.districts?.[stateKey] || {};
+        Object.entries(dists).forEach(([districtKey, label]) => {
+          const normalized = normalizeGeoLabel(label);
+          if (normalized) districtMap.set(normalized, districtKey);
+        });
+      });
+      districtLabelToKeyByState.set(stateKey, districtMap);
+    });
+
+    return { stateLabelToKey, districtLabelToKeyByState };
+  }, []);
+
+  const getDisplayLocation = (demand) => {
+    const stateKey = demand?.locationStateKey;
+    const districtKey = demand?.locationDistrictKey;
+
+    if (stateKey && districtKey) {
+      const districtFallback = geoData?.en?.districts?.[stateKey]?.[districtKey] || '';
+      const stateFallback = geoData?.en?.states?.[stateKey] || '';
+      const districtLabel = t(`dist_${districtKey}`, { defaultValue: districtFallback });
+      const stateLabel = t(`state_${stateKey}`, { defaultValue: stateFallback });
+      if (districtLabel && stateLabel) return `${districtLabel}, ${stateLabel}`;
+    }
+
+    const raw = normalizeGeoLabel(demand?.location);
+    if (!raw) return '';
+
+    const parts = raw.split(',').map(p => normalizeGeoLabel(p)).filter(Boolean);
+    if (parts.length < 2) return raw;
+
+    const districtRaw = parts[0];
+    const stateRaw = parts.slice(1).join(', ');
+    const inferredStateKey = geoIndexes.stateLabelToKey.get(stateRaw);
+    if (!inferredStateKey) return raw;
+
+    const inferredDistrictKey = geoIndexes.districtLabelToKeyByState
+      .get(inferredStateKey)
+      ?.get(districtRaw);
+
+    const stateLabel = t(`state_${inferredStateKey}`, { defaultValue: geoData?.en?.states?.[inferredStateKey] || stateRaw });
+    if (inferredDistrictKey) {
+      const districtLabel = t(`dist_${inferredDistrictKey}`, {
+        defaultValue: geoData?.en?.districts?.[inferredStateKey]?.[inferredDistrictKey] || districtRaw,
+      });
+      return `${districtLabel}, ${stateLabel}`;
+    }
+
+    // If the saved district is a mandal/village (not in our district list), keep it as-is,
+    // but at least translate the state so it won't be stuck in one language.
+    return `${districtRaw}, ${stateLabel}`;
+  };
+
+  const getDisplayCropName = (cropName) => {
+    const raw = (cropName || '').toString();
+    if (!raw) return '';
+    const cropEntry = findCropByKeyword(raw.toLowerCase().trim());
+    if (!cropEntry?.id) return raw;
+    return t(`crop_${cropEntry.id}`, { defaultValue: raw || cropEntry.name });
+  };
 
   const getLocaleForDate = () => {
     const lng = (i18n.language || 'en').toLowerCase();
@@ -442,11 +522,11 @@ const ConsumerDashboard = () => {
                                   const cropEntry = findCropByKeyword(demand.cropName?.toLowerCase?.() || '');
                                   const imgSrc = cropEntry?.image;
                                   return imgSrc
-                                    ? <img src={imgSrc} alt={demand.cropName} style={{width:44,height:44,borderRadius:10,objectFit:'cover',display:'block'}} />
+                                    ? <img src={imgSrc} alt={getDisplayCropName(demand.cropName)} style={{width:44,height:44,borderRadius:10,objectFit:'cover',display:'block'}} />
                                     : <FaLeaf style={{color:'#16a34a',fontSize:22}} />;
                                 })()}
                               </div>
-                              <div className="cd-demand-name">{demand.cropName}</div>
+                              <div className="cd-demand-name">{getDisplayCropName(demand.cropName)}</div>
                             </div>
                             <div className="cd-demand-chip" style={{background:sc.bg, color:sc.color}}>
                               <span>{sc.icon}</span> {sc.label}
@@ -455,7 +535,7 @@ const ConsumerDashboard = () => {
                           {/* Row 2: qty left | location right */}
                           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:11, color:'#6b7280', marginBottom:8, paddingLeft:54}}>
                             <span style={{display:'flex',alignItems:'center',gap:3}}><FaBox style={{fontSize:9}}/>{demand.quantityKg} {getDemandUnit(demand)}</span>
-                            {demand.location && <span style={{display:'flex',alignItems:'center',gap:3}}><FaMapMarkerAlt style={{fontSize:9, color:'#ef4444'}}/>{demand.location}</span>}
+                            {demand.location && <span style={{display:'flex',alignItems:'center',gap:3}}><FaMapMarkerAlt style={{fontSize:9, color:'#ef4444'}}/>{getDisplayLocation(demand)}</span>}
                           </div>
                           {/* Row 3: edit + delete */}
                           <div style={{display:'flex', alignItems:'center', gap:6, paddingLeft:54}}>
@@ -494,15 +574,15 @@ const ConsumerDashboard = () => {
                                 const cropEntry = findCropByKeyword(demand.cropName?.toLowerCase?.() || '');
                                 const imgSrc = cropEntry?.image;
                                 return imgSrc
-                                  ? <img src={imgSrc} alt={demand.cropName} style={{width:44,height:44,borderRadius:10,objectFit:'cover',display:'block'}} />
+                                  ? <img src={imgSrc} alt={getDisplayCropName(demand.cropName)} style={{width:44,height:44,borderRadius:10,objectFit:'cover',display:'block'}} />
                                   : <FaLeaf style={{color:'#16a34a',fontSize:22}} />;
                               })()}
                             </div>
                             <div>
-                              <div className="cd-demand-name">{demand.cropName}</div>
+                              <div className="cd-demand-name">{getDisplayCropName(demand.cropName)}</div>
                               <div style={{fontSize:11, color:'#6b7280', marginTop:2, display:'flex', alignItems:'center', gap:6}}>
                                 <span><FaBox style={{fontSize:9, marginRight:3}}/>{demand.quantityKg} {getDemandUnit(demand)}</span>
-                                {demand.location && <span><FaMapMarkerAlt style={{fontSize:9, marginRight:2, color:'#ef4444'}}/>{demand.location}</span>}
+                                {demand.location && <span><FaMapMarkerAlt style={{fontSize:9, marginRight:2, color:'#ef4444'}}/>{getDisplayLocation(demand)}</span>}
                               </div>
                             </div>
                           </div>
@@ -533,14 +613,14 @@ const ConsumerDashboard = () => {
                               {(() => {
                                 const cropEntry = findCropByKeyword(demand.cropName?.toLowerCase?.() || '');
                                 return cropEntry?.image
-                                  ? <img src={cropEntry.image} alt={demand.cropName} style={{width:44,height:44,objectFit:'cover',display:'block'}} />
+                                  ? <img src={cropEntry.image} alt={getDisplayCropName(demand.cropName)} style={{width:44,height:44,objectFit:'cover',display:'block'}} />
                                   : <FaLeaf style={{color:'#16a34a',fontSize:20}} />;
                               })()}
                             </div>
-                            <span style={{ fontSize:15, fontWeight:700, color:'#111827', textTransform:'capitalize' }}>{demand.cropName}</span>
+                            <span style={{ fontSize:15, fontWeight:700, color:'#111827', textTransform:'capitalize' }}>{getDisplayCropName(demand.cropName)}</span>
                           </div>
                           <span style={{ fontSize:12, color:'#6b7280', fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
-                            <FaMapMarkerAlt style={{ color:'#ef4444', fontSize:11 }} />{demand.location}
+                            <FaMapMarkerAlt style={{ color:'#ef4444', fontSize:11 }} />{getDisplayLocation(demand)}
                           </span>
                         </div>
 
@@ -684,7 +764,7 @@ const ConsumerDashboard = () => {
                     )}
 
                     {/* Review form — shown only after completed */}
-                    {demand.status === 'completed' && !demand.reviewed && (() => {
+                    {demand.status === 'completed' && !demand.reviewed && !reviewData[demand.id]?.submitted && (() => {
                       const rd = reviewData[demand.id] || {};
                       return (
                         <div className="cd-review-panel">
@@ -722,7 +802,15 @@ const ConsumerDashboard = () => {
                                 rd.rating,
                                 rd.comment || ''
                               );
-                              setReviewData(prev => ({ ...prev, [demand.id]: { ...prev[demand.id], submitting: false, error: res.success ? '' : (res.error || t('cd_failed_generic')) } }));
+                              setReviewData(prev => ({
+                                ...prev,
+                                [demand.id]: {
+                                  ...prev[demand.id],
+                                  submitting: false,
+                                  submitted: res.success ? true : (prev[demand.id]?.submitted || false),
+                                  error: res.success ? '' : (res.error || t('cd_failed_generic')),
+                                }
+                              }));
                             }}
                           >
                             {rd.submitting ? <span className="cd-spinner"/> : <><FaStar style={{marginRight:6}}/> {t('cd_submit_review')}</>}
@@ -732,11 +820,13 @@ const ConsumerDashboard = () => {
                     })()}
 
                     {/* Review submitted badge */}
-                    {demand.status === 'completed' && demand.reviewed && (
+                    {demand.status === 'completed' && (demand.reviewed || reviewData[demand.id]?.submitted) && (
                       <div className="cd-review-submitted">
                         <FaCheckCircle style={{marginRight:6, color:'#16a34a'}}/>
-                        {t('cd_review_submitted')} — {'\u2605'.repeat(demand.reviewRating)}
-                        {demand.reviewComment && <div className="cd-review-submitted-comment">"{demand.reviewComment}"</div>}
+                        {t('cd_review_submitted')} — {'\u2605'.repeat(demand.reviewRating || reviewData[demand.id]?.rating || 0)}
+                        {(demand.reviewComment || reviewData[demand.id]?.comment) && (
+                          <div className="cd-review-submitted-comment">"{demand.reviewComment || reviewData[demand.id]?.comment}"</div>
+                        )}
                       </div>
                     )}
 

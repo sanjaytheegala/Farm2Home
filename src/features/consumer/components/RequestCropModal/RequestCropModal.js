@@ -12,7 +12,7 @@ const ALLOWED_STATE_KEYS = ['andhra_pradesh', 'telangana', 'tamil_nadu', 'karnat
 
 const QUANTITY_UNIT_OPTIONS = ['kg', 'piece', 'dozen', 'bunch', 'packet', 'box', 'litre']
 
-const INITIAL = { cropName: '', quantityKg: '', quantityUnit: 'kg', location: '', notes: '' }
+const INITIAL = { cropName: '', quantityKg: '', quantityUnit: 'kg', location: '', locationStateKey: '', locationDistrictKey: '', notes: '' }
 
 /* -- Searchable two-level location picker */
 function LocationPicker({ onChange }) {
@@ -23,6 +23,10 @@ function LocationPicker({ onChange }) {
   const [districtSearch, setDistrictSearch] = useState('')
   const [showStateDrop,  setShowStateDrop]  = useState(false)
   const [showDistDrop,   setShowDistDrop]   = useState(false)
+
+  const getStateLabel = (sk) => t(`state_${sk}`, { defaultValue: STATES[sk] || '' })
+  const getDistrictLabel = (sk, dk) =>
+    t(`dist_${dk}`, { defaultValue: (DISTRICTS[sk] || {})[dk] || '' })
 
   const stateRef = useRef(null)
   const distRef  = useRef(null)
@@ -49,18 +53,35 @@ function LocationPicker({ onChange }) {
     setDistrictKey(dk)
     setDistrictSearch('')
     setShowDistDrop(false)
-    const stateName    = STATES[stateKey] || ''
-    const districtName = (DISTRICTS[stateKey] || {})[dk] || ''
-    onChange(`${districtName}, ${stateName}`)
+    const stateNameLocalized    = getStateLabel(stateKey)
+    const districtNameLocalized = getDistrictLabel(stateKey, dk)
+    const stateNameEnglish = STATES[stateKey] || stateNameLocalized
+    const districtNameEnglish = (DISTRICTS[stateKey] || {})[dk] || districtNameLocalized
+    onChange({
+      location: `${districtNameEnglish}, ${stateNameEnglish}`,
+      locationStateKey: stateKey,
+      locationDistrictKey: dk,
+      locationLabel: `${districtNameLocalized}, ${stateNameLocalized}`,
+    })
   }
 
   const filteredStates = Object.entries(STATES)
     .filter(([key]) => ALLOWED_STATE_KEYS.includes(key))
-    .filter(([, n]) => n.toLowerCase().includes(stateSearch.toLowerCase()))
+    .filter(([key, n]) => {
+      const needle = stateSearch.trim().toLowerCase()
+      if (!needle) return true
+      const localized = getStateLabel(key).toLowerCase()
+      const english = String(n || '').toLowerCase()
+      return localized.includes(needle) || english.includes(needle)
+    })
   const districtMap   = stateKey ? (DISTRICTS[stateKey] || {}) : {}
-  const filteredDists = Object.entries(districtMap).filter(([, n]) =>
-    n.toLowerCase().includes(districtSearch.toLowerCase())
-  )
+  const filteredDists = Object.entries(districtMap).filter(([dk, n]) => {
+    const needle = districtSearch.trim().toLowerCase()
+    if (!needle) return true
+    const localized = getDistrictLabel(stateKey, dk).toLowerCase()
+    const english = String(n || '').toLowerCase()
+    return localized.includes(needle) || english.includes(needle)
+  })
 
   return (
     <div className="rcm-loc-picker">
@@ -74,7 +95,7 @@ function LocationPicker({ onChange }) {
         >
           <FaMapMarkerAlt className="rcm-loc-pin" />
           <span className={stateKey ? 'rcm-loc-val' : 'rcm-loc-ph'}>
-            {stateKey ? STATES[stateKey] : t('rcm_select_state')}
+            {stateKey ? getStateLabel(stateKey) : t('rcm_select_state')}
           </span>
           <FaChevronDown className={`rcm-loc-caret ${showStateDrop ? 'rcm-loc-caret--up' : ''}`} />
         </button>
@@ -101,7 +122,7 @@ function LocationPicker({ onChange }) {
                     className={`rcm-loc-item ${stateKey === sk ? 'rcm-loc-item--active' : ''}`}
                     onClick={() => selectState(sk)}
                   >
-                    {sName}
+                    {getStateLabel(sk) || sName}
                     {stateKey === sk && <FaCheckCircle className="rcm-loc-tick" />}
                   </li>
                 ))
@@ -121,7 +142,7 @@ function LocationPicker({ onChange }) {
           <FaMapMarkerAlt className="rcm-loc-pin" />
           <span className={districtKey ? 'rcm-loc-val' : 'rcm-loc-ph'}>
             {districtKey
-              ? districtMap[districtKey]
+              ? getDistrictLabel(stateKey, districtKey)
               : stateKey ? t('rcm_select_district') : t('rcm_select_state_first')}
           </span>
           <FaChevronDown className={`rcm-loc-caret ${showDistDrop ? 'rcm-loc-caret--up' : ''}`} />
@@ -149,7 +170,7 @@ function LocationPicker({ onChange }) {
                     className={`rcm-loc-item ${districtKey === dk ? 'rcm-loc-item--active' : ''}`}
                     onClick={() => selectDistrict(dk)}
                   >
-                    {dName}
+                    {getDistrictLabel(stateKey, dk) || dName}
                     {districtKey === dk && <FaCheckCircle className="rcm-loc-tick" />}
                   </li>
                 ))
@@ -180,12 +201,16 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
     quantityKg: initialData.quantityKg || '',
     quantityUnit: initialData.quantityUnit || 'kg',
     location:   initialData.location   || '',
+    locationStateKey: initialData.locationStateKey || '',
+    locationDistrictKey: initialData.locationDistrictKey || '',
     notes:      initialData.notes      || '',
   } : {
     cropName:   cropName,
     quantityKg: String(prefilledQuantity),
     quantityUnit: prefilledUnit,
     location:   '',
+    locationStateKey: '',
+    locationDistrictKey: '',
     notes:      '',
   })
   const [submitting, setSub]  = useState(false)
@@ -334,11 +359,28 @@ const RequestCropModal = ({ onClose, onSubmit, initialData = null, initialProduc
             <div className="rcm-field">
               <label className="rcm-label"><FaMapMarkerAlt className="rcm-ico" /> {t('rcm_label_target_location')}</label>
               <LocationPicker
-                onChange={(loc) => { setForm(f => ({ ...f, location: loc })); setError('') }}
+                onChange={(loc) => {
+                  if (typeof loc === 'string') {
+                    setForm(f => ({ ...f, location: loc, locationStateKey: '', locationDistrictKey: '' }))
+                    setError('')
+                    return
+                  }
+                  setForm(f => ({
+                    ...f,
+                    location: loc?.location || '',
+                    locationStateKey: loc?.locationStateKey || '',
+                    locationDistrictKey: loc?.locationDistrictKey || '',
+                  }))
+                  setError('')
+                }}
               />
               {form.location && (
                 <div className="rcm-loc-chosen">
-                  <FaCheckCircle /> {form.location}
+                  <FaCheckCircle /> {
+                    form.locationStateKey && form.locationDistrictKey
+                      ? `${t(`dist_${form.locationDistrictKey}`, { defaultValue: form.location.split(',')[0] || '' })}, ${t(`state_${form.locationStateKey}`, { defaultValue: form.location.split(',')[1]?.trim?.() || '' })}`
+                      : form.location
+                  }
                 </div>
               )}
             </div>
