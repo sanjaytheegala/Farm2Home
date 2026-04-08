@@ -1,10 +1,93 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onDocumentDeleted } = require('firebase-functions/v2/firestore');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
 
 initializeApp();
+
+function getYmdInTimeZone(timeZone) {
+  // en-CA yields YYYY-MM-DD
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+function isValidYmd(s) {
+  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+/**
+ * Scheduled cleanup: delete crops whose availableUntil date has passed.
+ *
+ * Why this exists:
+ * - Client-side deletion only runs when someone opens the app.
+ * - This runs even if nobody is online, ensuring expired crops are removed from Firestore.
+ */
+exports.cleanupExpiredCrops = onSchedule(
+  {
+    schedule: 'every day 00:30',
+    timeZone: 'Asia/Kolkata',
+    region: 'asia-south1',
+  },
+  async () => {
+    const db = getFirestore();
+    const todayYmd = getYmdInTimeZone('Asia/Kolkata');
+
+    let totalDeleted = 0;
+    let skippedInvalid = 0;
+
+    let lastDoc = null;
+
+    while (true) {
+      // NOTE: This query may also match docs where availableUntil is '' (empty string).
+      // We defensively validate format below before deletion.
+      // We also paginate to ensure invalid docs can't block cleanup.
+      let q = db
+        .collection('crops')
+        .where('availableUntil', '<', todayYmd)
+        .orderBy('availableUntil')
+        .limit(500);
+      if (lastDoc) q = q.startAfter(lastDoc);
+
+      const snap = await q.get();
+
+      if (snap.empty) break;
+
+      lastDoc = snap.docs[snap.docs.length - 1];
+
+      const batch = db.batch();
+      let batchDeletes = 0;
+
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data() || {};
+        const availableUntil = (data.availableUntil || '').toString().trim();
+        if (!isValidYmd(availableUntil)) {
+          skippedInvalid++;
+          continue;
+        }
+        if (availableUntil >= todayYmd) continue;
+
+        batch.delete(docSnap.ref);
+        batchDeletes++;
+      }
+
+      // Avoid committing empty batches (can happen if many docs have invalid availableUntil)
+      if (batchDeletes > 0) {
+        await batch.commit();
+        totalDeleted += batchDeletes;
+      }
+    }
+
+    console.log(
+      `cleanupExpiredCrops: deleted=${totalDeleted} skippedInvalid=${skippedInvalid} today=${todayYmd}`
+    );
+  }
+);
 
 /**
  * Callable Cloud Function: getEmailByPhone

@@ -4,6 +4,8 @@ import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { logger } from '../utils/logger';
 
+const AUTH_BLOCK_REASON_KEY = 'farm2home_authBlockReason';
+
 export const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -38,6 +40,19 @@ export const AuthProvider = ({ children }) => {
 
           if (userDoc.exists()) {
             const fullUserData = { uid: user.uid, email: user.email, displayName: user.displayName, ...userDoc.data() };
+            
+            // Centralized global kill-switch for 'on_hold' users
+            if (fullUserData.status === 'on_hold') {
+              logger.warn(`User ${user.uid} is on hold. Forcing sign-out.`);
+              try { localStorage.setItem(AUTH_BLOCK_REASON_KEY, 'on_hold'); } catch (_) {}
+              try { await firebaseSignOut(auth); } catch (_) {}
+              setCurrentUser(null);
+              setUserData(null);
+              localStorage.removeItem('currentUser');
+              setLoading(false);
+              return;
+            }
+
             setCurrentUser(user);
             setUserData(fullUserData);
             // Store only minimal non-sensitive data in localStorage

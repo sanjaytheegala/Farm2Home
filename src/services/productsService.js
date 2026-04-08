@@ -6,12 +6,25 @@ import {
 
 const cropsRef = collection(db, 'crops');
 
+const isValidYmd = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+const isExpiredByAvailableUntil = (item, todayYmd) => {
+  const availableUntil = (item?.availableUntil || '').toString().trim();
+  if (!availableUntil) return false;
+  if (!isValidYmd(availableUntil)) return false;
+  // Format YYYY-MM-DD is lexicographically sortable
+  return availableUntil < todayYmd;
+};
+
 // Get all products
 export const getAllProducts = async () => {
   try {
     const q = query(cropsRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const today = new Date().toISOString().split('T')[0];
+    const products = snapshot.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(p => !isExpiredByAvailableUntil(p, today));
     return { success: true, products };
   } catch (error) {
     return { success: false, error: error.message };
@@ -23,7 +36,10 @@ export const getProductsByCategory = async (category) => {
   try {
     const q = query(cropsRef, where('category', '==', category), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const today = new Date().toISOString().split('T')[0];
+    const products = snapshot.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(p => !isExpiredByAvailableUntil(p, today));
     return { success: true, products };
   } catch (error) {
     return { success: false, error: error.message };
@@ -35,7 +51,10 @@ export const getProductsByState = async (state) => {
   try {
     const q = query(cropsRef, where('state', '==', state), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const today = new Date().toISOString().split('T')[0];
+    const products = snapshot.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(p => !isExpiredByAvailableUntil(p, today));
     return { success: true, products };
   } catch (error) {
     return { success: false, error: error.message };
@@ -83,7 +102,10 @@ export const deleteProduct = async (productId) => {
 export const subscribeToProducts = (callback) => {
   const q = query(cropsRef, orderBy('createdAt', 'desc'));
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const today = new Date().toISOString().split('T')[0];
+    const products = snapshot.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(p => !isExpiredByAvailableUntil(p, today));
     callback(products);
   });
   return unsubscribe;
@@ -106,32 +128,13 @@ export const searchProducts = async (searchTerm) => {
   }
 };
 
-// Cleanup stale crops (expired > 5 days)
+// Cleanup stale crops: client-side filtering for expired items.
+// NOTE: Actual deletion is handled by a scheduled Cloud Function (Admin SDK),
+// so pages stay clean even if the app isn't opened.
 export const cleanupStaleProducts = async (products) => {
   if (!products || products.length === 0) return [];
-  
-  const today = new Date();
-  const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
-  
-  const staleItems = products.filter(p => {
-    if (!p.availableUntil) return false;
-    // Assume format YYYY-MM-DD
-    const expiryDate = new Date(p.availableUntil + 'T00:00:00');
-    return (today - expiryDate) > fiveDaysInMs;
-  });
-
-  if (staleItems.length > 0) {
-    console.log(`🧹 Auto-deleting ${staleItems.length} crops expired for > 5 days...`);
-    const deletePromises = staleItems.map(p => deleteDoc(doc(db, 'crops', p.id)));
-    await Promise.allSettled(deletePromises);
-  }
-
-  // Return only non-stale products for immediate UI update
-  return products.filter(p => {
-    if (!p.availableUntil) return true;
-    const expiryDate = new Date(p.availableUntil + 'T00:00:00');
-    return (today - expiryDate) <= fiveDaysInMs;
-  });
+  const today = new Date().toISOString().split('T')[0];
+  return products.filter(p => !isExpiredByAvailableUntil(p, today));
 };
 
 // Get featured products

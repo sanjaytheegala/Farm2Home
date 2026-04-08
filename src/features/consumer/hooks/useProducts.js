@@ -78,7 +78,7 @@ export const useProducts = (options = {}) => {
         }
 
         if (result.success) {
-          // Perform auto-deletion of items expired > 5 days
+          // Filter out expired items (actual deletion happens via scheduled Cloud Function)
           const freshProducts = await cleanupStaleProducts(result.products);
           // Process products with smart image mapping
           const processedProducts = processProductsWithSmartImages(freshProducts);
@@ -96,7 +96,7 @@ export const useProducts = (options = {}) => {
     // Real-time updates if enabled
     if (realtime && !category && !state) {
       unsubscribe = subscribeToProducts(async (productsData) => {
-        // Perform auto-deletion check
+        // Filter out expired items (actual deletion happens via scheduled Cloud Function)
         const freshProducts = await cleanupStaleProducts(productsData);
         // Process products with smart image mapping
         const processedProducts = processProductsWithSmartImages(freshProducts);

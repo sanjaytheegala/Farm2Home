@@ -13,6 +13,14 @@ import {
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
+const isValidYmd = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+const isExpiredCrop = (crop, todayYmd) => {
+  const availableUntil = (crop?.availableUntil || '').toString().trim();
+  if (!availableUntil) return false;
+  if (!isValidYmd(availableUntil)) return false;
+  return availableUntil < todayYmd;
+};
+
 /**
  * Custom hook for managing crop operations with Firebase Firestore
  * Handles CRUD operations for crops and analytics calculation
@@ -52,7 +60,10 @@ export const useCrops = () => {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const farmerCrops = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const today = new Date().toISOString().split('T')[0];
+        const farmerCrops = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((crop) => !isExpiredCrop(crop, today));
         // Sort newest-first client-side (no composite index needed)
         farmerCrops.sort((a, b) => {
           const ta = a.createdAt?.toMillis?.() ?? (a.createdAt ? new Date(a.createdAt).getTime() : 0);

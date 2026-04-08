@@ -1928,7 +1928,7 @@ const FarmerDashboard = () => {
                           <div style={{ display:'flex', border:'1.5px solid #86efac', borderRadius:8, overflow:'hidden', marginBottom:8 }}>
                             <span style={{ padding:'0 10px', background:'#dcfce7', display:'flex', alignItems:'center', fontSize:14, fontWeight:700, color:'#15803d' }}>₹</span>
                             <input
-                              type="number" min="0" placeholder="New amount..."
+                              type="number" min="0" placeholder={safeT('fd_new_amount_placeholder', 'New amount…')}
                               value={editingDeal[deal.id]?.price || ''}
                               onChange={e => setEditingDeal(prev => ({ ...prev, [deal.id]: { ...prev[deal.id], price: e.target.value } }))}
                               style={{ flex:1, border:'none', outline:'none', padding:'8px 10px', fontSize:14 }}
@@ -1940,14 +1940,14 @@ const FarmerDashboard = () => {
                               onClick={async () => {
                                 const ed = editingDeal[deal.id] || {}
                                 const res = await updateOffer(deal.id, ed.price, ed.unit || 'kg')
-                                if (res.success) { toastSuccess('Offer updated!'); setEditingDeal(prev => { const n={...prev}; delete n[deal.id]; return n }) }
-                                else toastError(res.error || 'Failed to update offer')
+                                if (res.success) { toastSuccess(safeT('fd_offer_updated_success', 'Offer updated!')); setEditingDeal(prev => { const n={...prev}; delete n[deal.id]; return n }) }
+                                else toastError(res.error || safeT('fd_failed_to_update_offer', 'Failed to update offer'))
                               }}
-                            ><FaCheckCircle style={{ marginRight:6 }} /> Save</button>
+                            ><FaCheckCircle style={{ marginRight:6 }} /> {safeT('fd_save', 'Save')}</button>
                             <button
                               style={{ flex:1, padding:'8px', background:'#f3f4f6', color:'#374151', border:'1px solid #d1d5db', borderRadius:8, fontWeight:600, fontSize:13, cursor:'pointer' }}
                               onClick={() => setEditingDeal(prev => { const n={...prev}; delete n[deal.id]; return n })}
-                            >Cancel</button>
+                            >{safeT('fd_cancel', 'Cancel')}</button>
                           </div>
                         </div>
                       )}
@@ -1960,11 +1960,11 @@ const FarmerDashboard = () => {
                             style={{ flex:1, background:'#fef2f2', color:'#dc2626', border:'1px solid #fca5a5', marginTop:0 }}
                             onClick={async () => {
                               const res = await withdrawOffer(deal.id)
-                              if (res.success) toastSuccess('Offer withdrawn. Request is open again.')
-                              else toastError(res.error || 'Failed to withdraw offer')
+                              if (res.success) toastSuccess(safeT('fd_offer_withdrawn_open_again', 'Offer withdrawn. Request is open again.'))
+                              else toastError(res.error || safeT('fd_failed_to_withdraw_offer', 'Failed to withdraw offer'))
                             }}
                           >
-                            <FaTimes style={{ marginRight: 6 }} /> Withdraw
+                            <FaTimes style={{ marginRight: 6 }} /> {safeT('fd_withdraw', 'Withdraw')}
                           </button>
                         )}
                         {deal.status === 'deal_closed' && (
@@ -1973,11 +1973,11 @@ const FarmerDashboard = () => {
                             style={{ flex:1, background:'linear-gradient(135deg,#7c3aed,#6d28d9)', marginTop:0 }}
                             onClick={async () => {
                               const res = await markInProgress(deal.id)
-                              if (res.success) toastSuccess('Marked as dispatched! Waiting for consumer to confirm receipt.')
+                              if (res.success) toastSuccess(safeT('fd_marked_dispatched_waiting_confirm', 'Marked as dispatched! Waiting for consumer to confirm receipt.'))
                               else toastError(res.error)
                             }}
                           >
-                            <FaTruck style={{ marginRight: 6 }} /> Dispatch
+                            <FaTruck style={{ marginRight: 6 }} /> {safeT('fd_dispatch', 'Dispatch')}
                           </button>
                         )}
                         <button

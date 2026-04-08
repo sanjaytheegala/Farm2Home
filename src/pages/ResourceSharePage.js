@@ -2447,20 +2447,21 @@ const ResourceSharePage = () => {
     {/* ══════ DISTRICT WARNING MODAL ══════ */}
     {districtWarnTool && (
       <div className="rs-modal-backdrop" onClick={() => setDistrictWarnTool(null)}>
-        <div className="rs-modal rs-warn-modal" onClick={e => e.stopPropagation()}>
+        <div className="rs-modal rs-warn-modal" data-no-auto-translate="true" onClick={e => e.stopPropagation()}>
           <div className="rs-warn-icon"><FaExclamationTriangle /></div>
-          <h2 className="rs-warn-title">Different District</h2>
+          <h2 className="rs-warn-title">{t('rs_warn_title_different_district')}</h2>
           <p className="rs-warn-body">
-            This resource (<strong>{districtWarnTool.toolName || districtWarnTool.name}</strong>) is
-            located in <strong>{districtWarnTool.district}</strong>.
-            Proceed only if you can manage transport coordination on your own.
+            {t('rs_warn_body_different_district', {
+              toolName: districtWarnTool.toolName || districtWarnTool.name,
+              district: districtWarnTool.district,
+            })}
           </p>
           <div className="rs-warn-actions">
             <button className="rs-btn-warn-proceed" onClick={proceedDespiteWarning}>
-              <FaHandshake /> Proceed Anyway
+              <FaHandshake /> {t('rs_warn_proceed_anyway')}
             </button>
             <button className="rs-modal-btn-cancel" onClick={() => setDistrictWarnTool(null)}>
-              <FaTimesCircle /> Cancel
+              <FaTimesCircle /> {t('rs_warn_cancel')}
             </button>
           </div>
         </div>

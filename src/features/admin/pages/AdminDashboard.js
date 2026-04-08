@@ -52,6 +52,17 @@ function timeAgo(ts) {
   return `${Math.floor(sec/86400)}d ago`
 }
 
+function isValidYmd(s) {
+  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+}
+
+function isExpiredCrop(crop, todayYmd) {
+  const availableUntil = (crop?.availableUntil || '').toString().trim()
+  if (!availableUntil) return false
+  if (!isValidYmd(availableUntil)) return false
+  return availableUntil < todayYmd
+}
+
 const STATUS_CHIP = {
   open:        { label: 'Open',          bg: '#eff6ff', color: '#1d4ed8' },
   quoted:      { label: 'Offer Sent',    bg: '#fef3c7', color: '#b45309' },
@@ -104,9 +115,14 @@ export default function AdminDashboard() {
       where('status', '==', 'available'),
       orderBy('createdAt', 'asc')
     )
-    return onSnapshot(q, snap =>
-      setCrops(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    )
+    return onSnapshot(q, snap => {
+      const today = new Date().toISOString().split('T')[0]
+      setCrops(
+        snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(c => !isExpiredCrop(c, today))
+      )
+    })
   }, [])
 
   /* ── Derived stats ── */

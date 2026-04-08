@@ -28,6 +28,8 @@ const EMAIL_LINK_EMAIL_KEY = 'farm2home_emailForSignIn'
 const EMAIL_LINK_ROLE_KEY = 'farm2home_roleForSignIn'
 const EMAIL_LINK_PHONE_KEY = 'farm2home_phoneForSignIn'
 
+const AUTH_BLOCK_REASON_KEY = 'farm2home_authBlockReason'
+
 const HomePage = () => {
   // TEMP: Disable login/register cards and allow direct navigation via buttons.
   // Set to false to restore normal auth UI.
@@ -77,6 +79,16 @@ const HomePage = () => {
   // Testimonial carousel state
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0)
   const [testimonials, setTestimonials] = useState([])
+
+  const consumeAuthBlockReason = () => {
+    try {
+      const reason = String(localStorage.getItem(AUTH_BLOCK_REASON_KEY) || '').trim()
+      if (reason) localStorage.removeItem(AUTH_BLOCK_REASON_KEY)
+      return reason
+    } catch {
+      return ''
+    }
+  }
 
   // Track resend cooldown (based on last-sent timestamp in localStorage)
   useEffect(() => {
@@ -257,9 +269,14 @@ const HomePage = () => {
         throw new Error(t('account_registered_as_role', { role: actualRole }));
       }
 
-      // Block only explicitly inactive/suspended accounts (legacy users may not have status)
+      // Block accounts that are inactive, suspended, or explicitly placed on hold by Admin
       const normalizedStatus = (userData.status || '').toString().toLowerCase();
+      if (normalizedStatus === 'on_hold') {
+        await auth.signOut();
+        throw new Error(t('account_on_hold'));
+      }
       if (normalizedStatus === 'inactive' || normalizedStatus === 'suspended') {
+        await auth.signOut();
         throw new Error(t('account_inactive'));
       }
 
@@ -565,6 +582,19 @@ const HomePage = () => {
     }, 100)
   };
 
+  // If user was signed out due to status restrictions, show the reason on the login card.
+  useEffect(() => {
+    if (!showLoginCard) return
+    const reason = consumeAuthBlockReason()
+    if (!reason) return
+
+    if (reason === 'on_hold') {
+      setError(t('account_on_hold'))
+    } else {
+      setError(t('account_inactive'))
+    }
+  }, [showLoginCard, t])
+
   // Auto-open login modal when redirected from a ProtectedRoute
   useEffect(() => {
     if (location.state?.openModal) {
@@ -621,7 +651,18 @@ const HomePage = () => {
           getDocs(query(collection(db, 'reviews'))),
         ])
 
-        const products = productsSnapshot.docs.map((productDoc) => productDoc.data() || {})
+        const today = new Date().toISOString().split('T')[0]
+        const isValidYmd = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+        const isExpired = (p) => {
+          const until = (p?.availableUntil || '').toString().trim()
+          if (!until) return false
+          if (!isValidYmd(until)) return false
+          return until < today
+        }
+
+        const products = productsSnapshot.docs
+          .map((productDoc) => productDoc.data() || {})
+          .filter((p) => !isExpired(p))
         const reviews = reviewsSnapshot.docs.map((reviewDoc) => reviewDoc.data() || {})
 
         const uniqueFarmers = new Set(

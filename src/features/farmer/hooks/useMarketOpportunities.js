@@ -155,10 +155,13 @@ export const useMarketOpportunities = () => {
         committedFarmerId:   null,
         committedFarmerName: null,
         farmerOfferPrice:    null,
+        farmerOfferOrganic:  deleteField(),
+        farmerAvailableUntil: deleteField(),
         farmerOfferDisplay:  deleteField(),
         farmerOfferUnit:     deleteField(),
         farmerPhone:         null,
         quotedAt:            deleteField(),
+        updatedAt:           serverTimestamp(),
       })
       return { success: true }
     } catch (err) {

@@ -4,6 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../../firebase';
 import { findCropByKeyword } from '../../../data/cropData';
 import { geoData } from '../../../locale/geoData';
+import enTranslations from '../../../locales/en.json';
+import teTranslations from '../../../locales/te.json';
+import hiTranslations from '../../../locales/hi.json';
+import taTranslations from '../../../locales/ta.json';
+import mlTranslations from '../../../locales/ml.json';
+import knTranslations from '../../../locales/kn.json';
 import { doc, onSnapshot, updateDoc, collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 import {
   FaLeaf, FaHandshake, FaRupeeSign, FaTruck,
@@ -41,10 +47,25 @@ const ConsumerDashboard = () => {
 
   const geoIndexes = React.useMemo(() => {
     const langs = ['en', 'te', 'hi', 'ta', 'ml', 'kn'];
+    const localeResources = {
+      en: enTranslations?.translation || {},
+      te: teTranslations?.translation || {},
+      hi: hiTranslations?.translation || {},
+      ta: taTranslations?.translation || {},
+      ml: mlTranslations?.translation || {},
+      kn: knTranslations?.translation || {},
+    };
     const stateLabelToKey = new Map();
     const districtLabelToKeyByState = new Map();
 
     langs.forEach((lng) => {
+      const res = localeResources[lng] || {};
+      Object.keys(res).forEach((k) => {
+        if (!k.startsWith('state_')) return;
+        const stateKey = k.slice('state_'.length);
+        const normalized = normalizeGeoLabel(res[k]);
+        if (normalized) stateLabelToKey.set(normalized, stateKey);
+      });
       const states = geoData?.[lng]?.states || {};
       Object.entries(states).forEach(([stateKey, label]) => {
         const normalized = normalizeGeoLabel(label);
@@ -55,7 +76,14 @@ const ConsumerDashboard = () => {
     const stateKeys = Object.keys(geoData?.en?.districts || {});
     stateKeys.forEach((stateKey) => {
       const districtMap = new Map();
+      const districtKeys = Object.keys(geoData?.en?.districts?.[stateKey] || {});
       langs.forEach((lng) => {
+        const res = localeResources[lng] || {};
+        districtKeys.forEach((districtKey) => {
+          const label = res[`dist_${districtKey}`];
+          const normalized = normalizeGeoLabel(label);
+          if (normalized) districtMap.set(normalized, districtKey);
+        });
         const dists = geoData?.[lng]?.districts?.[stateKey] || {};
         Object.entries(dists).forEach(([districtKey, label]) => {
           const normalized = normalizeGeoLabel(label);
@@ -298,8 +326,7 @@ const ConsumerDashboard = () => {
   };
 
   return (
-    <>
-      <div className="cd-root">
+    <div className="cd-root">
       {showRequestModal && <RequestCropModal onClose={() => { setShowRequestModal(false); setSelectedProductForRequest(null); }} onSubmit={submitDemand} initialProduct={selectedProductForRequest} />}
       {editingDemand && (
         <RequestCropModal
@@ -334,7 +361,6 @@ const ConsumerDashboard = () => {
               <button onClick={() => setShowEditProfile(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#6b7280', fontSize:18 }}><FaX /></button>
             </div>
             <div style={{ marginBottom:14 }}>
-              <label style={{ display:'block', fontSize:13, fontWeight:600, marginBottom:5, color:'#374151' }}>{t('cd_email_read_only_label')}</label>
               <input type="email" value={userProfile.email} readOnly style={{ width:'100%', padding:'9px 12px', border:'1px solid #e5e7eb', borderRadius:8, fontSize:14, background:'#f9fafb', color:'#6b7280', boxSizing:'border-box' }} />
             </div>
             <div style={{ marginBottom:14 }}>
@@ -378,7 +404,9 @@ const ConsumerDashboard = () => {
         <div className="cd-hero-bg"></div>
         <div
           className="cd-hero-overlay"
-          style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/images/crops/wheat.jpg)` }}
+          style={{
+            backgroundImage: `url(${process.env.PUBLIC_URL}/images/hero/consumer-hero.jpg?v=2), url(${process.env.PUBLIC_URL}/images/hero/consumer-hero.png?v=2), url(${process.env.PUBLIC_URL}/images/crops/wheat.jpg)`,
+          }}
         ></div>
         <div className="cd-hero-content">
           <h1 className="cd-hero-title">
@@ -1105,9 +1133,9 @@ const ConsumerDashboard = () => {
           </div>
         );
       })()}
-      </div>
+
       <ConfirmDialog config={confirmDialog} onClose={() => setConfirmDialog(null)} />
-    </>
+    </div>
   );
 };
 

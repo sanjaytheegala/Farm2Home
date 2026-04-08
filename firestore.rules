@@ -113,14 +113,46 @@ service cloud.firestore {
           && request.resource.data.consumerId == resource.data.consumerId
           && request.resource.data.committedFarmerId == request.auth.uid
         )
-        // ── Farmer updates/withdraws their own QUOTED offer (price edit allowed) ──
+        // ── Farmer updates their own QUOTED offer (price edit allowed; status cannot change) ──
         || (
           isSignedIn()
           && resource.data.committedFarmerId == request.auth.uid
           && resource.data.status == 'quoted'
-          // Farmer can only touch offer fields — not consumerId or status
+          && request.resource.data.status == 'quoted'
           && request.resource.data.consumerId == resource.data.consumerId
           && request.resource.data.committedFarmerId == resource.data.committedFarmerId
+          // Only allow editing the offer fields while quoted
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'farmerOfferPrice',
+            'farmerOfferDisplay',
+            'farmerOfferUnit',
+            'farmerOfferOrganic',
+            'farmerAvailableUntil',
+            'updatedAt'
+          ])
+        )
+        // ── Farmer withdraws their own QUOTED offer (reset demand to open) ──
+        || (
+          isSignedIn()
+          && resource.data.committedFarmerId == request.auth.uid
+          && resource.data.status == 'quoted'
+          && request.resource.data.status == 'open'
+          && request.resource.data.consumerId == resource.data.consumerId
+          && request.resource.data.committedFarmerId == null
+          // Only allow clearing offer/commit fields + status
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'status',
+            'committedFarmerId',
+            'committedFarmerName',
+            'farmerOfferPrice',
+            'farmerOfferDisplay',
+            'farmerOfferUnit',
+            'farmerOfferOrganic',
+            'farmerAvailableUntil',
+            'farmerPhone',
+            'quotedAt',
+            'updatedAt'
+          ])
         )
         // ── Farmer advances status AFTER deal is closed (dispatch flow) ──
         // Price fields are LOCKED once deal_closed — prevents price manipulation

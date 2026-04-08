@@ -98,7 +98,11 @@ const LoginPage = () => {
 
       const userData = { uid: user.uid, ...userDocSnap.data() };
 
-      if (userData.status && userData.status !== 'active') {
+      const status = (userData.status || '').toString().trim().toLowerCase()
+      if (status === 'on_hold') {
+        throw new Error(t('account_on_hold'));
+      }
+      if (status && status !== 'active') {
         throw new Error(t('account_inactive'));
       }
 

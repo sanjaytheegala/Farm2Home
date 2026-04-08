@@ -56,7 +56,7 @@ const FarmerCropsList = () => {
         ...doc.data()
       }));
       
-      // Perform auto-deletion of items expired > 5 days (keep UI fresh)
+      // Filter out expired items (actual deletion happens via scheduled Cloud Function)
       const freshCrops = await cleanupStaleProducts(cropsData);
 
       setCrops(freshCrops);
