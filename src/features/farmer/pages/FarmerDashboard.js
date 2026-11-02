@@ -718,12 +718,30 @@ const FarmerDashboard = () => {
 
   const handleStateChange = (e) => { setSelectedState(e.target.value); setSelectedDistrict('') }
 
-  // Use dropdown values for priority matching so changing district re-sorts immediately
-  const filterDistrictDisplay = selectedDistrict ? fmt(selectedDistrict, t, i18n) : ''
-  const filterStateDisplay    = selectedState    ? fmt(selectedState, t, i18n)    : ''
+  // Use stable dropdown keys for priority matching.
+  // Matching against translated labels breaks in non-English UIs because demand locations are stored as raw text.
+  const filterDistrictKey = selectedDistrict ? normalizeLocKey(selectedDistrict) : ''
+  const filterStateKey    = selectedState    ? normalizeLocKey(selectedState)    : ''
 
-  const isDistrictMatch = (loc = '') => filterDistrictDisplay && loc.toLowerCase().includes(filterDistrictDisplay.toLowerCase())
-  const isStateMatch    = (loc = '') => filterStateDisplay    && loc.toLowerCase().includes(filterStateDisplay.toLowerCase())
+  const getLocTokens = (loc = '') => {
+    const raw = String(loc || '').trim()
+    if (!raw) return []
+    const parts = raw.split(',').map(p => normalizeLocKey(p)).filter(Boolean)
+    const whole = normalizeLocKey(raw)
+    return whole ? [...parts, whole] : parts
+  }
+
+  const isDistrictMatch = (loc = '') => {
+    if (!filterDistrictKey) return false
+    const tokens = getLocTokens(loc)
+    return tokens.includes(filterDistrictKey)
+  }
+
+  const isStateMatch = (loc = '') => {
+    if (!filterStateKey) return false
+    const tokens = getLocTokens(loc)
+    return tokens.includes(filterStateKey)
+  }
   const isLocationMatch = (loc = '') => isDistrictMatch(loc) || isStateMatch(loc)
 
   const filteredOpenDemands = openDemands.filter((d) => {
